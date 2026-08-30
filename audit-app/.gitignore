@@ -1,0 +1,8 @@
+# Backend
+backend/config.php
+
+# Frontend (Expo/React)
+frontend/node_modules/
+frontend/dist/
+frontend/.expo/
+*.log

@@ -1,0 +1,17 @@
+# Real credentials — never commit, anywhere in this repo
+config.php
+.env
+!.env.example
+!config.example.php
+
+# Dependencies / build artifacts
+node_modules/
+dist/
+.expo/
+*.tsbuildinfo
+
+# Editor/OS cruft
+.DS_Store
+*.swp
+*.swo
+*~

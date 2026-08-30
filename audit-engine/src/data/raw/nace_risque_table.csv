@@ -1,0 +1,127 @@
+code_NACE,code_EAC,Description,Code_QM_Qualite,SMQ_Risque,Code_OH_Securite,SMS_Risque,Code_EM_Environnement,SME_Complexite,broad_cat,Tooltip,Accred_COFRAC_ISO9001,Accred_COFRAC_ISO45001,Accred_COFRAC_ISO14001
+01,01,"Cultures, maraîchage, horticulture, élevage, services agricoles et d'élevage",1.1,M,OH10,M,EM2,M,A,,1,0,0
+01,01,"Chasse, piégeage, propagation du gibier et services connexes",1.2,M,OH10,M,EM2,M,A,,1,0,0
+02,01,"Sylviculture, exploitation forestière et services liés à l'exploitation forestière",1.3,M,OH10,M,EM2,M,A,,1,0,0
+05,01,"Pêche, écloserie, fermes piscicoles et activités annexes de services à la pêche ",1.4,M,OH10,M ou E,EM2,M,A,SMS : pêche en haute mer élevé,1,0,0
+10+12+13,02,"Extraction de minerais de houille, uranium, thorium, fer et métaux non ferreux ",2.1,M,OH3,E,EM3,E,B,,1,0,1
+10+12+13+14,02,"Extraction à ciel ouvert de houille, uranium, thorium, fer, métaux non ferreux, pierres, sable, argile, sel... ",2.2,M,OH3,E,EM3,E,B,,1,0,1
+11,02,"Extraction de pétrole brut, de gaz naturel et services annexes à l'extraction (arpentage exclu)",2.3,E,OH13,E,EM4,E,B,,1,0,1
+15,03,Fabrication de denrées alimentaires (boissons exclues),3.1,E,OH9,M,EM5,M,C,,1,0,1
+15,03,Fabrication de boissons,3.2,E,OH9,M,EM5,M,C,,1,0,1
+16,03,Fabrication de produits du tabac,3.3,E,OH9,M,EM5,M,C,,1,0,1
+17,04,"Préparation et filature de fibres textiles, tissage de textiles et finition des textiles",4.1,M,OH9,M,EM6,M,D,,1,0,1
+17,04,"Fabrication d'articles textiles confectionnés, de bonneterie, d'autres textiles (vêtements exclus)",4.2,F,OH9,M,EM6,M,D,,1,0,1
+18,04,Fabrication de vêtements en textile et en fourrure et d'articles en fourrure (vêtements en cuir exclus),4.3,F,OH9,M,EM6,M,D,,1,0,1
+18-19,05,"Fabrication de vêtements en cuir et d'articles en cuir (bagages, sacs à main, chaussures, harnais...) - tannage exclu",5.1,M,OH9,M,EM6,M,D,,0,0,1
+19,05,Tannage et apprêt du cuir,5.1,M,OH9,E,EM7,E,D,,0,0,1
+20,06,"Fab de charpenterie et menuiserie, de récipients et d'autres produits en bois, liège, paille et matières à tresser",6.1,M,OH8,M,EM1,F,E,,1,0,1
+20,06,"Sciage, rabotage du bois et imprégnation du bois - fab de feuilles de placage, de contreplaqué & d'autres panneaux",6.1,M,OH8,M,EM8,M,E,,1,0,1
+21,07,Fabrication de pâte à papier ,7.1,M,OH8,E,EM9,E,F,,1,0,1
+21,07,Fabrication de papier ou de carton (pâte à papier exclue),7.1,M,OH8,M,EM10,M,F,,1,0,1
+21,07,Fabrication d'articles en papier ou en carton,7.1,F,OH8,M,EM1,F,F,,1,0,1
+22,08,"Edition de produits imprimés : livres, journaux, magazines ",8.1,F,OH9,M,EM1,F,F,,1,0,0
+22,08,"Edition de produits sur supports enregistrés sonores, vidéos, informatiques",8.2,M,OH9,F ou M ou E,EM1,F,F,SMS : en fonction des activités menées,1,0,0
+22,09,Activités d'impression et de services liés à l'impression ,9.1,M,OH9,M,EM11,M,F,,1,0,1
+23,10,Fabrication de produits de fours à coke (charbon…),10.1,E,OH13,E,EM13,E,G,,1,0,1
+23,10,Fabrication de produits pétroliers raffinés,10.1,E,OH13,E,EM12,E,G,,1,0,1
+23,11,Traitement du combustible nucléaire,11.1,E,OH13,E,EM14,E,H,SME : cas spécial,0,0,0
+24,12,"Fabrication de produits chimiques, pesticides, peinture, vernis, encre, savon, détergent, parfums, explosifs...",12.1,E,OH4,E,EM15,E,G,,1,0,1
+24,13,"Fabrication de produits pharmaceutiques, de médicaments chimiques et de produits botaniques",13.1,E,OH4,E,EM15,E,G,,1,0,1
+25,14,Fabrication de produits en caoutchouc d'origine naturelle (fibre synthétique d'élastomère en QM 12.1 avec risque M),14.1,M,OH8,M,EM16,M,G,,1,0,1
+25,14,Fabrication de produits en plastique,14.2,M,OH8,M ou E,EM1,F,G,SMS : Elevé si fab des MP des plastiques et moyen pour le reste (injection…),1,0,1
+26,15,Fabrication de verre et d'articles en verre,15.1,M,OH2,M,EM18,M,B,,1,0,1
+26,15,Fab. produits céramiques non réfractaires autres que pour la construction - fab produits céramiques réfractaires,15.2,M,OH2,M,EM17,E,B,,1,0,1
+26,15,"Fabrication de briques, tuiles et produits de construction en terre cuite",15.2,M,OH2,M,EM18,M,B,,1,0,1
+26,16,Fabrication de ciment,16.1,M,OH2,E,EM17,E,B,,1,0,1
+26,16,Fabrication de chaux et de plâtre,16.1,M,OH2,M,EM18,M,B,,1,0,1
+26,16,"Fabrication d'ouvrages en béton, plâtre et ciment",16.2,M,OH2,M,EM18,M,B,,1,0,1
+26,16,"Taille, façonnage et finition de la pierre et fabrication d'autres produits minéraux non métalliques",16.3,M,OH2,M,EM18,M,B,,1,0,1
+27,17,"Fabrication de fer, d'acier de base et de ferro-alliages (métaux précieux et non ferreux exclus)",17.1,M,OH8,E,EM19,E,I,,1,0,1
+27,17,"Fabrication de tubes et d'autres produits de première transformation de fer, d'acier et de produits de ferro-alliage",17.2,M,OH8,E,EM1,F,I,,1,0,1
+27,17,"Fabrication de métaux précieux (or, argent…) et de métaux non ferreux (aluminium, plomb…) - coulée de métaux",17.3,M,OH8,E,EM19,E,I,,1,0,1
+28,17,"Fabrication de produits métalliques (réservoirs, outillage, coutellerie…) - mécanique générale",17.4,M,OH8,E,EM1,F,I,,1,0,1
+28,17,Fabrication de produits métalliques de seconde transformation avec traitement et revêtement du métal ,17.4,M,OH8,E,EM20,M,I,,1,0,1
+29,18,"Fabrication de machines, d'équipements, d'armes, de munitions et d'appareils électro-ménagers",18.1,M,OH8,M,EM1,F,K,,1,0,1
+30-32,19,"Fabrication de matériels électriques, informatiques et/ou électroniques, de piles (instruments exceptés)",19.1,M,OH9,M,EM1,F,J,,1,0,1
+32,19,Fabrication de valves et tubes électroniques et autres composants électroniques,19.1,M,OH9,M,EM21,M,J,,1,0,1
+33,19,"Fabrication d'instruments médicaux, de mesure, d'optique et d'horlogerie",19.2,M,OH9,M,EM1,F,J,,1,0,1
+35,20,Construction et réparation de navires et de bateaux,20.1,E,OH8,E,EM22,M,K,,0,0,0
+35,21,"Construction d'aéronefs et d'engins spatiaux (avions, fusées…)",21.1,E,OH8,E,EM22,M,K,,1,0,0
+34,22,"Construction de véhicules à moteur (autos, motos, bicyclettes) - fab de carrosseries, de pièces & accessoires ",22.1,E,OH8,M ou E,EM22,M,K,SMS : M pour construction auto+carrosserie+pièce détachées et accessoires - E pour le reste,1,0,1
+35,22,Construction de locomotives et de matériel roulant de chemin de fer et de tramway,22.2,E,OH8,E,EM22,M,K,,1,0,1
+35,22,"Fabrication d'autres matériels de transport (militaires, ambulances…)",22.3,E,OH8,E,EM22,M,K,,1,0,1
+36,23,Fabrication de meubles,23.1,M,OH9,M,EM1,F,E,,1,0,1
+36,23,"Fabrication d'autres produits non classés ailleurs (bijoux, instruments de musique, articles de sport, jouets…)",23.2,M,OH9,M,EM1,F,K,,1,0,1
+37,24,Recyclage de déchets et de débris métalliques et non métalliques,24.1,M,OH11,M,EM23,M,F,,1,0,1
+40,25,Production et distribution d'électricité (à base de charbon),25.1,M,OH5,E,EM24,E,M,,1,0,1
+40,25,Production et distribution d'électricité (à base d'autres sources que le charbon et le nucléaire),25.1,M,OH5,E,EM25,M,M,,1,0,1
+40,25,Production et distribution d'électricité (à base de combustible nucléaire),25.1,M,OH5,E,EM26,E,M,SME : cas spécial,1,0,1
+40,26,Production et distribution par un réseau de combustibles gazeux (extincteurs et bouteilles exclus car EAC12),26.1,M,OH5,E,EM27,M,M,,0,0,0
+40,27,Production et distribution de vapeur et d'eau chaude,27.1,E,OH6,M,EM28,M,M,,1,0,1
+41,27,"Collecte, purification et distribution d'eau",27.1,E,OH6,M,EM28,M,M,,1,0,1
+45,28,"Construction de bâtiments (y compris le terrassement, la démolition...) - location de matériel de const. avec opérateur",28.1,M ou E,OH1,E,EM29,E,N,SMQ : moyen pour la location et élevé pour le reste,1,0,1
+45,28,"Construction d'ouvrages de génie civil (y compris le terrassement, la démolition…)",28.2,E,OH1,E,EM29,E,N,,1,0,1
+45,28,"Installation et finitions des constructions et ouvrages (électricité, plomberie, peinture…)",28.3,M,OH1,E,EM1,F,N,,1,0,1
+50,29,"Vente/ commerce en gros & au détail de véhicules à moteur (autos, motos…), de pièces détachées et réparations",29.1,F ou M,OH7 ou 0H9,F ou M,EM1,F,O,"SMQ :  F pour vente de motos & pièces détachées et M pour le reste, SMS : F de OH7 pour la vente et M de OH9 pour les réparations",1,0,1
+50,29,Vente/ commerce au détail de carburants,29.1,F,OH7,E,EM30,M,O,,1,0,1
+51,29,"Vente/ commerce en gros de combustibles solides, liquides et gazeux et de produits connexes",29.2,F,OH7,E,EM30,M,O,,1,0,1
+51,29,"Vente/ commerce en gros d'autres produits (véhicules à moteur, pièces détachées et combustibles exclus)",29.2,F,OH7,M ou E,EM1,F,O,SMS : Elevé pour produits chimiques et moyen pour les autres produits,1,0,1
+52,29,Vente/ commerce au détail d'autres produits et réparations associées (véhicules et combustibles exclus) ,29.3,F,OH7,F,EM1,F,O,,1,0,1
+55,30,"Hôtels, campings et autres offres d'hébergement de courte durée ",30.1,F,OH15,F ou M ,EM1,F,O,SMS : Moyen pour hotel et F pour le reste,1,0,1
+55,30,"Restaurants, cantines, autre type de restauration (rapide...) et bars ",30.2,M,OH15,F,EM1,F,O,,1,0,1
+60,31,"Transport routier et ferroviaire de passagers (autocars, taxis, trains…)",31.1,M,OH7,M,EM33,M,P,,1,0,1
+61,31,"Transport maritime, côtier et par voies navigables de passagers",31.2,M,OH7,M,EM31,M,P,,1,0,1
+62,31,Transport aérien et spatial de passagers,31.3,M,OH7,M,EM32,M,P,,1,0,1
+60+63,31,"Transport routier & ferroviaire de marchandises, manutention et stockage",31.4,M,OH7,M ou E,EM33,M,P,SMS : Elevé si produits dangereux,1,0,1
+61+63,31,"Transport maritime, côtier et par voie navigable de marchandises, manutention et stockage",31.4,M,OH7,M ou E,EM31,M,P,SMS : Elevé si produits dangereux,1,0,1
+62+63,31,"Transport aérien et spatial de marchandises, manutention et stockage",31.4,M,OH7,M ou E,EM32,M,P,SMS : Elevé si produits dangereux,1,0,1
+63,31,"Autres activités annexes au transport (gare, port, aéroport, agence voyage, assistance touristique, transit…)",31.5,M,OH7,M,EM31/32/33/45,M ou L,P,"SME : M pour EM31/32/33 ou L pour EM45 d'agences de voyage, assistance touristique, de transit",1,0,1
+64,31,Activités postales et de messagerie,31.6,F,OH7,F,EM33,M,P,,1,0,1
+64,31,Télécommunication,31.7,M,OH7,F,EM45,L,NA,,1,0,1
+65,32,Intermédiaires financiers (banques…) (assurances et caisses de retraite exclues),32.1,M,OH15,F,EM34,E,Q,SME : cas spécial,1,0,1
+66,32,"Assurance-vie, assurance non-vie, financement des régimes de retraite/ fonds de pension (sécurité sociale exclue)",32.2,M,OH15,F,EM34,E,Q,SME : cas spécial,1,0,1
+67,32,"Activités auxiliaires des intermédiaires financiers et des assurances (agents en bourse, courtiers…)",32.3,M,OH15,F,EM34,E,Q,SME : cas spécial,1,0,1
+70,32,"Activités immobilières (promoteurs, agences…)",32.4,F,OH15,F,EM35,M,Q,,1,0,1
+71,32,"Location de véhicules, de machines, d'équipements, d'articles personnels et domestiques",32.5,F,OH15,F,EM1,F,Q,,1,0,1
+72,33,"Informatique : conseil en matériel, conseil et fourniture de logiciels, traitement de données, réparation…",33.1,M,OH15,F,EM45,L,J,,1,0,1
+73,34,"Recherche et développement expérimental en sciences naturelles, en génie, en sciences humaines…",34.1,M,OH15,F,EM45,L,R,,1,0,1
+74,34,"Architecture, ingéniérie et conseil technique connexe",34.2,M,OH15,F,EM45,L,N,,1,0,1
+74,34,Essais et analyses chimiques,34.2A,M,OH15,F,EM36,M,N,,1,0,1
+74,34,Essais et analyses électriques,34.2B,M,OH15,F,EM36,M,N,,1,0,1
+74,34,Essais et analyses agro-alimentaires,34.2C,M,OH15,F,EM36,M,N,,1,0,1
+74,34,Essais et analyses physiques,34.2D,M,OH15,F,EM36,M,N,,1,0,1
+74,35,Recrutement de main d'oeuvre et mise à disposition de personnel,35.1,M,OH15,F ou M ou E,EM45,L,R,SMS : en fonction des activités menées par le personnel,1,0,1
+74,35,Activités juridiques,35.2,M,OH15,F,EM45,L,R,,1,0,1
+74,35,"Activités comptables, audits comptable, conseil fiscal",35.3,M,OH15,F,EM45,L,R,,1,0,1
+74,35,"Etudes de marché, sondages d'opinions publiques, publicités",35.4,M,OH15,F,EM45,L,R,,1,0,1
+74,35,"Activités de conseil en management et en business, gestion de sociétés holding",35.5,M,OH15,F,EM45,L,R,,1,0,1
+74,35,Activités d'enquêtes et de sécurité,35.6,M,OH15,M,EM45,L,R,,1,0,1
+74,35,"Nettoyage industriel, spécialisé (ex blocs opératoires, avions, trains…) et non spécialisé",35.7,F,OH15,F ou M,EM37,M,R,SMS : Faible pour non spécialisé et M pour industriel et spécialisé,1,0,1
+74,35,Autres activités non classées ailleurs,35.7,F,OH15,F,EM45,L,R,,1,0,1
+75,36,Administration et politiques économiqes et sociales des collectivités locales (dont la sécurité sociale),36.1,M,OH15,F ou M ou E,EM38,E,R,"SMS : en fonction des activités menées, SME : cas spécial",1,0,0
+75,36,Administration et politiques économiques et sociales de l'état (dont la sécurité sociale),36.1,M,OH15,F ou M ou E,EM39,E,R,"SMS : en fonction des activités menées, SME : cas spécial",1,0,0
+75,36,Prestations de services aux collectivités,36.1,M,OH12,F ou M ou E,EM38,E,R,"SMS : en fonction des activités menées, SME : cas spécial",1,0,0
+75,36,Prestations de service à l'état,36.1,M,OH12,F ou M ou E,EM39,E,R,"SMS : en fonction des activités menées, SME : cas spécial",1,0,0
+80,37,Enseignement primaire et secondaire,37.1,M,OH15,F ou M ou E,EM45,L,NA,SMS : en fonction des activités menées,1,0,0
+80,37,Enseignement supérieur,37.2,M,OH15,F ou M ou E,EM45,L,NA,SMS : en fonction des activités menées,1,0,0
+80,37,Formation des adultes et autres formations non classés ailleurs (conduite…),37.3,M,OH15,F ou M ou E,EM45,L,NA,SMS : en fonction des activités menées,1,0,0
+85,38,"Activités liées à la santé humaine (services hospitaliers/médicaux/para-médicaux, ambulances, radios, stérilisation…)",38.1,E,OH14,E,EM40,M,S,,1,0,0
+85,38,"Activités de travail social avec hébergement (centres de convalescence, maisons de retraite, orphelinats…)",38.2,M,OH14,E,EM40,M,S,,1,0,0
+85,38,"Activités de travail social sans hébergement (assistance sociale, crèches…)",38.3,M,OH14,E,EM40,M,S,,1,0,0
+85,38,"Activités vétérinaires et activités associées (nettoyage, réparation des locaux et équipements…)",38.4,E,OH14,E,EM40,M,S,,1,0,0
+90,39,Collecte et traitement de déchets - dépollution des sols et nappes phréatiques (eaux usées exclues),39.1,M,OH11,E,EM41,E,B,,1,0,1
+90,39,Collecte et traitement des eaux usées,39.1,M,OH11,E,EM42,E,B,,1,0,1
+91,39,"Activités des organisations associatives et des syndicats (professionnels, politiques, religieux…)",39.2,F,OH14,M,EM45,L,NA,,1,0,1
+92,39,"Activités cinématographiques, de video, de radio et de télévision",39.3,F,OH14,M,EM45,L,R,,1,0,1
+92,39,"Création et interprétation artistiques et littéraires - exploitation d'installations artistiques (musée, bibliothèque…)",39.4,F,OH14,M,EM45,L,R,,1,0,1
+92,39,"Activités de foires, parcs d'attraction et autres activités de divertissement (zoos, jardins, parcs naturels…)",39.5,F,OH14,M,EM43,M,R,,1,0,1
+92,39,"Activités des agences de presse (articles & reportages pour des éditeurs, la radio, la télévision, internet)",39.6,M,OH14,M,EM45,L,NA,,1,0,1
+92,39,Activités liées au sport,39.7,F,OH14,M,EM43,M,R,,1,0,1
+92,39,"Autres activités récréatives (jeux, paris, casinos, discothèques…) et services connexes",39.8,F,OH14,M,EM45,L,R,,1,0,1
+93,39,Lavage et nettoyage à sec des produits textiles et des fourrnures,39.9,F,OH15,M,EM37,M,N,,1,0,1
+93,39,Coiffure et autres soins de beauté,39.10,F,OH15,F,EM45,L,R,,1,0,1
+93,39,"Activités funéraires et activités connexes (crematorium, cimetière…)",39.11,F,OH15,F,EM43,M,R,,1,0,1
+93,39,Activités liées au bien-être physique (thalassothérapie…),38.1,F,OH15,F,EM45,L,R,,1,0,0
+95,39,Ménage privé par du personnel employé,39.12,F,OH14,E,EM45,L,R,,1,0,1
+99,39,"Organisations et activités d'organismes extra-territoriaux (bases militaires, consulats à l'étranger…)",39.12,F,OH14,L ou M ou E,EM45,L,NA,SMS : en fonction des activités menées,1,0,1
+93,39,Autres activités de services non classés ailleurs,39.12,F,OH15,F,EM45,L,NA,,1,0,1

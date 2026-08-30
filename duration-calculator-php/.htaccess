@@ -1,0 +1,27 @@
+# This app lives in one folder for simplicity, but that means backend
+# source sits alongside the public frontend. PHP files (.php) are safe --
+# Apache executes them rather than serving their source. These aren't:
+# - .sql (raw schema) and .csv (raw source data) would otherwise be
+#   directly downloadable.
+# - Backup/editor-swap files are a well-known real vulnerability class:
+#   many editors leave config.php~, config.php.bak, config.php.save, or
+#   .swp files behind, and none of those extensions get handed to the PHP
+#   interpreter -- Apache would serve them as plain text, exposing the
+#   real DB credentials inside. Blocked here even though we don't
+#   intentionally create these, since a text editor or a careless "cp
+#   config.php config.php.bak" on the server could.
+<FilesMatch "\.(sql|csv|bak|old|orig|save|swp|swo)$|~$">
+    Require all denied
+</FilesMatch>
+
+RewriteEngine On
+RewriteRule ^db/ - [F,L]
+RewriteRule ^data/raw/ - [F,L]
+
+# Baseline security headers -- defense in depth, not a substitute for
+# fixing anything upstream, but cheap and standard practice.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
