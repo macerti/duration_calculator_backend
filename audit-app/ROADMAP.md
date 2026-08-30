@@ -1,6 +1,29 @@
 # Roadmap — audit-app
 
 ## Requested, not yet built
+- [x] ~~Persistent wizard state (auto-save on create + continuous save +
+      full hydration on reopen)~~ — done in 5.0.0, verified live
+- [x] ~~Synergy: checkbox-derived Basique/Élevé + auditor×standard
+      matrix~~ — done in 5.0.0, built after re-verifying against the spec
+- [x] ~~Per-line factor percent editing~~ — done in 5.0.0
+- [x] ~~Live running factor totals with cap-exceeded display~~ — done in
+      5.0.0
+- [x] ~~Unlimited justified "Autre" entries~~ — done in 5.0.0
+- [x] ~~Per-standard risk override~~ — done in 5.0.0
+- [x] ~~Sub-tabs per standard (Facteurs, Synthèse)~~ — done in 5.0.0
+- [x] ~~Rename Récap → Synthèse~~ — done in 5.0.0
+- [x] ~~Site/Siège labeling (fixed label + editable name + address +
+      auto-renumbering + building icon)~~ — done in 5.0.0
+- [x] ~~NACE search by technical code (Code_QM_Qualite/OH/EM)~~ — done in
+      5.0.0
+- [x] ~~Browse-all-sectors checkbox modal~~ — done in 5.0.0
+- [x] ~~Client delete cascades to its calculations~~ — done in 5.0.0
+      (explicit reversal of the 4.0.0 SET-NULL decision, see decisions log)
+- [x] ~~Home breadcrumb missing on clients list / client detail~~ — done
+      in 5.0.0
+- [x] ~~Sampling toggle rule re-verification~~ — done in 5.0.0, confirmed
+      correct as already built, no change needed
+
 - [x] ~~Design token system (semantic UI tokens)~~ — done in 4.1.0
       (`src/theme/tokens.ts`), adopted in shared components only — see
       "Design token migration" below for the rest
@@ -101,7 +124,14 @@
 
 ## Ideas / not yet requested (parked)
 - Parameter admin UI (edit factor catalogue / IAF tables from a browser
-  instead of editing PHP source + reseeding)
+  instead of editing PHP source + reseeding). Should also include: **dossier
+  reference codification** — let the admin configure a numbering scheme
+  (prefix and/or suffix, an incremental counter, and date-based components)
+  so a new calculation's reference is generated automatically from that
+  scheme rather than typed freehand each time. The generated value is what
+  shows as "the calculation's number" throughout the app (client detail
+  list, breadcrumbs, the report) — same role `dossierRef` already plays,
+  just auto-populated from a configurable pattern instead of manual entry.
 - Client-level notes/history beyond calculations (still not a CRM)
 - Build the same `frontend/` as an actual installable iOS/Android app via EAS
   Build
@@ -130,3 +160,19 @@
   parked on the roadmap, not built now, per direct instruction — the
   underlying data (full input/result JSON, rounding overrides) is already
   persisted, so reconstruction is possible even without a dedicated view.
+- 2026-08-30: **Reversed** the 2026-08-20/4.0.0 decision that client delete
+  orphans calculations (`SET NULL`) — now cascades (`CASCADE`), deleting a
+  client deletes its calculations too, per explicit instruction. Risk level
+  auto-resolution (previous line) is unaffected — this is purely about
+  what happens on client deletion.
+- 2026-08-30: Risk level auto-resolution now has an explicit per-calculation
+  override — the auto-resolved value is still the default and still shown,
+  but can be changed for one specific calculation without touching the
+  underlying sector data.
+- 2026-08-30: Two GitHub repos track this project: `duration_calculator`
+  (deploy artifact — what's actually uploaded to hosting) and
+  `duration_calculator_backend` (all source — every project this effort has
+  produced). An existing CI/CD workflow in the deploy repo (FTP deploy on
+  push, PHP tests gating it, GitHub Secrets for credentials) was found
+  already in place, inspected for safety, and preserved rather than
+  overwritten.

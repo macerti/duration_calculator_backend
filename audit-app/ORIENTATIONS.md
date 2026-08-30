@@ -178,16 +178,16 @@ change, not color alone; disabled buttons get both a token-driven color
 *and* reduced opacity). Extend this habit to new interactive states rather
 than reintroducing color-only signaling.
 
-**Current status**: `tokens.ts` exists and is fully adopted in the small
-shared components (`Toast`, `RoundingStepper`, `Breadcrumbs`, `StepTabs`,
-`StatusPill`). The larger screens (`HomeScreen`, `ClientsListScreen`,
-`ClientDetailScreen`, `CalculationWizardScreen`, `CalculationReportScreen`)
-and the remaining form components (`NumberField`, `SegmentedPicker`,
-`DualSectorPicker`, `FactorPicker`, `StandardConfigPanel`, `SynergyPanel`,
-`PersonnelForm`, `ErrorBoundary`) still have their original hardcoded
-values — tracked as a migration item in `ROADMAP.md`, not attempted all at
-once given the size (roughly 180 hardcoded color references across the
-codebase at the time this was written). Any of these files touched for an
+**Current status**: `tokens.ts` exists and is adopted in the small shared
+components (`Toast`, `RoundingStepper`, `Breadcrumbs`, `StepTabs`,
+`StatusPill`, `SegmentedPicker`) and, as of 5.0.0, the components rewritten
+for that release (`DualSectorPicker`, `FactorPicker`, `AutreFactorList`,
+`StandardConfigPanel`, `SynergyPanel`, `CalculationWizardScreen`) — adopted
+opportunistically because those files were being touched anyway, exactly
+the intended pattern. Still not migrated: `HomeScreen`, `ClientsListScreen`,
+`ClientDetailScreen`, `CalculationReportScreen`, `NumberField`,
+`PersonnelForm`, `ErrorBoundary` — tracked as a migration item in
+`ROADMAP.md`, not attempted all at once. Any of these files touched for an
 unrelated change should have their colors migrated to tokens in the same
 pass, opportunistically, rather than waiting for a dedicated migration pass
 that may never come.

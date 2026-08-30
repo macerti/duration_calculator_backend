@@ -131,8 +131,8 @@ export interface SitePersonnelInput {
 export interface SiteStandardFactorSelection {
   standard: StandardCode;
   ticked: { index: number; valuePercent: number }[]; // per-line values, sign per direction
-  autreAugmentation?: { label: string; valuePercent: number };
-  autreReduction?: { label: string; valuePercent: number };
+  autresAugmentation?: { label: string; valuePercent: number }[];
+  autresReduction?: { label: string; valuePercent: number }[];
   justificationText: string; // mandatory
   overridePercent?: number; // manual override of the aggregate %
 }

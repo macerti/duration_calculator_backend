@@ -346,11 +346,37 @@
   as a standing hazard specific to this codebase, not a one-off.
 - **Fixed in**: 4.0.0 (caught and corrected before delivery)
 
+### BUG-015 — Misleading test result from a died-and-restarted local server
+- **Detected**: Self-caught, immediately — starting a local test server
+  *without* the usual router script (by mistake) still returned a correct
+  `/api/health` response, which looked like PHP's built-in server was doing
+  routing it doesn't actually do. Investigating further (checking for a
+  stale process, testing a route that couldn't possibly resolve) showed the
+  server had simply died between tool calls — the same sandbox
+  process-lifetime pattern logged as BUG-004/BUG-007 — and the "successful"
+  response was from a moment the server was still alive within that same
+  combined command, not from any real routing behavior.
+- **Cause**: not a bug in the shipped app at all — a momentary
+  misinterpretation of a test result caused by this sandbox's process
+  lifetime constraint, the same one already logged twice before.
+- **Fix**: none needed in the app. Re-ran the same test with the verified
+  router script and an explicit check against a genuinely nonexistent route
+  (correctly 404'd) before trusting any further results this round.
+- **Why this is worth logging even though nothing was wrong**: it's a
+  concrete example of the exact failure mode `ORIENTATIONS.md`'s testing
+  standard exists to prevent — "looks right" isn't the same as "verified
+  right," and this could easily have been accepted as a passing result
+  without the extra check. Recorded so the next time something "just
+  works" unexpectedly in this sandbox, the first instinct is suspicion, not
+  relief.
+- **Fixed in**: 5.0.0 (process note only — no shipped code was affected)
+
 ---
 
 ## Open / not yet hit
 _(first real deploy to the actual DirectAdmin host is still next. Also open:
 empirical confirmation of BUG-010's fix, and visual confirmation of the
-report screen, the shake animation, and the undo toast's progress bar in an
-actual browser — all blocked on tooling availability in this sandbox, not
-skipped by choice, see ROADMAP.md)_
+report screen, the shake animation, the undo toast's progress bar, the new
+site/siège labeling, and the synergy matrix UI in an actual browser — all
+blocked on tooling availability in this sandbox, not skipped by choice, see
+ROADMAP.md)_

@@ -97,12 +97,16 @@ export default function CalculationReportScreen({ route }: Props) {
 
               {siteResult.standards.map((std: any) => {
                 const wizardCfg = wizardSite?.standardConfigs[std.standard];
+                const autoRisk = wizardSite ? resolveMostCriticalRisk(wizardSite.sectors, std.standard) : null;
+                const effectiveRisk = wizardCfg?.riskOverride ?? autoRisk;
                 return (
                   <View key={std.standard}>
                     <Section title={`${std.standard} — Risque et base de calcul`}>
                       <Text style={styles.line}>
-                        Niveau de risque retenu :{" "}
-                        <Text style={styles.bold}>{(wizardSite ? resolveMostCriticalRisk(wizardSite.sectors, std.standard) : null) ?? "—"}</Text>
+                        Niveau de risque retenu : <Text style={styles.bold}>{effectiveRisk ?? "—"}</Text>
+                        {wizardCfg?.riskOverride && autoRisk && wizardCfg.riskOverride !== autoRisk
+                          ? ` (auto-résolu : ${autoRisk}, modifié manuellement pour ce calcul)`
+                          : ""}
                       </Text>
                       <Text style={styles.formulaLine}>
                         Durée de base IAF (NAE={siteResult.nae.totalNae}) : {std.baseDuration.days} j
@@ -122,7 +126,7 @@ export default function CalculationReportScreen({ route }: Props) {
                     <Section title={`${std.standard} — Facteurs d'augmentation / réduction`}>
                       {wizardCfg && wizardCfg.augmentation.ticked.length > 0 && (
                         <>
-                          <Text style={styles.subheading}>Augmentations :</Text>
+                          <Text style={styles.subheading}>Augmentations (catalogue) :</Text>
                           {wizardCfg.augmentation.ticked.map((t: any) => (
                             <Text key={t.index} style={styles.line}>
                               • {factorLabel(std.standard, "augmentation", t.index)} : +{t.valuePercent}%
@@ -132,7 +136,7 @@ export default function CalculationReportScreen({ route }: Props) {
                       )}
                       {wizardCfg && wizardCfg.reduction.ticked.length > 0 && (
                         <>
-                          <Text style={styles.subheading}>Réductions :</Text>
+                          <Text style={styles.subheading}>Réductions (catalogue) :</Text>
                           {wizardCfg.reduction.ticked.map((t: any) => (
                             <Text key={t.index} style={styles.line}>
                               • {factorLabel(std.standard, "reduction", t.index)} : {t.valuePercent}%
@@ -140,12 +144,33 @@ export default function CalculationReportScreen({ route }: Props) {
                           ))}
                         </>
                       )}
+                      {wizardCfg && wizardCfg.justificationText.trim() !== "" && (
+                        <Text style={styles.line}>Justification (catalogue) : {wizardCfg.justificationText}</Text>
+                      )}
+                      {wizardCfg && wizardCfg.autresAugmentation.length > 0 && (
+                        <>
+                          <Text style={styles.subheading}>Autres augmentations :</Text>
+                          {wizardCfg.autresAugmentation.map((a: any, i: number) => (
+                            <Text key={i} style={styles.line}>
+                              • {a.label || "Autre"} : +{a.valuePercent || 0}% — justification : {a.justification?.trim() || "— non renseignée —"}
+                            </Text>
+                          ))}
+                        </>
+                      )}
+                      {wizardCfg && wizardCfg.autresReduction.length > 0 && (
+                        <>
+                          <Text style={styles.subheading}>Autres réductions :</Text>
+                          {wizardCfg.autresReduction.map((a: any, i: number) => (
+                            <Text key={i} style={styles.line}>
+                              • {a.label || "Autre"} : -{Math.abs(Number(a.valuePercent) || 0)}% — justification :{" "}
+                              {a.justification?.trim() || "— non renseignée —"}
+                            </Text>
+                          ))}
+                        </>
+                      )}
                       <Text style={styles.line}>
                         Total appliqué : {std.factorResult.finalPercent > 0 ? "+" : ""}
                         {std.factorResult.finalPercent}%{std.factorResult.capsBreached ? " (plafonné)" : ""}
-                      </Text>
-                      <Text style={styles.line}>
-                        Justification : {wizardCfg?.justificationText?.trim() ? wizardCfg.justificationText : "— non renseignée —"}
                       </Text>
                       <Text style={styles.formulaLine}>
                         {std.iafCalculated.toFixed(3)} × (1 {std.factorResult.finalPercent >= 0 ? "+" : "-"}{" "}

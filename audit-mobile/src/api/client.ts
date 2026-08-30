@@ -66,21 +66,32 @@ export const api = {
   calculateCase: (input: CalculationCaseInput) =>
     request<any>("/calculate", { method: "POST", body: JSON.stringify(input) }),
 
-  saveCase: (input: CalculationCaseInput & { clientId?: number; status?: string }) =>
+  saveCase: (input: CalculationCaseInput & { clientId?: number; status?: string; wizardState?: unknown }) =>
     request<{ id: number; result: any }>("/cases", { method: "POST", body: JSON.stringify(input) }),
 
-  updateCase: (id: number, input: CalculationCaseInput, status?: string, roundingOverrides?: Record<string, number>) =>
+  updateCase: (
+    id: number,
+    input: CalculationCaseInput,
+    status?: string,
+    roundingOverrides?: Record<string, number>,
+    wizardState?: unknown
+  ) =>
     request<{ id: number; result: any }>(`/cases/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ input, status, roundingOverrides }),
+      body: JSON.stringify({ input, status, roundingOverrides, wizardState }),
     }),
 
   listCases: () => request<CaseSummary[]>("/cases"),
 
   getCase: (id: number) =>
-    request<{ input: CalculationCaseInput; result: any; clientId: number | null; status: string; roundingOverrides: Record<string, number> | null }>(
-      `/cases/${id}`
-    ),
+    request<{
+      input: CalculationCaseInput;
+      result: any;
+      clientId: number | null;
+      status: string;
+      roundingOverrides: Record<string, number> | null;
+      wizardState: unknown | null;
+    }>(`/cases/${id}`),
 
   // --- Clients ---
   createClient: (name: string) => request<{ id: number; name: string }>("/clients", { method: "POST", body: JSON.stringify({ name }) }),

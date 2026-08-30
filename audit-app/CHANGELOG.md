@@ -4,6 +4,145 @@ Same versioning convention as the other projects: **x** = overhaul, **y** = feat
 
 ---
 
+## [5.0.0] — 2026-08-30
+
+### 5.0.0 — Persistent wizard state, real synergy input, per-calculation factor control
+Major overhaul: calculations now auto-save from the moment they're created
+and continuously as they're edited, with full editable-state hydration on
+reopen — closing the biggest known gap from earlier versions. Synergy input
+redesigned to match the spec exactly (checkbox-derived level, real
+auditor×standard matrix) rather than a manual dropdown guess. Several
+concrete UX fixes plus one explicit business-rule reversal.
+
+**Verified against the source spec before building, not guessed**
+- Re-read `GS0106_Audit_Duration_Rules.md` before touching synergy or the
+  sampling toggles. Confirmed: integration level (Basique/Élevé) is
+  self-assessed against 4 specific criteria (3 for Basique, +1 more for
+  Élevé) — not picked directly from a list. Confirmed: the auditor
+  capability input is genuinely a matrix (up to 7 auditors × up to 6
+  standards, marking which each auditor is qualified on). Confirmed: the
+  per-site "échantillonnée année 2/3" toggles are correctly a manual
+  decision already — nothing was wrong there, verification only.
+
+**Persistent wizard state — the big one**
+- New `wizard_state_json` column stores the full editable wizard state
+  (sites, sectors, personnel, every factor selection, synergy config)
+  separately from the engine-computed input/result, since resolved risk
+  levels and factor totals don't carry enough information to reconstruct
+  which sectors were picked or which catalogue items were ticked.
+- A calculation is now saved as a draft **the moment "+ Nouveau calcul" is
+  tapped** — before any real data exists — and every subsequent change
+  (debounced ~1.2s) saves automatically. Reopening a saved calculation now
+  **fully restores every wizard step**, not just the last computed result —
+  closes the "known limitation" flagged in every changelog since 2.0.0.
+- Verified live end-to-end against a real database: created a client,
+  created a draft via the same call shape the wizard makes, confirmed the
+  full `wizardState` (site name, sector, personnel) round-trips exactly on
+  reopen, matching what was sent.
+
+**Synergy — rebuilt to match the spec, not a UI guess**
+- Removed the manual Élevé/Basique/Non-applicable dropdown. Replaced with 4
+  checkboxes for the actual self-assessment criteria; the app derives the
+  resulting level from what's checked.
+- Replaced the single "how many standards is this auditor qualified on"
+  number input with the real matrix the spec describes: rows are auditors,
+  columns are the site's active standards, each cell a qualification
+  checkbox — the count the engine needs is derived by counting checked
+  cells per row, not typed in directly.
+- Verified live via the full API with 2 standards and a 2-auditor matrix:
+  `capacity = 1/(2×1) × 100 = 50%` → `-10%` for "Élevé", applied
+  identically to both standards, exactly matching the hand-verified formula
+  from the previous round.
+
+**Factors step**
+- Every ticked catalogue factor's percentage is now editable per line, for
+  *this calculation only* — never changing the shared catalogue.
+- Live running augmentation/reduction totals shown as you tick, with a
+  clear (not blocking) indicator when a total exceeds the aggregate cap —
+  the engine still enforces the cap in the actual calculation; this is
+  purely so the person can see it happening as they work.
+- Unlimited "Autre" (augmentation and réduction) entries, each with its own
+  label, percentage, **and dedicated justification** — was one shared slot
+  per direction before. Verified live: 3 entries (+4%, +3%, −6%) correctly
+  summed to a net +1%.
+- Risk level per standard is now overridable for this specific calculation
+  — the auto-resolved value from the site's sector(s) is still shown and
+  used by default, but can be changed without touching the sector data.
+- Confirmed (direct engine test, not assumed): factors have always been
+  scoped per-site-*per-standard* — ticking a factor for one standard never
+  touches another standard's selections. Whatever looked otherwise in
+  earlier testing was very likely the stale-closure bug fixed in 3.0.0.
+- Sub-tabs added for sites with 2+ active standards, so each standard's
+  full configuration doesn't have to be scrolled through in one long list.
+  Synergy stays above the sub-tabs (it's a site-level input, not
+  per-standard) — matches how the spec itself scopes it.
+
+**Synthèse (renamed from Récap)**
+- Same per-standard sub-tab treatment as Facteurs, with site-level info
+  (name, NAE breakdown, sectors) shown once above the tabs rather than
+  repeated per standard.
+- Each duration line's small gray "suggestion" hint (nearest clean
+  quarter-day, added last round) is unchanged — still a suggestion only.
+
+**Site & Siège labeling**
+- The HQ now shows a fixed "Siège" label (with a building icon) ahead of an
+  editable name field pre-filled with the client's own name — keep it or
+  change it. Regular sites show a fixed, auto-numbered "Site 01"/"Site
+  02"/... label the same way, renumbering automatically when a site is
+  removed (never a stored, staleable number). Both got an optional address
+  field.
+
+**Search**
+- NACE search now also matches the three per-standard technical reference
+  codes (Code_QM_Qualite, Code_OH_Securite, Code_EM_Environnement) — e.g.
+  "14.2" now finds the sector it belongs to. Verified against real data.
+- Added a "browse full list" button next to the search field — a modal
+  listing every sector with checkboxes, for finding one without needing to
+  know what to type.
+
+**Explicit decision reversal: client delete now cascades**
+- 4.0.0 shipped `ON DELETE SET NULL` (deleting a client orphaned its
+  calculations rather than destroying them) as a deliberate choice.
+  Reversed this round, per direct instruction: deleting a client now
+  deletes its calculations too. `schema.sql`'s migration re-points the FK
+  to `CASCADE` regardless of which earlier state it's in. Verified live:
+  deleted a client with an existing calculation, confirmed the calculation
+  was genuinely gone afterward (not orphaned, no error).
+
+**Navigation**
+- "Accueil" added as the leading breadcrumb on the clients list and client
+  detail screens — previously only the wizard had a way back to Home from
+  a breadcrumb-style control.
+
+**Repository / process**
+- Two GitHub repositories now track this project going forward:
+  `duration_calculator` (the deployable artifact — what actually gets
+  uploaded to hosting) and `duration_calculator_backend` (all source:
+  every project this whole effort produced, frontend and backend and the
+  Node/TS and two-folder-PHP reference versions).
+- Found an existing, well-built CI/CD workflow already in the deploy repo
+  (FTP deploy on push to main, using GitHub Secrets for credentials, PHP
+  smoke tests gating deployment, explicit `config.php` exclusion) that
+  wasn't created this session — inspected it in full before doing anything
+  with it (never trust an unreviewed GitHub Actions workflow), confirmed it
+  was safe and well-designed, and merged this round's changes on top
+  without disturbing it.
+- No real credentials committed to either repository — caught and removed
+  two accidental credential-file copies (`audit-engine/.env`,
+  `audit-app/backend/config.php`) before the initial commit, verified clean
+  with an exhaustive grep for the real DB password afterward.
+
+**Verified**
+- PHP: 24/24 tests pass, synced identically across both PHP projects
+- Typechecks clean, bundles clean for web (534 modules)
+- Full live-database round-trip covering every major feature in this
+  release together: client creation, draft auto-save with wizardState,
+  hydration on reopen, synergy through the full calculate endpoint,
+  multi-Autre summation, and cascade delete — all confirmed working against
+  a real MariaDB instance at the real deployment path depth
+
+---
+
 ## [4.1.0] — 2026-08-23
 
 ### 4.1.0 — Design system, security hardening, testing infrastructure

@@ -11,8 +11,16 @@ function calculateAggregateFactor(array $selection, array $caps): array
     $augTotal = array_sum(array_map(fn($t) => $t['valuePercent'], array_filter($ticked, fn($t) => $t['valuePercent'] > 0)));
     $redTotal = array_sum(array_map(fn($t) => $t['valuePercent'], array_filter($ticked, fn($t) => $t['valuePercent'] < 0)));
 
-    if (!empty($selection['autreAugmentation'])) $augTotal += $selection['autreAugmentation']['valuePercent'];
-    if (!empty($selection['autreReduction'])) $redTotal += $selection['autreReduction']['valuePercent'];
+    if (!empty($selection['autresAugmentation'])) {
+        foreach ($selection['autresAugmentation'] as $autre) {
+            $augTotal += $autre['valuePercent'];
+        }
+    }
+    if (!empty($selection['autresReduction'])) {
+        foreach ($selection['autresReduction'] as $autre) {
+            $redTotal += $autre['valuePercent'];
+        }
+    }
 
     $augCapped = $augTotal;
     $redCapped = $redTotal;

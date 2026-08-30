@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Pressable, TextInput, Modal, ActivityIndicator, RefreshControl, Animated } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { CommonActions } from "@react-navigation/native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { RootStackParamList } from "../../App";
 import { api, ApiError } from "../api/client";
 import { Client } from "../types/engine";
 import { useToast } from "../components/Toast";
 import ResponsiveContainer from "../components/ResponsiveContainer";
+import Breadcrumbs from "../components/Breadcrumbs";
 import { useBreakpoint } from "../hooks/useBreakpoint";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ClientsList">;
@@ -97,6 +99,9 @@ export default function ClientsListScreen({ navigation }: Props) {
   return (
     <ResponsiveContainer>
       <View style={styles.container}>
+        <Breadcrumbs
+          items={[{ label: "Accueil", onPress: () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Home" }] })) }, { label: "Clients" }]}
+        />
         <View style={styles.header}>
           <Text style={styles.title}>Mes clients</Text>
           <Pressable style={styles.newButton} onPress={() => setModalOpen(true)}>
