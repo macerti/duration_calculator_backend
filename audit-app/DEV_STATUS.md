@@ -205,3 +205,45 @@ If a later developer disproves an earlier finding, append the new evidence rathe
 - New deployment-topology HTTP regression suite: added at duration-calculator-php/tests/http_api_test.php.
 - The workflow's MariaDB service and PHP built-in server are configured to test the same bare /nace/... and /cases/... API topology used by the deployable api/index.php.
 - Full CI execution remains pending because the required Actions secret is not installed through the available tool interface.
+
+
+### 2026-08-31 — CI architecture correction and MariaDB failure investigation
+
+**CURRENT AUTHORITATIVE STATE**
+- There is exactly one source-owned CI workflow: `.github/workflows/build-test-publish.yml`.
+- The previously duplicated `.github/workflows/backend-integration.yml` has been deleted.
+- The deployment repository's pre-existing FTP workflow `macerti/duration_calculator/.github/workflows/deploy.yml` remains untouched and is the only deployment-to-FTP mechanism.
+- The deployment-side build workflow previously created during the first implementation, `macerti/duration_calculator/.github/workflows/build-from-source.yml`, was removed. It must not be recreated.
+- Therefore: source repo = edit/test/build/publish authority; deploy repo = generated artifact + existing FTP deployment only.
+
+**CI DATABASE MODEL**
+- CI does NOT require the user's production MariaDB credentials.
+- GitHub Actions creates a disposable MariaDB 10.11 service container with CI-only credentials:
+  - database: `audit_test`
+  - user: `audit`
+  - password: `audit`
+  - root password: `root`
+- The workflow verifies MariaDB with the MariaDB client, then creates a temporary CI `config.php` with the same values and verifies the PHP/PDO connection before schema/seed/tests.
+- No database secret should be added merely to make this CI database work. Production credentials belong only on the hosting server.
+
+**WHAT FAILED AND WHY**
+- Multiple early CI runs failed in `Configure test database` with: `Could not connect to the database. Check config.php.`
+- The first attempted correction only substituted values into `config.example.php`; this was insufficient because the template/default connection assumptions did not reliably match the GitHub service environment.
+- The workflow was therefore changed to generate the complete CI `config.php` explicitly instead of mutating the example file.
+- A direct MariaDB client check and a PHP/PDO check were added before seed/tests so future failures identify the layer precisely.
+- The Node.js 20 annotation from `actions/checkout@v4` was a warning, not the cause of the database failure. Checkout and setup-node were moved to v5.
+
+**CI EXECUTION STATUS**
+- Commit `65fae75a2450883152d43e844a1712d7635b3d1a` contains the current CI configuration.
+- A run for that commit was observed entering the queue/in-progress state; its final result must be checked in GitHub Actions before this pipeline is declared green.
+- Earlier runs `33447260355` and `33447244917` failed before the corrected PDO verification could run.
+- Do not infer success from the workflow starting. A green conclusion is required.
+
+**BUG-004 TEST BOUNDARY**
+- The exact minimal wizard initial POST payload was already verified independently: POST /cases returned HTTP 201.
+- The frontend silent initial-save failure/retry behavior was changed in source, but the complete lifecycle is still not runtime-verified.
+- The new HTTP regression suite is intended to test: health/DB → NACE search → NACE code → POST draft → PUT case → GET persisted state → DELETE cleanup.
+- BUG-004 must remain open until that suite passes and the real wizard lifecycle is tested.
+
+**HAND-OFF RULE**
+Before touching CI again, inspect the latest workflow run and its first failing step. Do not re-test or rewrite the already-established disposable MariaDB model unless the service/client/PDO diagnostic itself fails.
