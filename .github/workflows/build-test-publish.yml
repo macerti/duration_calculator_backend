@@ -45,6 +45,12 @@ jobs:
 
       - name: Configure test database
         working-directory: duration-calculator-php
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_NAME: audit_test
+          DB_USER: root
+          DB_PASSWORD: root
         run: |
           cp config.example.php config.php
           php -r '$p="config.php"; $s=file_get_contents($p); $s=str_replace(["your_db_name","your_db_user","your_db_password"],["audit_test","root","root"],$s); file_put_contents($p,$s);'
