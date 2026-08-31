@@ -176,3 +176,32 @@ If a later developer disproves an earlier finding, append the new evidence rathe
 **IMPORTANT:** Do not claim the BUG-004 frontend fix is deployed. The deployment repository currently contains the previous generated web bundle until the Build deploy artifact from source workflow is run successfully.
 
 **NEXT REQUIRED HAND-OFF:** run the Build deploy artifact from source workflow in macerti/duration_calculator. Verify the generated _expo bundle changed, verify the deployment workflow passes, then record both the generated artifact commit and deployment run in this file. Only then can the frontend fix be called deployed.
+
+### 2026-08-31 — Source-owned build/test/publish pipeline
+
+**ARCHITECTURE DECISION — MANDATORY**
+- macerti/duration_calculator_backend is the only development/source repository.
+- macerti/duration_calculator is the generated deployment-artifact repository.
+- Developers edit only the source repository. They do not manually maintain the deploy repository.
+- The source repository now owns .github/workflows/build-test-publish.yml.
+- On push to main (and on manual dispatch), the workflow is intended to: run PHP + MariaDB tests against the actual duration-calculator-php/ deployment topology; run the frontend TypeScript check; build the Expo web artifact with the production API URL; assemble the deployable PHP tree; then publish the result to macerti/duration_calculator.
+- The existing macerti/duration_calculator/.github/workflows/deploy.yml is the user's pre-existing FTP deployment action. It is intentionally NOT modified by this source-build change. The source workflow only commits generated artifacts to that repository; the existing FTP action remains responsible for deployment.
+
+**AUTHENTICATION**
+- The source workflow expects repository secret DURATION_CALCULATOR_TOKEN.
+- The token must have only the minimum repository permission required to push to macerti/duration_calculator.
+- The token pasted into the conversation was NOT committed to source, workflow YAML, or deployment repository. The connected GitHub toolset does not expose an Actions-secret write operation, so the secret could not be installed automatically from this session.
+- The token was pasted in plaintext into the conversation; treat it as exposed and rotate/revoke it after installing a replacement secret. GitHub recommends storing credentials as Actions secrets rather than putting them in workflow files.
+
+**OBSOLETE WORK REMOVED**
+- Removed the previously added macerti/duration_calculator/.github/workflows/build-from-source.yml deployment-side build workflow.
+- This prevents two competing build mechanisms from existing.
+- No changes were made to the existing FTP deployment workflow.
+
+**CURRENT VERIFICATION STATUS**
+- Source-owned build workflow: committed, not yet executed successfully.
+- Deployment-side build workflow: removed.
+- PHP deployment projection: previously synchronized.
+- New deployment-topology HTTP regression suite: added at duration-calculator-php/tests/http_api_test.php.
+- The workflow's MariaDB service and PHP built-in server are configured to test the same bare /nace/... and /cases/... API topology used by the deployable api/index.php.
+- Full CI execution remains pending because the required Actions secret is not installed through the available tool interface.
