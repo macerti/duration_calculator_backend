@@ -290,3 +290,32 @@ checklist gets used.
 ## Mandatory source/deployment separation
 
 **SOURCE REPOSITORY RULE:** this repository is the source of truth and is never the deployable artifact. Every application change must be made here first, tested here, then built/packaged and published to **macerti/duration_calculator**. For PHP, the deployable tree is produced from duration-calculator-php/ (no compilation). For audit-mobile, the deployable frontend is the generated Expo web export; source-only frontend changes are not deployed until the generated artifact is published to duration_calculator. Never fix application behavior only in the deployment repository. Every hand-off must record the source commit and deployment-artifact commit, or explicitly state that deployment is pending. A task is not deployed until the corresponding artifact exists in duration_calculator and its deployment workflow has been run/passed where applicable.
+
+
+### 2026-08-31 — CI test pipeline hand-off
+
+**CI environment is disposable and self-contained**
+- MariaDB: 10.11 service container.
+- Database: `audit_test`.
+- CI user: `audit`.
+- CI credentials are defined inside the workflow solely for the disposable test service; they are not production credentials.
+- PHP is tested against the same `duration-calculator-php/` deployment topology used to assemble the deployment artifact.
+- The workflow performs separate MariaDB-client and PHP/PDO connectivity checks before schema import.
+
+**Required CI gate order**
+1. MariaDB service healthy.
+2. MariaDB client `SELECT 1` succeeds.
+3. PHP/PDO connection succeeds using generated CI config.
+4. Schema import succeeds.
+5. Seed succeeds.
+6. PHP engine smoke tests pass.
+7. PHP API starts and `/health` reports DB connected.
+8. HTTP regression tests pass, including NACE and POST/PUT/GET/DELETE case lifecycle.
+9. Frontend `npm ci` succeeds.
+10. TypeScript check succeeds.
+11. Expo web export succeeds.
+12. Deployment artifact structure validation succeeds.
+13. Artifact push to `macerti/duration_calculator` succeeds.
+14. Existing FTP workflow in deployment repo completes successfully.
+
+**Current status**: the corrected workflow has not yet completed all gates successfully. A developer picking this up must inspect the latest GitHub Actions run before repeating any individual test.
