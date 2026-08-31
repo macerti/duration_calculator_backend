@@ -90,7 +90,8 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [roundingOverrides, setRoundingOverrides] = useState<Record<string, number>>({});
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);\n  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
 
   const hydratedRef = useRef(false); // guards against autosave firing before initial load/create finishes
 
