@@ -275,3 +275,21 @@ Before touching CI again, inspect the latest workflow run and its first failing 
 - Real DirectAdmin/Apache-topology test of the NACE routes (only PHP built-in server was tested here, matching prior sessions' evidence boundary).
 
 **DEPENDENCY / HAND-OFF**: once a green Actions run is observed for the commit containing these two fixes, and the artifact appears in `macerti/duration_calculator` with the deploy repo's FTP workflow having run, update this file with the exact run URL/commit pair before calling deployment complete. Do not assume success from the workflow merely starting.
+
+### 2026-09-01 — CI confirmed green end-to-end on a real GitHub Actions run; one more bug found and fixed along the way (BUG-022)
+
+**WHAT HAPPENED**: the BUG-020/BUG-021 fixes were pushed, then a manual `workflow_dispatch` was used to actually observe a run (source commit `507095d`) rather than assuming the local reproduction generalized. It did not, fully: that run failed at a new step, "Verify MariaDB service", with exit code 127 (`mariadb`: command not found) — see BUG-022 in BUGLOG.md. The workflow never installed a MariaDB/MySQL client; it assumed the `mariadb` CLI was already on the runner's PATH, which is not true of the current `ubuntu-latest` image. This could not have been caught by local reproduction, since that reproduction necessarily ran on a machine where the client had already been installed manually.
+
+**FIX**: added an explicit `apt-get install -y mariadb-client` step before first use. Pushed as source commit `d16409e`.
+
+**CONFIRMED GREEN RUN**
+- Source commit: `d16409e`.
+- GitHub Actions run: `https://github.com/macerti/duration_calculator_backend/actions/runs/33449892835` (triggered by push) — **status: completed, conclusion: success, all 18 steps succeeded**, including MariaDB verify, DB config, schema/seed, PHP smoke tests, HTTP API regression suite, frontend typecheck, Expo web export, artifact assembly, and publish to the deploy repo.
+- Deployment artifact commit: `0f97d9e` in `macerti/duration_calculator`, authored by `github-actions[bot]`, message "build: publish artifact from duration_calculator_backend".
+- Deploy repo's own FTP workflow (`deploy.yml`) fired automatically on that commit and **also completed successfully**: `https://github.com/macerti/duration_calculator/actions` (run for commit `0f97d9e`, event `push`, conclusion `success`).
+
+**THEREFORE**: as of this commit, the full source → CI → build → publish → FTP-deploy chain is verified working end-to-end on real infrastructure, not merely locally reproduced. This is the first time this can be claimed with a real green run as evidence rather than a local approximation.
+
+**REMAINING OPEN ITEMS (unchanged by this work)**: authentication/rate limiting (SECURITY.md), input-bounds enforcement, browser/device visual confirmation of UI pieces, and a live health-check confirmation against the real DirectAdmin host (the FTP step's post-deploy health check is `continue-on-error: true` and informational only — its actual result for this deploy has not been separately confirmed here).
+
+**PROCESS LESSON FOR FUTURE CI CHANGES**: local reproduction (even a careful one against real MariaDB/PHP/Node) is necessary but not sufficient — it only found 2 of the 3 bugs that were blocking this pipeline. The third was only visible on the actual hosted runner. Always dispatch and observe at least one real run before declaring a CI fix complete.
