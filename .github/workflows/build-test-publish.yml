@@ -43,6 +43,11 @@ jobs:
           extensions: pdo_mysql,mbstring,curl
           coverage: none
 
+      - name: Install MariaDB client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mariadb-client
+
       - name: Verify MariaDB service
         run: |
           mariadb -h127.0.0.1 -P3306 -uaudit -paudit audit_test -e "SELECT 1"
