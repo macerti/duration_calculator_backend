@@ -382,6 +382,18 @@
 - **Not done**: the actual production-triggering condition is unknown; transient/cold-start/network/lifecycle causes remain possible. The PUT /cases/:id path used by Enregistrer has not yet been tested.
 - **Evidence level**: VERIFIED for the minimal POST test; OPEN for the production failure cause.
 
+### BUG-018 — Initial wizard draft-save failure was silently swallowed
+- **Detected / investigated**: 2026-08-31 as part of BUG-004.
+- **Original behavior**: the initial `POST /cases` failure was caught silently and `hydratedRef.current` was set to `true`, even when no case ID had been created. That could leave the wizard believing autosave was active while there was no persistent case to PUT.
+- **Important evidence**: the exact minimal wizard mount payload was independently sent to `POST /cases` and returned HTTP **201** with the expected calculation. Therefore payload shape is not the established production root cause.
+- **Fix applied**: `audit-mobile/src/screens/CalculationWizardScreen.tsx` now uses an explicit `createInitialDraft()` operation. Failure remains unsaved, does not mark the wizard hydrated, is shown to the user, and exposes a deterministic retry button. The normal Enregistrer action remains able to create the case when no ID exists.
+- **Deliberate non-fix**: no automatic POST retry was added because blindly retrying a POST after a lost response can create duplicate calculation cases. Proper automatic retry requires an idempotency key or equivalent server-side deduplication, which is outside this bug fix.
+- **Regression test added**: `audit-app/backend/tests/http_api_test.php` plus GitHub Actions workflow `.github/workflows/backend-integration.yml` for MariaDB + PHP HTTP integration and frontend TypeScript checking.
+- **Runtime verification**: **NOT YET VERIFIED** in this session. The available local runtime has PHP but no MariaDB/MySQL and no network access for dependency installation. The CI workflow was pushed but no workflow run is visible through the connected GitHub tool.
+- **Remaining BUG-004 work**: empirically test `PUT /cases/:id` and the complete wizard lifecycle. Do not mark BUG-004 fully fixed until those tests pass.
+- **Evidence level**: VERIFIED for the original minimal POST success; CODE CHANGED for the silent-failure fix; OPEN for runtime/CI verification and the original production trigger.
+
+
 ### BUG-017 — NACE routes return 404 under PHP built-in dev server; cause unclassified
 - **Detected**: 2026-08-31 while testing the NACE API routes.
 - **Test performed**: GET /nace/search?q=... and GET /nace/:code against PHP's built-in development server.
