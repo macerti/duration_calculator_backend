@@ -53,8 +53,10 @@ jobs:
           DB_PASSWORD: root
         run: |
           cp config.example.php config.php
-          php -r '$p="config.php"; $s=file_get_contents($p); $s=str_replace(["your_db_name","your_db_user","your_db_password"],["audit_test","root","root"],$s); file_put_contents($p,$s);'
-          mysql -h127.0.0.1 -uroot -proot audit_test < db/schema.sql
+          php -r '$p="config.php"; $s=file_get_contents($p); $s=str_replace(["your_db_name","your_db_user","your_db_password"],[getenv("DB_NAME"),getenv("DB_USER"),getenv("DB_PASSWORD")],$s); $s=str_replace("'host' => 'localhost'","'host' => '" . getenv("DB_HOST") . "'",$s); file_put_contents($p,$s);'
+          grep -nE "'(host|port|name|user|password)'[[:space:]]*=>" config.php
+          mysql -h127.0.0.1 -P3306 -uroot -proot -e "SELECT 1"
+          mysql -h127.0.0.1 -P3306 -uroot -proot audit_test < db/schema.sql
           php seed.php
 
       - name: Run PHP engine tests
