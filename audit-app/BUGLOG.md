@@ -373,6 +373,26 @@
 
 ---
 
+### BUG-016 — audit-mobile initial draft-save failure is not reproduced by the exact minimal POST payload
+- **Detected**: 2026-08-31 during investigation of BUG-004 (wizard save broken).
+- **Test performed**: fired the exact payload sent by the wizard on mount for a brand-new calculation directly at POST /cases, using an empty site, zero personnel, and default ISO9001 configuration.
+- **Observed**: HTTP **201** and a correctly returned calculation object.
+- **Conclusion**: the initial payload shape is **not itself a proven cause** of the production first-call failure. Do not repeat payload-schema investigation as if it were established root cause.
+- **Still real**: the initial draft-creation path has no retry, and the failure is silently swallowed by its .catch() handling. This robustness defect remains open regardless of the successful minimal test.
+- **Not done**: the actual production-triggering condition is unknown; transient/cold-start/network/lifecycle causes remain possible. The PUT /cases/:id path used by Enregistrer has not yet been tested.
+- **Evidence level**: VERIFIED for the minimal POST test; OPEN for the production failure cause.
+
+### BUG-017 — NACE routes return 404 under PHP built-in dev server; cause unclassified
+- **Detected**: 2026-08-31 while testing the NACE API routes.
+- **Test performed**: GET /nace/search?q=... and GET /nace/:code against PHP's built-in development server.
+- **Observed**: both returned **404 Not found**.
+- **Current hypothesis**: request-path stripping is dropping the nace segment.
+- **Investigation state**: a debug endpoint to expose SCRIPT_NAME and REQUEST_URI was being prepared, but the investigation stopped before it was completed. This is therefore not yet classified as a router regression.
+- **Not done**: no root cause confirmed; no code fix confirmed; no production Apache/DirectAdmin behavior tested for this finding.
+- **Required next evidence**: capture SCRIPT_NAME and REQUEST_URI, expose the derived path after stripping, compare a failing NACE route with a known-good route, and compare PHP built-in-server behavior with the intended Apache .htaccess topology.
+- **Dependency warning**: before changing shared routing, read BUG-003 and ORIENTATIONS.md; the two-folder audit-app/backend/public/index.php topology and the single-folder deployment router intentionally use different path conventions.
+- **Evidence level**: VERIFIED for the 404 observations; HYPOTHESIS for the path-stripping cause; OPEN for classification.
+
 ## Open / not yet hit
 _(first real deploy to the actual DirectAdmin host is still next. Also open:
 empirical confirmation of BUG-010's fix, and visual confirmation of the
