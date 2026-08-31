@@ -56,3 +56,22 @@
 _(none currently — will log here once tested against a live backend from a real
 device/simulator, which may surface CORS, network-permission, or env-var issues
 not visible from the web bundle check alone)_
+
+
+### 2026-08-31 — BUG-004 hand-off update: source CI is now the verification gate
+
+The frontend fix for the silent initial draft-save failure is already in source, but BUG-004 is **not fully closed**.
+
+- The exact minimal mount payload has been proven against POST /cases with HTTP 201. Do not treat payload shape as the established cause of the original production failure.
+- The frontend behavior was changed so an initial draft-save failure is surfaced and can be retried explicitly; automatic blind POST retry was deliberately avoided because a lost POST response can create duplicate cases without an idempotency mechanism.
+- The complete PUT /cases/:id path and complete wizard lifecycle still require runtime verification.
+- CI is now responsible for the repeatable MariaDB + PHP integration environment. Its regression suite is located at `duration-calculator-php/tests/http_api_test.php`.
+- Earlier CI runs failed before reaching these regression tests because the CI database configuration was wrong. That CI infrastructure problem is now being addressed separately as BUG-019 in `audit-app/BUGLOG.md`.
+- Do not duplicate the CI database setup or create another workflow. The only source CI workflow is `.github/workflows/build-test-publish.yml`.
+
+**Current evidence boundary**
+- VERIFIED: minimal POST /cases payload succeeds.
+- CODE CHANGED: initial draft failure is no longer silently swallowed.
+- NOT VERIFIED: PUT /cases/:id against MariaDB through the deployment topology.
+- NOT VERIFIED: complete browser/device wizard save/reopen lifecycle.
+- NOT VERIFIED: a complete green source CI run followed by artifact publication and FTP deployment.
