@@ -698,3 +698,25 @@ this specific host once we checked DirectAdmin and found no Node.js Selector.
 ## Mandatory source/deployment separation
 
 **SOURCE REPOSITORY RULE:** this repository is the source of truth and is never the deployable artifact. Every application change must be made here first, tested here, then built/packaged and published to **macerti/duration_calculator**. For PHP, the deployable tree is produced from duration-calculator-php/ (no compilation). For audit-mobile, the deployable frontend is the generated Expo web export; source-only frontend changes are not deployed until the generated artifact is published to duration_calculator. Never fix application behavior only in the deployment repository. Every hand-off must record the source commit and deployment-artifact commit, or explicitly state that deployment is pending. A task is not deployed until the corresponding artifact exists in duration_calculator and its deployment workflow has been run/passed where applicable.
+
+
+## 2026-08-31 — CI architecture consolidated and test environment hardened
+
+### Source-owned build/test/publish pipeline
+- Established `macerti/duration_calculator_backend/.github/workflows/build-test-publish.yml` as the single authoritative CI/build/publish workflow.
+- Deleted the duplicate `.github/workflows/backend-integration.yml`.
+- Removed the deployment-side build workflow from `macerti/duration_calculator`; its existing FTP deployment workflow remains untouched.
+- The source workflow is responsible for PHP/MariaDB integration tests, frontend typecheck, Expo web export, deployment-tree assembly, and publishing the generated artifact to `macerti/duration_calculator`.
+- The deployment repository remains an artifact repository. Developers must not edit it to fix application behavior.
+
+### MariaDB CI correction
+- CI now uses a disposable MariaDB 10.11 service with dedicated CI-only credentials.
+- The workflow writes a complete temporary `config.php` instead of attempting partial substitutions in `config.example.php`.
+- MariaDB client connectivity and PHP/PDO connectivity are verified separately before schema import and seeding.
+- No production DB credentials are required in GitHub Actions for this test environment.
+- `actions/checkout` and `actions/setup-node` were upgraded to v5 to remove the specific Node 20 deprecation warning source.
+
+### Verification boundary
+- Earlier CI runs failed during database configuration and therefore never reached PHP tests, NACE regression tests, PUT/GET case persistence tests, TypeScript, Expo build, or deployment publication.
+- The corrected workflow is committed at `65fae75a2450883152d43e844a1712d7635b3d1a`.
+- A green CI run has not yet been established; downstream stages must not be described as verified until that happens.
