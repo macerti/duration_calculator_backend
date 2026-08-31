@@ -15,12 +15,15 @@ env:
 jobs:
   build-test-publish:
     runs-on: ubuntu-latest
+
     services:
       mariadb:
         image: mariadb:10.11
         env:
           MARIADB_ROOT_PASSWORD: root
           MARIADB_DATABASE: audit_test
+          MARIADB_USER: audit
+          MARIADB_PASSWORD: audit
         ports:
           - 3306:3306
         options: >-
@@ -28,9 +31,10 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=20
+
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
@@ -39,27 +43,37 @@ jobs:
           extensions: pdo_mysql,mbstring,curl
           coverage: none
 
-      - name: Configure MariaDB service
+      - name: Verify MariaDB service
         run: |
-          mysql -h127.0.0.1 -uroot -proot -e "SELECT VERSION()"
+          mariadb -h127.0.0.1 -P3306 -uaudit -paudit audit_test -e "SELECT 1"
 
-      - name: Configure test database
+      - name: Create CI database configuration
         working-directory: duration-calculator-php
-        env:
-          DB_HOST: 127.0.0.1
-          DB_PORT: 3306
-          DB_NAME: audit_test
-          DB_USER: root
-          DB_PASSWORD: root
         run: |
-          cp config.example.php config.php
-          php -r '$p="config.php"; $s=file_get_contents($p); $s=str_replace(["your_db_name","your_db_user","your_db_password"],[getenv("DB_NAME"),getenv("DB_USER"),getenv("DB_PASSWORD")],$s); $s=str_replace("'host' => 'localhost'","'host' => '" . getenv("DB_HOST") . "'",$s); file_put_contents($p,$s);'
-          grep -nE "'(host|port|name|user|password)'[[:space:]]*=>" config.php
-          mysql -h127.0.0.1 -P3306 -uroot -proot -e "SELECT 1"
-          mysql -h127.0.0.1 -P3306 -uroot -proot audit_test < db/schema.sql
+          cat > config.php <<'PHP'
+          <?php
+          return [
+              'db' => [
+                  'host' => '127.0.0.1',
+                  'port' => 3306,
+                  'name' => 'audit_test',
+                  'user' => 'audit',
+                  'password' => 'audit',
+                  'charset' => 'utf8mb4',
+              ],
+              'allowedOrigins' => ['*'],
+              'debug' => true,
+          ];
+          PHP
+          php -r "require 'config.php'; echo 'PHP config loaded successfully';"
+
+      - name: Install schema and seed parameters
+        working-directory: duration-calculator-php
+        run: |
+          mariadb -h127.0.0.1 -P3306 -uaudit -paudit audit_test < db/schema.sql
           php seed.php
 
-      - name: Run PHP engine tests
+      - name: Run PHP engine smoke tests
         working-directory: duration-calculator-php
         run: php tests/smoke_test.php
 
@@ -80,7 +94,7 @@ jobs:
         run: php tests/http_api_test.php http://127.0.0.1:8080
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -100,11 +114,12 @@ jobs:
           EXPO_PUBLIC_API_URL: ${{ env.PRODUCTION_API_URL }}
         run: npx expo export --platform web --clear
 
-      - name: Assemble deployment tree
+      - name: Assemble deployment artifact
         run: |
           rm -rf _deploy
           mkdir -p _deploy
           cp -R audit-mobile/dist/. _deploy/
+
           mkdir -p _deploy/api _deploy/data _deploy/db _deploy/engine _deploy/tests
           cp -R duration-calculator-php/api/. _deploy/api/
           cp -R duration-calculator-php/data/. _deploy/data/
@@ -114,6 +129,7 @@ jobs:
           cp duration-calculator-php/.htaccess _deploy/.htaccess
           cp duration-calculator-php/config.example.php _deploy/config.example.php
           cp duration-calculator-php/seed.php _deploy/seed.php
+
           test -f _deploy/index.html
           test -f _deploy/api/index.php
           test -f _deploy/engine/duration.php
@@ -121,7 +137,7 @@ jobs:
           test ! -e _deploy/config.php
 
       - name: Checkout deployment repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: ${{ env.DEPLOY_REPO }}
           token: ${{ secrets.DURATION_CALCULATOR_TOKEN }}
@@ -134,9 +150,11 @@ jobs:
           rm -rf _deploy_repo/api _deploy_repo/data _deploy_repo/db _deploy_repo/engine _deploy_repo/tests
           rm -f _deploy_repo/.htaccess _deploy_repo/config.example.php _deploy_repo/seed.php
           cp -R _deploy/. _deploy_repo/
+
           cd _deploy_repo
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           if git diff --quiet; then
             echo "Deployment artifact is already current."
           else
