@@ -233,6 +233,22 @@ pass/fail across versions over time.
   two clients back to back) — they should stack sensibly, not overlap
   illegibly.
 
+## 14. BUG-004 wizard persistence regression tests
+
+- **SAVE-01**: Start a brand-new calculation with the API available and MariaDB connected. The wizard's initial draft POST succeeds and receives a case ID. The wizard may then autosave by PUT; no false unsaved state is shown.
+- **SAVE-02**: Make the initial draft POST fail (stop the PHP API or block the request). The wizard must **not** silently mark itself hydrated. It must show an explicit draft-save error and provide **Réessayer l'enregistrement**.
+- **SAVE-03**: Restore the API and tap **Réessayer l'enregistrement**. A case ID is obtained and subsequent autosave PUTs are allowed.
+- **SAVE-04**: Run the MariaDB + PHP HTTP regression suite in `backend/tests/http_api_test.php`. It must pass: health/DB → POST draft → PUT case → GET persisted case/status/rounding overrides → NACE search → NACE code → DELETE cleanup.
+- **SAVE-05**: Test the exact browser/device lifecycle: mount → initial draft POST → edit wizard → calculate → Enregistrer → leave → reopen the calculation. Confirm the saved calculation opens with the expected persisted data.
+
+### 2026-08-31 status
+
+- SAVE-01: ⏭️ **Not runtime-verified in this session**. Test harness exists; MariaDB runtime unavailable locally and no observable CI run.
+- SAVE-02: ⏭️ **Not browser/device-verified in this session**. Code path changed to surface the error and expose retry.
+- SAVE-03: ⏭️ **Not browser/device-verified in this session**.
+- SAVE-04: ⏭️ **Not executed in this session**. The test script and CI workflow were added.
+- SAVE-05: ⏭️ **Not executed in this session**.
+
 ## 13. Security spot-checks (things you can verify yourself, no dev tools needed)
 
 - **SEC-01**: Visit `https://tools.macerti.com/duration_calculator/db/schema.sql`
