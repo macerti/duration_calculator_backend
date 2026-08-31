@@ -90,7 +90,7 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<any | null>(null);
   const [roundingOverrides, setRoundingOverrides] = useState<Record<string, number>>({});
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);\n  const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
 
   const hydratedRef = useRef(false); // guards against autosave firing before initial load/create finishes
 
@@ -117,21 +117,27 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
       .finally(() => setLoadingExisting(false));
   }, [caseId]);
 
+  const createInitialDraft = async () => {
+    if (caseId || existingCaseId) return;
+    setDraftSaveError(null);
+    hydratedRef.current = false;
+    try {
+      const res = await api.saveCase({ ...buildInput(), clientId, status: "draft", wizardState: sites });
+      setExistingCaseId(res.id);
+      hydratedRef.current = true;
+      setLastSavedAt(new Date());
+    } catch (e: any) {
+      // Do not swallow the failure: without a case id there is nothing for
+      // autosave to PUT. Keep the wizard usable, but make the unsaved state
+      // explicit and give the user a deterministic retry path.
+      hydratedRef.current = false;
+      setDraftSaveError(e instanceof ApiError ? e.message : "Impossible d'enregistrer le brouillon.");
+    }
+  };
+
   // --- Create a draft immediately for a brand-new calculation, before any real data exists ---
   useEffect(() => {
-    if (caseId || existingCaseId) return; // only for genuinely new calculations
-    api
-      .saveCase({ ...buildInput(), clientId, status: "draft", wizardState: sites })
-      .then((res) => {
-        setExistingCaseId(res.id);
-        hydratedRef.current = true;
-        setLastSavedAt(new Date());
-      })
-      .catch(() => {
-        // Silent — autosave will retry on the next change. Don't block the
-        // wizard just because the very first draft-creation call hiccuped.
-        hydratedRef.current = true;
-      });
+    void createInitialDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -358,6 +364,15 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
               <Text style={styles.savedIndicator}>Enregistré {lastSavedAt.toLocaleTimeString("fr-FR")}</Text>
             )}
           </View>
+
+          {draftSaveError && (
+            <View style={styles.draftErrorBox}>
+              <Text style={styles.draftErrorText}>Brouillon non enregistré : {draftSaveError}</Text>
+              <Pressable style={styles.retryButton} onPress={() => void createInitialDraft()} disabled={saving}>
+                <Text style={styles.retryButtonText}>Réessayer l'enregistrement</Text>
+              </Pressable>
+            </View>
+          )}
 
           {!isMobile && <StepTabs steps={STEPS} current={currentStep} onSelect={setCurrentStep} completedKeys={completedKeys} />}
 
@@ -669,6 +684,10 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" },
   homeBtn: { padding: 6, marginRight: 2 },
   savedIndicator: { fontSize: typography.caption, color: colors.contentQuaternary, marginLeft: "auto" },
+  draftErrorBox: { backgroundColor: colors.errorSurface, borderRadius: radius.lg, padding: spacing.sm + 4, marginTop: spacing.sm },
+  draftErrorText: { fontSize: typography.small, color: colors.error, fontWeight: "600", marginBottom: spacing.sm },
+  retryButton: { alignSelf: "flex-start", borderWidth: 1, borderColor: colors.error, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
+  retryButtonText: { color: colors.error, fontWeight: "700", fontSize: typography.small },
   sectionTitle: { fontSize: typography.subtitle, fontWeight: "700", marginTop: spacing.md + 4, marginBottom: spacing.sm, color: colors.contentPrimary },
   label: { fontSize: typography.body, color: colors.contentSecondary, marginTop: 6, marginBottom: 6, fontWeight: "600" },
   siteCard: { backgroundColor: colors.surfaceBase, borderRadius: radius.xxl, padding: spacing.md + 2, marginBottom: spacing.lg, borderWidth: 1.5, borderColor: colors.borderStrong },
