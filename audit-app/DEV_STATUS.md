@@ -121,3 +121,32 @@ Use these exact meanings:
 Every developer changing behavior must update this file with: date; exact status; exact test performed; environment; result; remaining uncertainty; dependencies for the next developer.
 
 If a later developer disproves an earlier finding, append the new evidence rather than silently rewriting history. The latest status must be unambiguous.
+
+### 2026-08-31 work session — BUG-004 initial draft-save failure
+
+**DONE / CODE CHANGED**
+- Replaced the initial draft creation's silent `.catch(() => { ... })` behavior in `audit-mobile/src/screens/CalculationWizardScreen.tsx`.
+- Initial draft creation is now a named `createInitialDraft()` operation.
+- A failed initial POST no longer marks the wizard as hydrated. This prevents the autosave PUT path from pretending a persistent case exists when no case ID was received.
+- The failure is now surfaced in an explicit error box with the API error message and a deterministic **Réessayer l'enregistrement** action.
+- The wizard remains usable after the failure; the explicit final **Enregistrer** action can still create the case when no ID exists.
+- No automatic POST retry was introduced because a response-loss retry can create duplicate cases unless the API has an idempotency mechanism. This is intentional.
+
+**TEST INFRASTRUCTURE ADDED**
+- Added `audit-app/backend/tests/http_api_test.php` covering MariaDB-backed HTTP lifecycle: health → POST draft → PUT update → GET persistence → NACE search → NACE code → DELETE cleanup.
+- Added `.github/workflows/backend-integration.yml` to run MariaDB 10.11 + PHP 8.2, the existing engine smoke suite, the HTTP API regression suite, and audit-mobile TypeScript checking on push/PR.
+
+**TEST STATUS — NOT YET VERIFIED IN RUNTIME**
+- The local execution environment available to this session has PHP 8.4 and Node 22, but no MariaDB/MySQL server and no network access to clone/install the repository dependencies. Therefore the required MariaDB + PHP HTTP integration suite could not be executed locally.
+- The GitHub workflow was pushed, but this session's GitHub integration currently reports no workflow run for the relevant commits, so no CI pass is being claimed.
+- The earlier verified fact remains unchanged: the exact minimal initial POST payload returned HTTP 201 when tested directly.
+
+**NOT DONE**
+- BUG-004 `PUT /cases/:id` has not yet been empirically verified against MariaDB.
+- Full wizard lifecycle has not yet been browser/device-tested.
+- The production trigger for the original first-call failure remains unknown.
+
+**DEPENDENCY / HAND-OFF**
+- Next developer must run the new MariaDB + PHP HTTP suite before declaring BUG-004 fixed.
+- If PUT fails, debug the exact HTTP response and database exception before changing frontend code.
+- Do not re-open the already verified minimal POST payload as the assumed root cause.
