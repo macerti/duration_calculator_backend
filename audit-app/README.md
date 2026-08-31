@@ -52,6 +52,10 @@ old URL baked in (bit us once during testing; see `BUGLOG.md`).
 See `DEPLOY.md` for the actual DirectAdmin steps (DB setup, uploading
 `backend/`, building `frontend/` with your live URL, `.htaccess`).
 
+## Concurrent development status
+
+Before starting work, read DEV_STATUS.md. It is the single source of truth for the latest verified state, open investigations, test evidence, and dependencies between concurrent work streams. Every developer changing behavior must update it in the same commit. Do not infer that an item is fixed merely because code exists: use its explicit VERIFIED / STATICALLY VERIFIED / REPORTED / HYPOTHESIS / OPEN / BLOCKED status.
+
 ## Project history
 
 See `CHANGELOG.md`, `ROADMAP.md`, `BUGLOG.md` in this folder for this
