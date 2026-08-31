@@ -1,5 +1,14 @@
 # Roadmap — audit-app
 
+> Concurrent-development rule: read DEV_STATUS.md before starting work. It is the current hand-off ledger for verified work, open work, evidence level, and dependencies. Update it with every behavior change or test investigation.
+
+## Active investigations — 2026-08-31
+- [ ] BUG-004 initial draft-save failure: exact minimal mount payload was tested directly against POST /cases and returned HTTP 201 with the expected calculation. Payload shape is therefore not a proven cause. The missing retry and swallowed .catch() remain a real robustness defect. Production-triggering condition is not identified.
+- [ ] BUG-004 Enregistrer PUT: not yet tested. Do not assume the PUT failure shares the POST failure's cause.
+- [ ] NACE 404 under PHP built-in server: GET /nace/search?q=... and GET /nace/:code returned 404. Path-stripping is suspected, but dev-server-only vs real regression is not classified. Capture SCRIPT_NAME and REQUEST_URI before changing routing.
+- [ ] Concurrent status ledger adoption: all future work streams should record exact tests, environment, evidence level, and dependencies in DEV_STATUS.md.
+
+
 ## Requested, not yet built
 - [x] ~~Persistent wizard state (auto-save on create + continuous save +
       full hydration on reopen)~~ — done in 5.0.0, verified live
