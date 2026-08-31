@@ -2,6 +2,15 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-08-31 — Investigation hand-off
+
+- Added DEV_STATUS.md as the single current hand-off ledger for concurrent development. It explicitly separates verified work, static/reported evidence, open work, and dependencies.
+- BUG-004 investigation: the exact minimal wizard mount payload was sent directly to POST /cases and returned **201** with the expected calculation. This rules out payload shape as the established cause of the initial production failure, but does not explain the production failure. The no-retry/silent-catch defect remains open.
+- BUG-004 Enregistrer / PUT /cases/:id has **not yet been tested**.
+- New NACE finding: GET /nace/search?q=... and GET /nace/:code returned **404** under PHP's built-in development server. Path stripping is only a hypothesis. SCRIPT_NAME / REQUEST_URI debugging and production-topology comparison remain undone.
+
+---
+
 ---
 
 ## [5.0.0] — 2026-08-30
