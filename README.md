@@ -4,6 +4,21 @@ All source for the GS0106/IAF audit duration calculator project. This is the
 **source** repo — for the deployable artifact actually uploaded to hosting,
 see [`duration_calculator`](https://github.com/macerti/duration_calculator).
 
+
+
+## Mandatory source/deployment separation
+
+**This repository is the SOURCE repository. It is never the deployable artifact.**
+
+- All application source changes MUST be made and reviewed here first.
+- After a source change is tested, the developer MUST build/package the deployable artifact and publish the resulting deploy files to the separate repository **macerti/duration_calculator**.
+- The duration_calculator repository is the deployment artifact / production mirror. Hosting deployment is driven from that repository, not from this source repository.
+- For the PHP backend, build means producing the deploy-ready single-folder PHP tree from duration-calculator-php/; there is no PHP compilation step.
+- For audit-mobile/, build means running the configured Expo web export and publishing the resulting static files. A source-only frontend change is NOT deployed until its generated web artifact has been published to duration_calculator.
+- Never hand-edit only the deployment repository to fix application behavior. If the source repository is not updated, the deployment change is invalid and will be overwritten by the next build.
+- Every development hand-off MUST state both source commit and deployment-artifact commit, or explicitly state that deployment has not yet happened.
+- A task is not deployed merely because source code was committed. Deployment is complete only when the corresponding artifact exists in duration_calculator and its deployment workflow has been run/passed where applicable.
+
 ## Layout
 
 - **`audit-mobile/`** — the actual frontend source of truth. Expo/React
