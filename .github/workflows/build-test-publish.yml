@@ -65,7 +65,7 @@ jobs:
               'debug' => true,
           ];
           PHP
-          php -r "require 'config.php'; echo 'PHP config loaded successfully';"
+          php -r '$c=require "config.php"; var_export(["host"=>$c["db"]["host"],"port"=>$c["db"]["port"],"name"=>$c["db"]["name"],"user"=>$c["db"]["user"]]); echo PHP_EOL; require "db/pdo.php"; echo AuditEngine\\pingDb() ? "PDO MariaDB connection: OK\n" : "PDO MariaDB connection: FAILED\n"; if (!AuditEngine\\pingDb()) exit(1);'
 
       - name: Install schema and seed parameters
         working-directory: duration-calculator-php
