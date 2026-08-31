@@ -247,3 +247,31 @@ If a later developer disproves an earlier finding, append the new evidence rathe
 
 **HAND-OFF RULE**
 Before touching CI again, inspect the latest workflow run and its first failing step. Do not re-test or rewrite the already-established disposable MariaDB model unless the service/client/PDO diagnostic itself fails.
+
+### 2026-09-01 — CI root-caused and fixed by independent full-pipeline reproduction
+
+**CONTEXT**: after BUG-019's config-determinism fix and the `DURATION_CALCULATOR_TOKEN` rotation, CI was still reported non-functional. This session did not trust the workflow's own history of "should be fixed now" claims and instead reproduced every stage of `build-test-publish.yml` locally against real infrastructure (a real local MariaDB 10.11 instance, real PHP 8.3 with `pdo_mysql`/`mbstring`/`curl` to match the workflow's `setup-php` extensions, real `npm ci`/`tsc`/`expo export`).
+
+**ROOT CAUSES FOUND (two, independent, either one fatal on its own)**
+1. BUG-020 — `AuditEngine\\pingDb()` doubled namespace separator in the "Create CI database configuration" step is a PHP parse error, unconditionally, regardless of DB/secret/network state. This is the immediate reason the pipeline never gets past that step.
+2. BUG-021 — a literal `\n` (not a real newline) on one line of `CalculationWizardScreen.tsx` (introduced by the BUG-004 fix commit `e15403d`) fails `npx tsc --noEmit` with `TS1127`. Would have failed the "Typecheck frontend" step even if BUG-020 were fixed first.
+
+**FIXES APPLIED**
+- `.github/workflows/build-test-publish.yml`: both `AuditEngine\\pingDb()` → `AuditEngine\pingDb()`.
+- `audit-mobile/src/screens/CalculationWizardScreen.tsx` line 93: split into two real lines.
+
+**FULL LOCAL VERIFICATION (DONE / VERIFIED, real environment, not hypothesis)**
+- MariaDB service + PDO check, schema import, seed: pass.
+- `php tests/smoke_test.php`: 24/24 pass.
+- PHP built-in server routing for `/health`, `/nace/search`, `/nace/:code`: all 200, correct payloads. **BUG-017 (NACE 404) not reproduced** — appears already fixed by current router code; leaving it open in the log only pending one more confirmation on a real runner.
+- `php tests/http_api_test.php` full HTTP regression suite (health → NACE → POST draft → PUT update → GET persistence → DELETE): **16/16 pass**. This means **BUG-004's backend persistence path is verified working** against a real database — the previously-logged "NOT YET VERIFIED IN RUNTIME" status for the HTTP suite is now resolved. If a production first-save failure still occurs, the backend save/update logic itself is not the cause; look at frontend request construction, network/cold-start conditions, or something specific to the real DirectAdmin/Apache topology instead.
+- `npm ci`, `npx tsc --noEmit` (after fix): pass.
+- `npx expo export --platform web --clear` with `EXPO_PUBLIC_API_URL` set to the production API URL: succeeds, produces `dist/index.html` etc. as the assembly step expects.
+- Deployment tree assembly step (`_deploy/` construction + all `test -f`/`test ! -e` assertions): pass.
+- Cross-checked the publish step against the real `macerti/duration_calculator` repo: default branch is `main` (matches `git push origin main`); the repo's own top-level docs (CHANGELOG.md, ROADMAP.md, etc.) are untouched by the cleanup `rm` in the publish step; a bot push via a PAT to a *different* repo correctly triggers that repo's own `deploy.yml` FTP workflow (the `GITHUB_TOKEN` same-repo loop-prevention rule does not apply here).
+
+**NOT YET DONE**
+- An actual GitHub Actions run of the fixed workflow has not been observed by this session at write time (see below — about to trigger one). Local reproduction is thorough but is still not the hosted runner; confirm a real green run before calling CI solid.
+- Real DirectAdmin/Apache-topology test of the NACE routes (only PHP built-in server was tested here, matching prior sessions' evidence boundary).
+
+**DEPENDENCY / HAND-OFF**: once a green Actions run is observed for the commit containing these two fixes, and the artifact appears in `macerti/duration_calculator` with the deploy repo's FTP workflow having run, update this file with the exact run URL/commit pair before calling deployment complete. Do not assume success from the workflow merely starting.

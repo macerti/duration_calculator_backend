@@ -437,3 +437,26 @@ ROADMAP.md)_
 2. If database setup fails, establish whether MariaDB client connectivity, PHP/PDO connectivity, or application initialization is failing.
 3. Do not request production DB credentials for the GitHub test container.
 4. Do not create a second CI workflow.
+
+---
+
+### BUG-020 — CI "Create CI database configuration" step fails with a PHP parse error regardless of database state
+
+- **Detected**: 2026-09-01, independent audit of the `build-test-publish.yml` pipeline after BUG-019's fix still left CI non-functional.
+- **Root cause**: the inline `php -r` verification command in that step contains a doubled namespace separator — `AuditEngine\\pingDb()` (two backslashes) — in both the ternary and the `if (!...)` guard. In PHP source, `\` outside a string is the namespace separator token; two in a row with no identifier between them is a syntax error, not a runtime/connectivity issue.
+- **Verification method**: reproduced directly, independent of any CI infrastructure. Ran the exact line via local `php -r` with a fully working, correctly configured local MariaDB instance available (real `audit_test` DB, real `audit` user, connection separately confirmed via `mariadb -h127.0.0.1 -uaudit -paudit`). The step still failed with `PHP Parse error: syntax error, unexpected token "\", expecting "," or ";"` and exit code 255 — proving the failure is 100% independent of database/network/secret state and would fail on every run, unconditionally.
+- **Fix applied**: changed both occurrences to a single backslash — `AuditEngine\pingDb()`. Re-ran the identical line against the same working MariaDB instance; it printed `PDO MariaDB connection: OK` and exited 0.
+- **Evidence level**: VERIFIED root cause; VERIFIED fix, locally reproduced end-to-end (not yet confirmed by an actual GitHub Actions run — see hand-off note below).
+- **Fixed in**: source commit applying this BUGLOG update (see DEV_STATUS.md for the commit hash).
+
+### BUG-021 — `audit-mobile` frontend fails `tsc --noEmit` because of a literal `\n` (two characters) left in source instead of a real line break
+
+- **Detected**: 2026-09-01, same audit pass as BUG-020, while checking whether the rest of the pipeline would pass once the CI syntax error was fixed.
+- **Root cause**: `audit-mobile/src/screens/CalculationWizardScreen.tsx` line 93, introduced by the BUG-004/BUG-018 fix commit (`e15403d`), contained `useState<Date | null>(null);\n  const [draftSaveError, ...` where `\n` is the literal two-character sequence backslash+n sitting on one physical line, not an actual newline — almost certainly an artifact of an automated edit that inserted an escaped string instead of a real line break.
+- **Verification method**: ran `npx tsc --noEmit` locally against the actual committed file; got `TS1127: Invalid character` / `TS1434: Unexpected keyword or identifier` at the exact column. Grepped the rest of `audit-mobile/src/` for the same corruption pattern — this is the only occurrence.
+- **Fix applied**: split the single corrupted line into two real lines. Re-ran `npx tsc --noEmit`; exits clean.
+- **Important correction to prior BUG-004/BUG-018/BUG-016 entries**: this session also ran the full `duration-calculator-php/tests/http_api_test.php` HTTP regression suite against a real local MariaDB + PHP built-in server (health, NACE search, NACE code lookup, `POST /cases`, `PUT /cases/:id`, `GET /cases/:id`, `DELETE`) — **16/16 passed**. The backend side of BUG-004 (draft creation and update) is therefore VERIFIED working correctly against a real database, not merely "code changed, not empirically verified" as previously logged. The originally reported production first-save failure, if it still occurs, is not a backend persistence defect — see DEV_STATUS.md update.
+- **Also re-checked BUG-017 (NACE 404 under PHP built-in server)**: could not reproduce. `GET /nace/search?q=...` and `GET /nace/:code` both returned 200 with correct data against the current router code under `php -S`. Appears already fixed by the existing `SCRIPT_NAME`-stripping logic in `api/index.php`; leaving BUG-017 open in name only pending a second confirmation, but no further action identified.
+- **Evidence level**: VERIFIED root cause and fix for BUG-021; VERIFIED (upgraded from OPEN) for BUG-004 backend persistence; VERIFIED not-reproduced for BUG-017.
+
+**Hand-off**: both BUG-020 and BUG-021 fixes are applied in source. Per the mandatory source/deployment separation policy, this alone does not mean the fix is deployed — the `build-test-publish.yml` workflow must actually run green on GitHub Actions and publish to `duration_calculator` before that can be claimed. Next developer: check the Actions run for this commit before assuming CI is solid; do not just trust that the local reproduction generalizes to the hosted runner without seeing one real green run.
