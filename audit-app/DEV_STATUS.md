@@ -155,3 +155,24 @@ If a later developer disproves an earlier finding, append the new evidence rathe
 ## Mandatory source/deployment separation
 
 **SOURCE REPOSITORY RULE:** this repository is the source of truth and is never the deployable artifact. Every application change must be made here first, tested here, then built/packaged and published to **macerti/duration_calculator**. For PHP, the deployable tree is produced from duration-calculator-php/ (no compilation). For audit-mobile, the deployable frontend is the generated Expo web export; source-only frontend changes are not deployed until the generated artifact is published to duration_calculator. Never fix application behavior only in the deployment repository. Every hand-off must record the source commit and deployment-artifact commit, or explicitly state that deployment is pending. A task is not deployed until the corresponding artifact exists in duration_calculator and its deployment workflow has been run/passed where applicable.
+
+
+### 2026-08-31 — Mandatory deployment-artifact workflow established
+
+**SOURCE REPOSITORY:** macerti/duration_calculator_backend remains authoritative for all application source.
+
+**DEPLOYMENT REPOSITORY:** macerti/duration_calculator is mandatory for deployable output. No developer may treat a source commit as deployed until the corresponding artifact has been published there.
+
+**DONE:**
+- Added the mandatory source/deployment separation policy across the source repository documentation.
+- Added the same policy across the deployment repository documentation.
+- Added macerti/duration_calculator/.github/workflows/build-from-source.yml. The workflow checks out source main, installs audit-mobile dependencies, runs Expo web export with the production API URL, copies the generated web artifact into the deployment repository, and commits it using github-actions[bot].
+- Synchronized the deploy repository's PHP tree from duration-calculator-php/. The backend deployment projection is now aligned with the source tree for the files synchronized in this session.
+
+**SOURCE COMMIT:** latest source behavior/documentation changes are on main; the frontend BUG-004 fix is in commit e15403d21dd7eb937688d66faa71f820f9c91279 and subsequent documentation commits.
+
+**DEPLOY ARTIFACT STATUS:** PHP deployment files were synchronized into macerti/duration_calculator. The generated Expo web artifact for the new frontend BUG-004 fix has NOT been built/published in this session because the available GitHub toolset cannot dispatch workflow_dispatch jobs and the local environment cannot install the Expo toolchain from the network.
+
+**IMPORTANT:** Do not claim the BUG-004 frontend fix is deployed. The deployment repository currently contains the previous generated web bundle until the Build deploy artifact from source workflow is run successfully.
+
+**NEXT REQUIRED HAND-OFF:** run the Build deploy artifact from source workflow in macerti/duration_calculator. Verify the generated _expo bundle changed, verify the deployment workflow passes, then record both the generated artifact commit and deployment run in this file. Only then can the frontend fix be called deployed.
