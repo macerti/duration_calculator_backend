@@ -460,3 +460,12 @@ ROADMAP.md)_
 - **Evidence level**: VERIFIED root cause and fix for BUG-021; VERIFIED (upgraded from OPEN) for BUG-004 backend persistence; VERIFIED not-reproduced for BUG-017.
 
 **Hand-off**: both BUG-020 and BUG-021 fixes are applied in source. Per the mandatory source/deployment separation policy, this alone does not mean the fix is deployed — the `build-test-publish.yml` workflow must actually run green on GitHub Actions and publish to `duration_calculator` before that can be claimed. Next developer: check the Actions run for this commit before assuming CI is solid; do not just trust that the local reproduction generalizes to the hosted runner without seeing one real green run.
+
+### BUG-022 — CI "Verify MariaDB service" step fails with exit code 127 (`mariadb`: command not found) on the actual GitHub-hosted runner
+
+- **Detected**: 2026-09-01, immediately after pushing the BUG-020/BUG-021 fixes and manually dispatching the workflow (`workflow_dispatch`) to confirm them on a real runner — the exact gap the BUG-020/021 hand-off note warned about. This is exactly why: local reproduction with a manually-installed `mariadb-client` package did not catch this, because the real `ubuntu-latest` GitHub runner does not have the `mariadb` CLI binary preinstalled.
+- **Observed**: run `33449389647`, job `build-test-publish`, step "Verify MariaDB service" — check-run annotation: `Process completed with exit code 127`. All subsequent steps (CI DB config, schema/seed, smoke tests, HTTP regression, frontend typecheck/build, assembly, publish) were skipped as a consequence — this step is upstream of everything else.
+- **Root cause**: the workflow never installs a MariaDB/MySQL client. It assumes `mariadb` is already on PATH on the runner image, which is not the case for the current `ubuntu-latest` image.
+- **Fix applied**: added an explicit `Install MariaDB client` step (`sudo apt-get update -qq && sudo apt-get install -y -qq mariadb-client`) immediately before "Verify MariaDB service".
+- **Evidence level**: VERIFIED root cause (real GitHub Actions run, not local reproduction); fix applied, re-run pending — see DEV_STATUS.md for the outcome of the next dispatch.
+- **Process note**: this bug could not have been found by the local-reproduction method used for BUG-020/021, since that method necessarily runs on a machine where the required tooling was manually installed first. There is no substitute for at least one real hosted-runner execution before calling a CI pipeline solid.
