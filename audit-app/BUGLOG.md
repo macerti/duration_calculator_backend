@@ -417,3 +417,23 @@ ROADMAP.md)_
 ## Mandatory source/deployment separation
 
 **SOURCE REPOSITORY RULE:** this repository is the source of truth and is never the deployable artifact. Every application change must be made here first, tested here, then built/packaged and published to **macerti/duration_calculator**. For PHP, the deployable tree is produced from duration-calculator-php/ (no compilation). For audit-mobile, the deployable frontend is the generated Expo web export; source-only frontend changes are not deployed until the generated artifact is published to duration_calculator. Never fix application behavior only in the deployment repository. Every hand-off must record the source commit and deployment-artifact commit, or explicitly state that deployment is pending. A task is not deployed until the corresponding artifact exists in duration_calculator and its deployment workflow has been run/passed where applicable.
+
+
+### BUG-019 — Source CI failed because the test database configuration was not deterministic
+
+- **Detected**: 2026-08-31 while executing the new source-owned `build-test-publish.yml` workflow.
+- **Observed failure**: GitHub Actions reached `Configure test database`; the log showed the MariaDB CLI warning about using a password, followed by the application's `Could not connect to the database. Check config.php.` and exit code 1.
+- **Important distinction**: the MySQL/MariaDB password warning was not the failure. It is a normal CLI security warning.
+- **First attempted fix (insufficient)**: mutate `config.example.php` with CI values. This still left configuration assumptions that were not sufficiently controlled by the workflow.
+- **Final CI design**: create a disposable MariaDB 10.11 service inside the GitHub job with CI-only credentials; write a complete temporary `duration-calculator-php/config.php` explicitly for that service; verify the connection with the MariaDB client; then verify the same connection through the application's PHP/PDO layer; only then import schema and seed.
+- **Security boundary**: no production DB credentials are required for CI. The CI database is disposable and local to the GitHub job. Production DB credentials remain on the hosting environment.
+- **Additional correction**: consolidated CI to one source workflow. Deleted `.github/workflows/backend-integration.yml`; kept `.github/workflows/build-test-publish.yml`. The deployment repo's existing FTP workflow was not modified.
+- **Additional warning cleanup**: upgraded `actions/checkout` and `actions/setup-node` from v4 to v5 to avoid the reported Node.js 20 deprecation warning.
+- **Current status**: the corrected workflow is committed in `65fae75a2450883152d43e844a1712d7635b3d1a`. Runtime success is still pending; do not mark this bug fixed until a complete green run proves the DB, PHP, API, frontend build, artifact publication, and subsequent FTP deployment chain.
+- **Evidence level**: VERIFIED failure mechanism at the CI configuration layer; CODE FIXED; RUNTIME VERIFICATION PENDING.
+
+**Future developer rule for CI failures**
+1. Inspect the exact failed step and log first.
+2. If database setup fails, establish whether MariaDB client connectivity, PHP/PDO connectivity, or application initialization is failing.
+3. Do not request production DB credentials for the GitHub test container.
+4. Do not create a second CI workflow.
