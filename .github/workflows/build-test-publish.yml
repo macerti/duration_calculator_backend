@@ -15,6 +15,19 @@ env:
 jobs:
   build-test-publish:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: audit_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -26,28 +39,27 @@ jobs:
           extensions: pdo_mysql,mbstring,curl
           coverage: none
 
-      - name: Set up MariaDB
-        uses: shogo82148/actions-setup-mysql@v1
-        with:
-          mysql-version: 'mariadb-10.11'
+      - name: Configure MariaDB service
+        run: |
+          mysql -h127.0.0.1 -uroot -proot -e "SELECT VERSION()"
 
       - name: Configure test database
-        working-directory: audit-app/backend
+        working-directory: duration-calculator-php
         run: |
           cp config.example.php config.php
-          php -r '$p="config.php"; $s=file_get_contents($p); $s=str_replace(["your_db_name","your_db_user","your_db_password"],["audit_test","root",""] ,$s); file_put_contents($p,$s);'
-          mysql -uroot -e "CREATE DATABASE audit_test"
-          mysql -uroot audit_test < db/schema.sql
+          php -r '$p="config.php"; $s=file_get_contents($p); $s=str_replace(["your_db_name","your_db_user","your_db_password"],["audit_test","root","root"],$s); file_put_contents($p,$s);'
+          mysql -h127.0.0.1 -uroot -proot -e "CREATE DATABASE audit_test"
+          mysql -h127.0.0.1 -uroot -proot audit_test < db/schema.sql
           php seed.php
 
       - name: Run PHP engine tests
-        working-directory: audit-app/backend
+        working-directory: duration-calculator-php
         run: php tests/smoke_test.php
 
       - name: Start PHP API
-        working-directory: audit-app/backend
+        working-directory: duration-calculator-php/api
         run: |
-          php -S 127.0.0.1:8080 public/index.php > /tmp/audit-api.log 2>&1 &
+          php -S 127.0.0.1:8080 index.php > /tmp/audit-api.log 2>&1 &
           for i in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:8080/health >/tmp/health.json; then break; fi
             sleep 1
@@ -57,7 +69,7 @@ jobs:
           grep -q '"dbConnected":true' /tmp/health.json
 
       - name: Run HTTP API regression tests
-        working-directory: audit-app/backend
+        working-directory: duration-calculator-php
         run: php tests/http_api_test.php http://127.0.0.1:8080
 
       - name: Set up Node.js
