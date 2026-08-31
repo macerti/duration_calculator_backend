@@ -54,3 +54,22 @@ No real credentials are committed anywhere in this repo — every
 `config.php`/`.env` here is a `.example` template. Copy the relevant
 template and fill in real values locally; never commit the filled-in file
 (already `.gitignore`d).
+
+
+## Mandatory CI/build ownership
+
+`macerti/duration_calculator_backend/.github/workflows/build-test-publish.yml` is the single source-owned pipeline. It is the only workflow that should build and publish the deployment artifact.
+
+The pipeline:
+1. creates a disposable MariaDB test service;
+2. verifies MariaDB and PHP/PDO connectivity;
+3. imports schema and seed data;
+4. runs PHP and HTTP API regression tests;
+5. installs and typechecks the Expo source;
+6. builds the web artifact with the production API URL;
+7. assembles the deployment tree;
+8. publishes it to `macerti/duration_calculator`.
+
+The deployment repository's existing FTP workflow remains separate and must not be modified as part of source CI changes.
+
+Do not add another build workflow for the same purpose. Do not manually edit generated application files in `duration_calculator`. If CI fails, record the exact failing stage in `audit-app/BUGLOG.md` and `audit-app/DEV_STATUS.md` before changing the implementation.
