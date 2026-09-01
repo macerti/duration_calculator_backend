@@ -73,3 +73,8 @@ The pipeline:
 The deployment repository's existing FTP workflow remains separate and must not be modified as part of source CI changes.
 
 Do not add another build workflow for the same purpose. Do not manually edit generated application files in `duration_calculator`. If CI fails, record the exact failing stage in `audit-app/BUGLOG.md` and `audit-app/DEV_STATUS.md` before changing the implementation.
+
+
+## Repository maintenance
+
+The repository structure is being consolidated to remove duplicated historical application trees and establish one clear source of truth. See **REPOSITORY_ARCHITECTURE.md** for the mandatory organization, cleanup, business-rule preservation, CI/CD safety, and documentation requirements.
