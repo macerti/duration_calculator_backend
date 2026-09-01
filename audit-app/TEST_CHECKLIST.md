@@ -319,3 +319,8 @@ checklist gets used.
 14. Existing FTP workflow in deployment repo completes successfully.
 
 **Current status**: the corrected workflow has not yet completed all gates successfully. A developer picking this up must inspect the latest GitHub Actions run before repeating any individual test.
+
+
+## 2026-09-01 — Acceptance gate
+
+After FEAT-003 and repository architecture work, the next manual test cycle is a deliberate user-feedback pass. Test BUG-025/026/027 and record the user's acceptance or requested changes before resuming the general backlog.
