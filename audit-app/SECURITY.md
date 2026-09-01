@@ -192,3 +192,8 @@ factor justifications for certification decisions). Nothing here is
 
 ### Authentication architecture update — FEAT-002 SSO
 The authentication Todo above must be implemented as a provider-capable authentication system rather than assuming password-only authentication. In addition to the application's own session/authorization model, support verified external identities from Microsoft Entra/Microsoft accounts and Google through OIDC. Do not store provider passwords or unnecessary provider tokens. Account linking, session security, CSRF/state protection, rate limiting, secure cookies, provider-claim validation, and least-privilege scopes are mandatory parts of the implementation.
+
+
+## 2026-09-01 — Priority decision
+
+Authentication remains a documented security gap, but it is not currently a product priority. FEAT-002 Microsoft/Google SSO is explicitly deferred. The active product sequence is versioning, repository architecture, user acceptance, remaining bugs, then remaining features with admin/parameter administration UI ahead of authentication/SSO. Escalate authentication earlier only if the deployment context creates a critical security requirement.
