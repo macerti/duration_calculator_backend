@@ -2,6 +2,16 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-01 (third session) — BUG-027 fully addressed in source (not yet deployed)
+
+- Fixed BUG-027 #3's remaining gap: `RoundingStepper`'s value is now an editable `TextInput` (comma/period decimal input, non-numeric stripped, commits on blur/submit, reverts on invalid input) instead of a read-only `Text`. Combined with the prior session's `step={0.01}` fix, BUG-027 #3 is now fully closed.
+- Fixed BUG-027 #1: Facteurs now always opens on Siège (root cause: shared `activeSiteIndex` state carried over from wherever the user last was in Effectif). Added sequential "Précédent (site) / Site suivant (site)" navigation through sites within Facteurs; "Calculer" now only appears once the last site is reached instead of being available immediately regardless of how many sites remain.
+- Fixed BUG-027 #2: each Synthèse site card now shows a "Récapitulatif annuel" — total duration per year, with a per-standard breakdown when a site has more than one active standard — derived from the same rounded values as the existing steppers and grand total, so it cannot disagree with either.
+- BUG-027 (#1/#2/#3/#4) is now source-complete. All evidence remains STATICALLY VERIFIED (`npx tsc --noEmit`, 0 errors) and BUILD-VERIFIED (`npx expo export --platform web --clear` succeeded, new strings confirmed present in the built bundle) — no browser/device environment was available, so nothing here is claimed as interaction-VERIFIED. See `DEV_STATUS.md` and `BUGLOG.md` for full detail and open hand-off questions.
+- Not deployed: source-only change, per the mandatory source/deployment separation rule.
+
+---
+
 ## 2026-09-01 (second session) — BUG-025/026/027 frontend fixes (source only, not yet deployed)
 
 - Fixed BUG-025 #1 (report screen now uses the app's breadcrumb navigation instead of the native header back arrow), #2 (unified the "Accueil" home icon treatment across all screens via a new `Breadcrumbs` icon-crumb), and #3 (found and fixed the actual root cause of the multi-standard Synthèse tab not switching: it read Facteurs-step-scoped state instead of a per-site value; now keyed by site ID).

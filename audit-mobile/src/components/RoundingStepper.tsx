@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, Pressable, StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, Text, Pressable, StyleSheet, TextInput } from "react-native";
 import { colors, radius, spacing, typography } from "../theme/tokens";
 
 interface Props {
@@ -39,6 +39,37 @@ export default function RoundingStepper({ label, calculatedValue, value, onChang
   const reset = () => onChange(safeCalculated);
   const applyGuide = () => onChange(guide);
 
+  // Editable field state (BUG-027 #3). The field mirrors `safeValue` as
+  // text, except while the user is actively editing it — otherwise every
+  // external update (+/-, reset, guide, or a parent recalculation) would
+  // stomp on a keystroke mid-edit. Comma is accepted as a decimal
+  // separator (fr-DZ/fr-FR keyboards) alongside period.
+  const [text, setText] = useState(safeValue.toFixed(2));
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setText(safeValue.toFixed(2));
+    }
+  }, [safeValue, isFocused]);
+
+  const commitText = () => {
+    const normalized = text.replace(",", ".").replace(/[^0-9.]/g, "");
+    const parsed = parseFloat(normalized);
+    if (Number.isFinite(parsed)) {
+      // Same two-decimal, non-negative rounding the +/- buttons already use,
+      // so typed and stepped values can never diverge in precision.
+      const clamped = Math.max(0, Math.round(parsed * 100) / 100);
+      setText(clamped.toFixed(2));
+      onChange(clamped);
+    } else {
+      // Empty or unparseable input reverts to the last valid value instead
+      // of propagating NaN or leaving the field blank.
+      setText(safeValue.toFixed(2));
+    }
+    setIsFocused(false);
+  };
+
   return (
     <View style={styles.row}>
       <View style={{ flex: 1 }}>
@@ -56,7 +87,18 @@ export default function RoundingStepper({ label, calculatedValue, value, onChang
         <Pressable style={styles.stepBtn} onPress={() => nudge(-step)}>
           <Text style={styles.stepBtnText}>−</Text>
         </Pressable>
-        <Text style={styles.value}>{safeValue.toFixed(2)}</Text>
+        <TextInput
+          style={styles.value}
+          value={text}
+          onFocus={() => setIsFocused(true)}
+          onChangeText={(t) => setText(t.replace(/[^0-9.,]/g, ""))}
+          onBlur={commitText}
+          onSubmitEditing={commitText}
+          keyboardType="decimal-pad"
+          returnKeyType="done"
+          selectTextOnFocus
+          underlineColorAndroid="transparent"
+        />
         <Pressable style={styles.stepBtn} onPress={() => nudge(step)}>
           <Text style={styles.stepBtnText}>+</Text>
         </Pressable>
@@ -78,7 +120,16 @@ const styles = StyleSheet.create({
   control: { flexDirection: "row", alignItems: "center", backgroundColor: colors.surfaceSunken, borderRadius: radius.md, marginLeft: spacing.sm },
   stepBtn: { width: 30, height: 30, alignItems: "center", justifyContent: "center" },
   stepBtnText: { fontSize: 18, color: colors.contentSecondary, fontWeight: "600" },
-  value: { fontSize: typography.bodyLarge, fontWeight: "700", color: colors.contentPrimary, minWidth: 46, textAlign: "center" },
+  value: {
+    fontSize: typography.bodyLarge,
+    fontWeight: "700",
+    color: colors.contentPrimary,
+    minWidth: 46,
+    textAlign: "center",
+    padding: 0,
+    margin: 0,
+    borderWidth: 0,
+  },
   resetBtn: { marginLeft: 6, padding: 6 },
   resetText: { fontSize: 16, color: colors.link },
 });

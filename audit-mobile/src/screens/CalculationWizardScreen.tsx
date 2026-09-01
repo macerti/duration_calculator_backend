@@ -105,6 +105,21 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
   const [draftSaveError, setDraftSaveError] = useState<string | null>(null);
 
   const hydratedRef = useRef(false); // guards against autosave firing before initial load/create finishes
+  const prevStepRef = useRef(currentStep);
+
+  // BUG-027 #1 root cause: activeSiteIndex is shared across the Effectif and
+  // Facteurs steps. Effectif lets the user jump between site tabs freely, so
+  // whichever site was last active there stayed active when Facteurs opened —
+  // Facteurs could open on the last-viewed site instead of Siège. Reset only
+  // on the transition INTO "factors" (guarded by prevStepRef so this doesn't
+  // fire on every render while already in the step, which would fight the
+  // Précédent/Site suivant navigation below).
+  useEffect(() => {
+    if (currentStep === "factors" && prevStepRef.current !== "factors") {
+      setActiveSiteIndex(0);
+    }
+    prevStepRef.current = currentStep;
+  }, [currentStep]);
 
   // --- Load an existing case, fully hydrating editable state from wizardState ---
   useEffect(() => {
@@ -556,12 +571,30 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
               )}
 
               <View style={styles.stepNavRow}>
-                <Pressable style={styles.backButton} onPress={() => setCurrentStep("personnel")}>
-                  <Text style={styles.backButtonText}>Retour</Text>
+                <Pressable
+                  style={styles.backButton}
+                  onPress={() => (activeSiteIndex > 0 ? setActiveSiteIndex(activeSiteIndex - 1) : setCurrentStep("personnel"))}
+                >
+                  <Text style={styles.backButtonText}>
+                    {activeSiteIndex > 0 ? `Précédent (${siteKindLabel(sites[activeSiteIndex - 1], sites)})` : "Retour"}
+                  </Text>
                 </Pressable>
-                <Pressable style={styles.nextButton} onPress={goToSynthese} disabled={calculating}>
-                  {calculating ? <ActivityIndicator color={colors.contentInverse} /> : <Text style={styles.nextButtonText}>Calculer</Text>}
-                </Pressable>
+                {activeSiteIndex < sites.length - 1 ? (
+                  // Sequential guided flow (BUG-027 #1): with 2+ sites, the primary
+                  // forward action moves to the next site — Siège → Site 01 → Site
+                  // 02 → … — rather than exposing "Calculer" while sites remain
+                  // unprocessed. Clicking through without entering factors is the
+                  // "explicit skip" the bug asks for, since Facteurs entry has no
+                  // validation gate. The site-tab row above still allows jumping
+                  // directly to any site for users who prefer that.
+                  <Pressable style={styles.nextButton} onPress={() => setActiveSiteIndex(activeSiteIndex + 1)}>
+                    <Text style={styles.nextButtonText}>Site suivant — {siteKindLabel(sites[activeSiteIndex + 1], sites)}</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable style={styles.nextButton} onPress={goToSynthese} disabled={calculating}>
+                    {calculating ? <ActivityIndicator color={colors.contentInverse} /> : <Text style={styles.nextButtonText}>Calculer</Text>}
+                  </Pressable>
+                )}
               </View>
             </View>
           )}
@@ -674,6 +707,58 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
                             ))}
                           </View>
                         )}
+
+                        {(() => {
+                          // BUG-027 #2: the single global "Durée totale à auditer"
+                          // number at the bottom of Synthèse didn't let anyone see
+                          // how a site's total broke down by year or by standard.
+                          // This derives that breakdown from the same rounded
+                          // values (getRounded/roundKey) already driving the
+                          // RoundingSteppers above and the grand total below, so
+                          // it can never disagree with either — it's presentation
+                          // only, no new calculation. Keyed by year number rather
+                          // than assuming every standard shares the same `.years`
+                          // length, in case cycle length ever differs per standard.
+                          const yearMap = new Map<number, { total: number; byStandard: { standard: string; days: number }[] }>();
+                          siteResult.standards.forEach((std: any) => {
+                            std.years.forEach((y: any) => {
+                              const days =
+                                y.year === 1
+                                  ? getRounded(roundKey(siteResult.siteId, std.standard, "stage1"), std.stage1Days) +
+                                    getRounded(roundKey(siteResult.siteId, std.standard, "stage2"), std.stage2Days) +
+                                    getRounded(roundKey(siteResult.siteId, std.standard, "report1"), y.reportWritingFinal)
+                                  : getRounded(roundKey(siteResult.siteId, std.standard, `year${y.year}`), y.onSiteDurationFinal) +
+                                    getRounded(roundKey(siteResult.siteId, std.standard, `report${y.year}`), y.reportWritingFinal);
+                              const entry = yearMap.get(y.year) ?? { total: 0, byStandard: [] };
+                              entry.total += days;
+                              entry.byStandard.push({ standard: std.standard, days });
+                              yearMap.set(y.year, entry);
+                            });
+                          });
+                          const years = Array.from(yearMap.keys()).sort((a, b) => a - b);
+                          if (years.length === 0) return null;
+                          return (
+                            <View style={styles.yearlyBreakdownBox}>
+                              <Text style={styles.yearlyBreakdownTitle}>Récapitulatif annuel</Text>
+                              {years.map((yr) => {
+                                const entry = yearMap.get(yr)!;
+                                return (
+                                  <View key={yr} style={styles.yearlyBreakdownRow}>
+                                    <View style={styles.yearlyBreakdownYearRow}>
+                                      <Text style={styles.yearlyBreakdownYear}>Année {yr}</Text>
+                                      <Text style={styles.yearlyBreakdownTotal}>{entry.total.toFixed(2)} j</Text>
+                                    </View>
+                                    {entry.byStandard.length > 1 && (
+                                      <Text style={styles.yearlyBreakdownDetail}>
+                                        {entry.byStandard.map((b) => `${b.standard} : ${b.days.toFixed(2)} j`).join(" · ")}
+                                      </Text>
+                                    )}
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          );
+                        })()}
                       </View>
                     );
                   })}
@@ -762,6 +847,13 @@ const styles = StyleSheet.create({
   recapDetail: { fontSize: typography.small, color: colors.contentTertiary, marginBottom: 2 },
   yearGroup: { backgroundColor: colors.surfaceBase, borderRadius: radius.md, borderWidth: 1, borderColor: colors.borderDefault, borderLeftWidth: 3, borderLeftColor: colors.borderStrong, paddingHorizontal: spacing.sm + 2, paddingTop: spacing.sm, marginTop: spacing.sm },
   yearGroupTitle: { fontSize: typography.small, fontWeight: "800", color: colors.contentPrimary, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 4 },
+  yearlyBreakdownBox: { backgroundColor: colors.surfaceRaised, borderRadius: radius.lg, padding: spacing.sm + 4, marginTop: spacing.sm, borderWidth: 1, borderColor: colors.borderSubtle },
+  yearlyBreakdownTitle: { fontWeight: "700", fontSize: typography.small, color: colors.contentPrimary, marginBottom: spacing.sm - 2 },
+  yearlyBreakdownRow: { marginBottom: spacing.sm - 2 },
+  yearlyBreakdownYearRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
+  yearlyBreakdownYear: { fontSize: typography.small, fontWeight: "700", color: colors.contentSecondary },
+  yearlyBreakdownTotal: { fontSize: typography.small, fontWeight: "700", color: colors.contentPrimary },
+  yearlyBreakdownDetail: { fontSize: typography.caption, color: colors.contentQuaternary, marginTop: 1 },
   finalTotalBox: { backgroundColor: colors.actionPrimary, borderRadius: radius.xl, padding: spacing.lg - 2, alignItems: "center", marginTop: spacing.sm },
   finalTotalLabel: { color: "#aaa", fontSize: typography.small, marginBottom: 4 },
   finalTotalValue: { color: colors.contentInverse, fontSize: typography.hero, fontWeight: "800" },

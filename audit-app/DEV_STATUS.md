@@ -4,7 +4,7 @@
 >
 > Before changing code, read this file. Update it in the same commit as the work. This file records the latest verified state, what is open, what is blocked, and which work streams are independent or dependent.
 >
-> Status date: 2026-09-01 (second session)
+> Status date: 2026-09-01 (third session)
 > Repository: macerti/duration_calculator_backend
 > Active app: audit-mobile/
 > Deployment/reference docs: audit-app/
@@ -361,3 +361,29 @@ The current deployment was tested interactively and exposed three frontend consi
 - **Not deployed**: per the mandatory source/deployment separation rule, this is a source-only commit. `build-test-publish.yml` has not been observed running against it, and nothing has been published to `macerti/duration_calculator`.
 
 **DEPENDENCY / HAND-OFF**: the next developer with real device/browser access should (1) click through BUG-025 #1/#2/#3 and BUG-026 to confirm the fixes actually resolve the reported symptoms, especially BUG-025 #3 with 2+ sites × 2+ standards each; (2) add manual-typing support to `RoundingStepper.tsx` to finish BUG-027 #3; (3) start BUG-027 #1/#2 from scratch. None of this should be treated as deployed until a green `build-test-publish.yml` run is observed and an artifact commit exists in `macerti/duration_calculator`.
+
+---
+
+## 2026-09-01 (third session) — BUG-027 #1/#2/#3 all addressed: source-complete, still STATICALLY/BUILD-VERIFIED only
+
+**Environment**: identical constraint to the second session — no PHP, no MariaDB, no browser/device; `node`/`npm`/`npx` with npm-registry access only.
+
+**FIXED (source changed, typecheck + real production build both pass)**
+- BUG-027 #3 — closed. Added the missing manual-typing half: `RoundingStepper.tsx`'s value is now a controlled `TextInput` (comma/period decimal handling, non-numeric stripped while typing, commits via the same 2-decimal rounding as `nudge()` on blur/submit, reverts to last valid value on empty/invalid input). Combined with the second session's `step={0.01}` fix, both halves of BUG-027 #3 are now done.
+- BUG-027 #1 — fixed. Root cause: `activeSiteIndex` is shared between Effectif and Facteurs, so whichever site tab was last active in Effectif stayed active when Facteurs opened. Added a `prevStepRef`-guarded effect that resets `activeSiteIndex` to `0` exactly on entry into the `"factors"` step (any trigger — button or step-tab), without interfering with in-step navigation. Replaced the fixed Retour/Calculer footer with sequential Précédent/Site-suivant buttons that step through sites in order; "Calculer" now only appears on the last site, matching the bug's "do not expose Calculer as the only immediate action while sites remain" requirement. Single-site cases are unaffected (index bound is `0 < 0`, unchanged behavior).
+- BUG-027 #2 — fixed. Added a per-site "Récapitulatif annuel" to Synthèse: for each year found across a site's standards, shows that year's total (all standards summed) plus a per-standard line when more than one standard is active. Computed from the exact same `getRounded`/`roundKey` values already driving the steppers and the pre-existing grand total — a presentation addition, not a new calculation path. The pre-existing single grand total was kept (still legitimately useful for overall quoting); the bug asked for added detail, not its removal.
+
+**EVIDENCE LEVEL — unchanged from second session, still capped**
+- STATICALLY VERIFIED: `npx tsc --noEmit` — 0 errors against the full changed tree, both after the RoundingStepper change and again after the wizard-screen changes.
+- BUILD-VERIFIED: `npx expo export --platform web --clear` succeeded twice (once per round of edits) with a placeholder `EXPO_PUBLIC_API_URL`. This session additionally grepped the built, minified bundle for the new UI strings ("Site suivant", "Précédent (", "Récapitulatif annuel") and confirmed all three are present on the shipped code path — stronger confirmation than a successful build alone, but still not an interaction test.
+
+**NOT DONE**
+- No real browser/device pass on BUG-027 #1/#2/#3 (or on any still-open item from prior sessions) — this remains the single biggest gap across the whole BUG-025/026/027 cluster. In particular, untested interactively: the decimal-keyboard/comma-period typing UX in a real browser vs. native app; whether the sequential Facteurs flow feels natural with 3+ sites; whether the annual-breakdown layout is readable on a real multi-year, multi-standard case.
+- Backend (`duration-calculator-php/`) untouched this session; no PHP/MariaDB available in this sandbox, same as every prior session.
+- **Not deployed**: source-only commit, per the mandatory source/deployment separation rule.
+
+**OPEN PRODUCT QUESTIONS for the next developer (not blocking, but worth resolving before calling BUG-027 fully closed)**
+1. Is "Site suivant" without entering any factors an acceptable implementation of "explicitly skip that site's factors," or does product want a visually distinct "Passer" affordance?
+2. Should the new annual breakdown be its own always-visible section per site, or is per-standard-tab-scoped placement (current implementation) sufficient?
+
+**DEPENDENCY / HAND-OFF**: BUG-027 is now source-complete (#1/#2/#3/#4). Next developer with real device/browser access should run the full BUG-025/026/027 click-through in one pass (Siège + 2 sites × 2+ standards each, cycleYears ≥ 3) before any of it is promoted to VERIFIED or considered for deployment.
