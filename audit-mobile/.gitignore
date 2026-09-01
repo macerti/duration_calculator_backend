@@ -3,6 +3,10 @@
 # dependencies
 node_modules/
 
+# FEAT-003: generated at install/dev/build time by scripts/generate-version.js
+# — never commit a stale copy, see that script for why.
+src/generated/versionInfo.ts
+
 # Expo
 .expo/
 dist/

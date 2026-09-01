@@ -1,10 +1,11 @@
 import React, { useEffect } from "react";
-import { Platform } from "react-native";
+import { Platform, View, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ToastProvider } from "./src/components/Toast";
 import ErrorBoundary from "./src/components/ErrorBoundary";
+import VersionFooter from "./src/components/VersionFooter";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import ClientsListScreen from "./src/screens/ClientsListScreen";
@@ -46,25 +47,39 @@ export default function App() {
   return (
     <ErrorBoundary onGoHome={() => Platform.OS === "web" && typeof window !== "undefined" && window.location.reload()}>
       <ToastProvider>
-        <NavigationContainer>
-          <StatusBar style="auto" />
-          <Stack.Navigator initialRouteName="Home">
-            <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Audit Duration Calculator" }} />
-            <Stack.Screen name="ClientsList" component={ClientsListScreen} options={{ title: "Mes clients" }} />
-            <Stack.Screen name="ClientDetail" component={ClientDetailScreen} options={{ title: "Client" }} />
-            <Stack.Screen
-              name="CalculationWizard"
-              component={CalculationWizardScreen}
-              options={{ title: "Calcul", headerShown: false }}
-            />
-            <Stack.Screen
-              name="CalculationReport"
-              component={CalculationReportScreen}
-              options={{ title: "Rapport de calcul", headerShown: false }}
-            />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <View style={styles.root}>
+          <View style={styles.navArea}>
+            <NavigationContainer>
+              <StatusBar style="auto" />
+              <Stack.Navigator initialRouteName="Home">
+                <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Audit Duration Calculator" }} />
+                <Stack.Screen name="ClientsList" component={ClientsListScreen} options={{ title: "Mes clients" }} />
+                <Stack.Screen name="ClientDetail" component={ClientDetailScreen} options={{ title: "Client" }} />
+                <Stack.Screen
+                  name="CalculationWizard"
+                  component={CalculationWizardScreen}
+                  options={{ title: "Calcul", headerShown: false }}
+                />
+                <Stack.Screen
+                  name="CalculationReport"
+                  component={CalculationReportScreen}
+                  options={{ title: "Rapport de calcul", headerShown: false }}
+                />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </View>
+          {/* FEAT-003: version/last-update footer, visible on every screen
+              regardless of which stack screen is active — kept as a sibling
+              of the navigator rather than per-screen so there is exactly
+              one place this can drift out of sync. */}
+          <VersionFooter />
+        </View>
       </ToastProvider>
     </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  navArea: { flex: 1 },
+});
