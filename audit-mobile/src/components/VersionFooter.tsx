@@ -6,17 +6,23 @@ import { APP_VERSION, UPDATED_AT_ISO } from "../generated/versionInfo";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // FEAT-003 required format: "Updated on 31 Aug 2026 at 09h48" — no seconds,
-// one consistent app timezone. UPDATED_AT_ISO already carries the source
-// commit's own timezone offset (git preserves the committer's local zone),
-// so formatting the ISO string's own components — rather than converting
-// to the *reader's* local timezone — keeps that "one consistent timezone"
-// instead of silently varying by who's viewing it.
+// one consistent app timezone. Previously this formatted the ISO string's
+// own embedded offset, i.e. whatever the committing machine's local
+// timezone happened to be — that drifts (and is invisible to the reader,
+// since nothing on screen said which zone it was in). Fixed: always
+// convert to a fixed UTC+1 offset, regardless of source/reader timezone.
+// Fixed offset (not e.g. "Europe/Paris") is deliberate — the requirement
+// is "UTC+1 always", not a DST-aware zone that would show UTC+2 in summer.
 function formatUpdatedAt(iso: string): string {
-  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-  if (!match) return iso;
-  const [, year, month, day, hour, minute] = match;
-  const monthLabel = MONTHS[Number(month) - 1] ?? month;
-  return `${Number(day)} ${monthLabel} ${year} at ${hour}h${minute}`;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const utcPlus1 = new Date(date.getTime() + 60 * 60 * 1000);
+  const day = utcPlus1.getUTCDate();
+  const monthLabel = MONTHS[utcPlus1.getUTCMonth()];
+  const year = utcPlus1.getUTCFullYear();
+  const hour = String(utcPlus1.getUTCHours()).padStart(2, "0");
+  const minute = String(utcPlus1.getUTCMinutes()).padStart(2, "0");
+  return `${day} ${monthLabel} ${year} at ${hour}h${minute}`;
 }
 
 export default function VersionFooter() {
