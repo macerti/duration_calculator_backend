@@ -293,3 +293,38 @@ Before touching CI again, inspect the latest workflow run and its first failing 
 **REMAINING OPEN ITEMS (unchanged by this work)**: authentication/rate limiting (SECURITY.md), input-bounds enforcement, browser/device visual confirmation of UI pieces, and a live health-check confirmation against the real DirectAdmin host (the FTP step's post-deploy health check is `continue-on-error: true` and informational only — its actual result for this deploy has not been separately confirmed here).
 
 **PROCESS LESSON FOR FUTURE CI CHANGES**: local reproduction (even a careful one against real MariaDB/PHP/Node) is necessary but not sufficient — it only found 2 of the 3 bugs that were blocking this pipeline. The third was only visible on the actual hosted runner. Always dispatch and observe at least one real run before declaring a CI fix complete.
+
+
+### 2026-09-01 — Deploy interaction test: BUG-025 UX findings
+
+**STATUS: REPORTED / CODE-INSPECTED — implementation and runtime verification pending.**
+
+The current deployment was tested interactively and exposed three frontend consistency/behavior findings. Do not treat these as fixed until the source changes are implemented, typechecked/built, and exercised in a real browser/device.
+
+#### A. Calculation report navigation
+- The final **Rapport de calcul complet** screen currently uses a separate navigation route from the wizard.
+- The current wizard opens it with navigation.navigate("CalculationReport", ...), while the report screen itself has no Breadcrumbs component.
+- The requested UX is that the report follows the same breadcrumb hierarchy as the rest of the application and does not introduce a separate, differently styled **Retour** mechanism.
+- Keep report content/calculation data unchanged while correcting navigation.
+
+#### B. Accueil breadcrumb/home representation
+- The home destination must remain a real home icon, not an emoji.
+- Current code is inconsistent: CalculationWizardScreen uses Ionicons home-outline, while the generic Breadcrumbs component renders breadcrumb items as text only.
+- Normalize this into one consistent breadcrumb/home treatment across screens. Do not reintroduce emoji-based home labels.
+
+#### C. Multi-standard Synthèse tab does not switch the programme
+- Reported deploy behavior: for a site with multiple standards, the Synthèse standard tabs are visible, but tapping the second standard does not change the displayed audit programme.
+- Source inspection shows a shared activeStandardTab state, stdTab derivation, and a stdResult lookup by standard. This is the intended mechanism, but source inspection alone does not establish why the deployed interaction fails.
+- Required behavior: selecting a standard must switch all standard-specific Synthèse content for that site, including stage/visit duration, report-writing duration, rounding controls, and related details.
+- Validate the state scope with both one multi-standard site and multiple sites containing multiple standards. A selection for one site must not leak to another site.
+- Do not classify this as an engine/calculation defect unless the result payload itself is proven wrong. Current evidence points to the Synthèse UI selection/rendering path.
+
+#### Verification sequence for next developer
+1. Implement report navigation using the existing breadcrumb model; remove the separate report-specific back convention.
+2. Normalize Accueil to the icon system across breadcrumb/navigation instances.
+3. Reproduce the second-standard Synthèse failure and instrument activeStandardTab, derived stdTab, per-site siteStdTab, and selected stdResult if necessary.
+4. Test one site with two standards, then two sites with two standards each.
+5. Run npx tsc --noEmit and the production Expo web build with --clear.
+6. Perform the exact interaction test in a real browser/device before changing the evidence level to VERIFIED.
+
+**Deployment boundary:** this status entry records findings only. No source UX fix is claimed as implemented or deployed by BUG-025.
