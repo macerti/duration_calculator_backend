@@ -687,3 +687,11 @@ Added a "Récapitulatif annuel" block to each site's Synthèse card, below the e
 ## 2026-09-01 — Delivery priority / acceptance gate
 
 The active sequence is: FEAT-003 versioning → repository architecture consolidation → real user/browser/mobile feedback gate → remaining bugs → remaining requested features. BUG-025/026/027 source fixes require real user acceptance before definitive closure. Record user feedback as USER-ACCEPTED, REOPENED, NEW BUG, or CHANGE REQUEST.
+
+### BUG-028 — FEAT-003 footer showed the committer's own local timezone instead of a fixed UTC+1
+
+- **Reported**: 2026-09-01, by the product owner directly ("The time should be UTC+1 always").
+- **Root cause**: `VersionFooter.tsx`'s `formatUpdatedAt()` parsed the ISO timestamp's own embedded UTC offset (git preserves whichever local timezone the committing machine was set to) and displayed those hour/minute components as-is. Nothing on screen indicated which zone that was, and it would silently vary commit-to-commit depending on the committer's machine — not the "one consistent app timezone" FEAT-003's own spec required.
+- **Fix**: `formatUpdatedAt()` now always converts to a fixed UTC+1 offset (adds 60 minutes to the UTC instant, then reads UTC date/time components) regardless of the source ISO string's own offset. Deliberately a *fixed* offset, not a DST-aware zone like `Europe/Paris`, since the requirement is "UTC+1 always."
+- **Verification**: logic checked against three cases — a UTC (`+00:00`) source, an already-`+01:00` source, and a US-Eastern (`-05:00`) source that crosses a date boundary when converted — all three converted correctly. `npx tsc --noEmit` clean.
+- **Not yet done**: not re-run through CI/redeployed as of this entry (see commit for source-only status); not interaction-verified in a browser (no such tooling in this sandbox, same caveat as all frontend work this project).
