@@ -1,4 +1,16 @@
-# Bug Log — audit-app
+# Bug Log — Audit Duration Calculator
+
+> ⚠️ **Numbering collision with `audit-mobile/BUGLOG.md`.** That file has
+> its own independent `BUG-001`–`BUG-004`/`BUG-019` numbering that reuses
+> the same IDs for **different bugs** than the ones below (e.g. this
+> file's `BUG-004` is "`mb_strtolower` undefined", unrelated to
+> `audit-mobile/BUGLOG.md`'s `BUG-004`, the "wizard save" bug that
+> `docs/DEV_STATUS.md` tracks as *the* current BUG-004). `BUG-019` below
+> is the one deliberate exception, intentionally kept in sync as the same
+> bug in both files. See `audit-mobile/BUGLOG.md`'s own header for the
+> full note; not reconciled/renumbered in this pass — see
+> `docs/DEV_STATUS.md`'s 2026-09-01 (repository architecture
+> consolidation, step 2) entry for the recommended follow-up.
 
 ### BUG-001 — Deleted the verified PHP backend along with a stale contaminated folder
 - **Detected**: While starting the DEPLOY.md/logs write-up, `ls` on the
@@ -707,3 +719,25 @@ This is an audit/investigation item, not an assumption that every listed symptom
 Check the production application for actual browser console errors/warnings, Vite/React/development branding, placeholder/demo content, publicly exposed source maps, unnecessarily large JavaScript bundles, incorrect SPA fallback behavior, missing/branded 404 behavior, and metadata/routing inconsistencies discovered during FEAT-004.
 
 Do not close this by suppressing console output or hiding framework strings. Reproduce the issue, identify the root cause, fix it, then verify the production build in a real browser. If an observation is actually a new feature/change request rather than a defect, move it to ROADMAP.
+
+### BUG-030 — Router misroutes every multi-segment path under `php -S` (root cause of the "NACE 404" finding; reopens its "NOT REPRODUCED" status)
+
+**Status: ROOT-CAUSED, REPRODUCED — fix NOT yet written. Contradicts a prior session's conclusion; see "Open contradiction" below before doing anything else with BUG-004/NACE evidence.**
+
+- **Detected**: 2026-09-01 (repository architecture consolidation, step 2 session), while re-running the standard HTTP regression setup as a routine post-reorg sanity check (fresh PHP 8.3.6 + MariaDB via `default-mysql-server`, both installed via `apt-get`; `duration-calculator-php/config.php` pointed at a local `audit_test` DB; schema imported; `seed.php` run).
+- **Command used** (identical to every prior session's stated command): `php -S 127.0.0.1:8099 api/index.php`, run from inside `duration-calculator-php/`.
+- **Result**: `php tests/http_api_test.php http://127.0.0.1:8099` → **5 passed, 11 failed** (not 16/16). `smoke_test.php` (no HTTP involved) still passed 24/24 — the calculation engine itself is fine, this is purely a routing-layer bug.
+  - PASS: `GET /health`, `POST /cases` (bare, no id).
+  - FAIL (404): `GET /nace/search?q=...`, `GET /nace/01`, `PUT /cases/:id`, `GET /cases/:id`, `DELETE /cases/:id` — every route with more than one path segment after the host.
+- **Root cause, empirically confirmed** (not a hypothesis — verified by adding a temporary debug script that dumps `$_SERVER`, then deleted): under `php -S host:port api/index.php`, when the requested path doesn't correspond to a real file, PHP's built-in server sets `$_SERVER['SCRIPT_NAME']` to **the requested path itself**, not to `api/index.php`'s own path. Confirmed directly: `GET /nace/search?q=test` → `SCRIPT_NAME = "/nace/search"`; `GET /health` → `SCRIPT_NAME = "/health"`.
+  - `api/index.php` (line 107) computes `$scriptDir = dirname($_SERVER['SCRIPT_NAME'])` to strip a "deployment subdirectory" prefix off the request path.
+  - For a **single-segment** path like `/health`, `dirname()` returns `/`, `$scriptDir` ends up `''` after `rtrim(..., '/')`, the strip is skipped, and routing works — this is why `/health` and bare `/cases` (POST) passed.
+  - For **any multi-segment** path, e.g. `/nace/search`, `dirname('/nace/search')` returns `/nace`. The code then finds the request path `/nace/search` starts with `/nace` and strips it, leaving just `/search` → routed as segment `["search"]` instead of `["nace","search"]` → falls through to the 404 handler. Same mechanism explains `/cases/:id` losing its `cases` segment.
+- **Open contradiction — do not resolve by assuming either side is wrong without re-testing**: `docs/DEV_STATUS.md`'s fourth session reported this exact command giving `GET /nace/search` → 200, `GET /nace/01` → 200, and the full PUT/GET/DELETE lifecycle 16/16, and marked the original NACE-404 finding "NOT REPRODUCED." This session reproduces the 404s reliably and has an empirical (not inferred) root cause for *why* they'd occur under this exact command. Possible explanations, none confirmed: a PHP point-version behavior difference in built-in-server `SCRIPT_NAME` handling; an environment/invocation detail not fully captured in either session's write-up (e.g. an explicit `-t` docroot flag, a different working directory, or a `.user.ini`/`php.ini` setting); or the fourth session's result being incorrect despite its own good-faith reporting. **This needs a fresh, careful re-run with the exact PHP version and command double-checked line-by-line before trusting either result over the other.**
+- **Why this matters beyond NACE**: the exact same mechanism breaks `PUT/GET/DELETE /cases/:id`, which is the HTTP-contract evidence `docs/DEV_STATUS.md`'s "Current status" section currently cites as the reason BUG-004's PUT/Enregistrer path is "VERIFIED." That VERIFIED status was based on real DB testing and is likely still correct for the *actual* PUT logic — but if this router bug is real and present in production too (not just a PHP-built-in-server artifact), it would mean **the production API can't reach `/cases/:id` at all**, which is a far more serious and different problem than anything currently logged under BUG-004. This has NOT been checked against the real Apache/DirectAdmin/.htaccess topology — only ever against PHP's built-in dev server, in every session including this one. That real-topology gap is the single most important thing to close next, more urgent than it looked before this finding.
+- **NOT DONE**:
+  1. Reconcile the contradiction with the fourth session's 16/16 result (re-run under the exact same conditions, compare PHP versions with `php -v`, check for a `-t`/docroot flag difference).
+  2. Test the real Apache + `.htaccess` topology (mod_rewrite passes a different `PATH_INFO`/`SCRIPT_NAME` shape than the built-in server's router mode — this bug may or may not exist there; nobody has tested it in any session to date).
+  3. If confirmed present in Apache too: fix the router to not rely on `SCRIPT_NAME` for multi-segment requests — e.g. derive the app's base path once from a known-fixed value (config or `.htaccess`-set env var) instead of `dirname()` on a value the built-in server documents as unstable for non-existent-file requests, or use `PATH_INFO` if Apache is configured to provide it cleanly. Do not restructure shared routing without re-running the full HTTP regression suite plus a NACE-specific and cases-specific pass, per `docs/ORIENTATIONS.md`.
+  4. Re-run the full 16-test suite after any fix and update this entry and BUG-004's status accordingly — do not mark VERIFIED again without a fresh real run's output pasted into the log, given a "VERIFIED, 16/16" claim already turned out not to reproduce once here.
+- **Evidence level**: ROOT-CAUSED (empirical, not inferred) for the mechanism; REOPENED for the NACE-404 finding's disposition; **BUG-004's PUT path status should be treated as UNCERTAIN pending item 1 above, not simply reverted to OPEN or left at VERIFIED** — see `docs/DEV_STATUS.md`'s dated entry for this session for the precise current-status wording used.

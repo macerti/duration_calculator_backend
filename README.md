@@ -1,6 +1,24 @@
 # Audit Duration Calculator — Source
 
-All source for the GS0106/IAF audit duration calculator project. This is the
+GS0106 / IAF MD5 / MD1 / MD11 audit duration calculation tool — a rebuild of
+`LSP0301_Outil_de_calcul.xlsm`, built to run as a free tool on your website
+via DirectAdmin shared hosting: **PHP + MariaDB backend, React (Expo)
+frontend built to static files.** No Node.js runtime needed on the server.
+
+**Both pieces are required — this is not one file.** The frontend
+(`audit-mobile/`) is only forms and display; every GS0106 formula lives in
+the backend (`duration-calculator-php/`).
+
+**Why PHP**: this started as Node/TypeScript (see
+`docs/archive/audit-engine-abandoned-node-engine/`). Once it was confirmed
+the target DirectAdmin host has no Node.js Selector, the engine was ported
+to PHP — same formulas, same worked examples, verified against the same
+test cases. PHP + MySQL/MariaDB is close to universally available on shared
+hosting.
+
+All source for the project lives here. This is the
+
+
 **source** repo — for the deployable artifact actually uploaded to hosting,
 see [`duration_calculator`](https://github.com/macerti/duration_calculator).
 
@@ -32,21 +50,56 @@ see [`duration_calculator`](https://github.com/macerti/duration_calculator).
   copy-verbatim than `audit-mobile/` is.
 - **`audit-app/`** — an earlier two-folder-topology version of the PHP
   backend (`backend/public/` as its own doc root, `/api/...` as a URL
-  namespace rather than a physical folder). Kept for reference/history, not
-  the deployment target — see `ORIENTATIONS.md`'s decisions log for why
-  both exist.
-- **`audit-engine/`** — the original Node/TypeScript engine implementation,
-  before the project moved to PHP (no Node.js available on the target
-  DirectAdmin host). Kept for reference/history; not maintained in lockstep
-  with the PHP engine going forward — see its own `BUGLOG.md`/`ROADMAP.md`
-  for where it was left off.
+  namespace rather than a physical folder), plus an earlier version of the
+  frontend. Kept for reference/history, not the deployment target — see
+  `docs/ORIENTATIONS.md`'s decisions log for why both exist. **Note as of
+  2026-09-01 (repository architecture consolidation, step 2)**: this
+  folder now contains only that historical code. The project's active
+  living docs that used to live here (`BUGLOG.md`, `DEV_STATUS.md`,
+  `ROADMAP.md`, `ORIENTATIONS.md`, `TEST_CHECKLIST.md`, `DEPLOY.md`) have
+  moved to `docs/`, and `SECURITY.md`/`CHANGELOG.md` have moved to the
+  repo root, per `REPOSITORY_ARCHITECTURE.md`.
+- Historical/abandoned implementations have been archived under
+  `docs/archive/` rather than kept as active-looking top-level folders —
+  e.g. the original Node/TypeScript engine implementation (before the
+  project moved to PHP) now lives at
+  `docs/archive/audit-engine-abandoned-node-engine/`.
+
+## Quick start (local testing before deploying)
+
+**Backend:**
+```bash
+cd duration-calculator-php
+cp config.example.php config.php   # edit config.php with your DB credentials
+php -S localhost:8000 -t .
+```
+
+**Frontend:**
+```bash
+cd audit-mobile
+npm install
+EXPO_PUBLIC_API_URL=http://localhost:8000 npx expo export --platform web --clear
+# static site is now in audit-mobile/dist/
+```
+
+⚠️ Always pass `--clear` when rebuilding with a *different*
+`EXPO_PUBLIC_API_URL` — Metro's bundler cache will otherwise silently reuse
+a stale build with the old URL baked in; see `docs/BUGLOG.md`.
+
+See `docs/DEPLOY.md` for the actual DirectAdmin deployment steps.
 
 ## Project documentation
 
-The project's own standing docs (`CHANGELOG.md`, `ROADMAP.md`, `BUGLOG.md`,
-`SECURITY.md`, `TEST_CHECKLIST.md`, `ORIENTATIONS.md`, `DEPLOY.md`) live at
-the root of the **deploy** repo (`duration_calculator`), since that's the
-project's actual living history — this source repo doesn't duplicate them.
+The project's active living docs (`docs/BUGLOG.md`, `docs/DEV_STATUS.md`,
+`docs/ROADMAP.md`, `docs/ORIENTATIONS.md`, `docs/TEST_CHECKLIST.md`,
+`docs/DEPLOY.md`, plus `SECURITY.md` and `CHANGELOG.md` at the repo root)
+live in **this** source repo, since this is where the actual development
+work and hand-offs happen. **Open question, not resolved by this move**:
+an earlier version of this README claimed these docs lived in the
+**deploy** repo (`duration_calculator`) instead — that was not true of the
+files actually being maintained (they've always been committed here).
+Whether `duration_calculator` should also mirror a copy is a policy
+decision for the team, not something this structural move decided.
 
 ## Credentials
 
@@ -72,7 +125,7 @@ The pipeline:
 
 The deployment repository's existing FTP workflow remains separate and must not be modified as part of source CI changes.
 
-Do not add another build workflow for the same purpose. Do not manually edit generated application files in `duration_calculator`. If CI fails, record the exact failing stage in `audit-app/BUGLOG.md` and `audit-app/DEV_STATUS.md` before changing the implementation.
+Do not add another build workflow for the same purpose. Do not manually edit generated application files in `duration_calculator`. If CI fails, record the exact failing stage in `docs/BUGLOG.md` and `docs/DEV_STATUS.md` before changing the implementation.
 
 
 ## Repository maintenance

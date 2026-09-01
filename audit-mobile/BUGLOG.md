@@ -1,5 +1,24 @@
 # Bug Log — audit-mobile
 
+> ⚠️ **Numbering collision — read before citing a BUG-ID from this file.**
+> This log has its own independent `BUG-001`–`BUG-004`/`BUG-019` numbering
+> that is **not** the same sequence as `docs/BUGLOG.md`'s `BUG-001`–`BUG-029`.
+> The two files happen to reuse the same numbers for **different bugs**
+> (e.g. this file's `BUG-004` is the "wizard save" bug that
+> `docs/DEV_STATUS.md`'s "Current status" section tracks as *the* BUG-004 —
+> it is unrelated to `docs/BUGLOG.md`'s own `BUG-004`, "`mb_strtolower`
+> undefined"). `BUG-019` is the one deliberate exception: it intentionally
+> refers to the same CI-database bug in both files.
+>
+> This file is kept in place (not archived/merged) because it contains
+> unique file/line-level investigation detail for the wizard-save bug that
+> isn't duplicated in `docs/DEV_STATUS.md`'s higher-level summary. Found
+> and documented 2026-09-01 (repository architecture consolidation, step
+> 2) — see `docs/DEV_STATUS.md`'s dated entry for that session for the
+> full write-up and the recommended follow-up (a dedicated renumbering
+> pass, not attempted here to avoid an uncontrolled rewrite of every
+> cross-reference under a tight turn budget).
+
 ### BUG-001 — `expo-constants` used but not installed
 - **Detected**: `npx tsc --noEmit` — `TS2307: Cannot find module 'expo-constants'`.
 - **Cause**: `src/config/api.ts` imports `expo-constants` for reading `app.json`
@@ -66,12 +85,12 @@ The frontend fix for the silent initial draft-save failure is already in source,
 - The frontend behavior was changed so an initial draft-save failure is surfaced and can be retried explicitly; automatic blind POST retry was deliberately avoided because a lost POST response can create duplicate cases without an idempotency mechanism.
 - The complete PUT /cases/:id path and complete wizard lifecycle still require runtime verification.
 - CI is now responsible for the repeatable MariaDB + PHP integration environment. Its regression suite is located at `duration-calculator-php/tests/http_api_test.php`.
-- Earlier CI runs failed before reaching these regression tests because the CI database configuration was wrong. That CI infrastructure problem is now being addressed separately as BUG-019 in `audit-app/BUGLOG.md`.
+- Earlier CI runs failed before reaching these regression tests because the CI database configuration was wrong. That CI infrastructure problem is now being addressed separately as BUG-019 in `docs/BUGLOG.md`.
 - Do not duplicate the CI database setup or create another workflow. The only source CI workflow is `.github/workflows/build-test-publish.yml`.
 
 **Current evidence boundary**
 - VERIFIED: minimal POST /cases payload succeeds.
 - CODE CHANGED: initial draft failure is no longer silently swallowed.
-- VERIFIED (2026-09-01, real GitHub Actions run `33449892835`, and independently reproduced again the same day in a separate fresh sandbox against real PDO+MySQL — see `audit-app/DEV_STATUS.md`'s "fourth session" entry): PUT /cases/:id against a real database, full lifecycle (POST → PUT → GET → DELETE), 16/16 on `duration-calculator-php/tests/http_api_test.php`. **This item is no longer open — do not re-verify it a third time without a reason to suspect regression.**
+- VERIFIED (2026-09-01, real GitHub Actions run `33449892835`, and independently reproduced again the same day in a separate fresh sandbox against real PDO+MySQL — see `docs/DEV_STATUS.md`'s "fourth session" entry): PUT /cases/:id against a real database, full lifecycle (POST → PUT → GET → DELETE), 16/16 on `duration-calculator-php/tests/http_api_test.php`. **This item is no longer open — do not re-verify it a third time without a reason to suspect regression.**
 - NOT VERIFIED: complete browser/device wizard save/reopen lifecycle (the actual UI clicking through the flow, as opposed to the raw HTTP contract above). This remains the real gap.
-- VERIFIED: a complete green source CI run followed by artifact publication and FTP deployment (see `audit-app/DEV_STATUS.md`, commit `d16409e`, run `33449892835`, deploy artifact `0f97d9e`).
+- VERIFIED: a complete green source CI run followed by artifact publication and FTP deployment (see `docs/DEV_STATUS.md`, commit `d16409e`, run `33449892835`, deploy artifact `0f97d9e`).

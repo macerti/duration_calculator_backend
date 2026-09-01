@@ -2,12 +2,13 @@
 
 ## Mandatory pipeline
 
-1. FEAT-003 — Versioning and update timestamp: IMMEDIATE.
-2. Repository architecture consolidation: immediately after FEAT-003. Follow REPOSITORY_ARCHITECTURE.md; identify the source of truth before moving/deleting anything and preserve all formulas/business rules.
-3. USER FEEDBACK / ACCEPTANCE GATE. After the first two items, pause normal feature development and perform real browser/mobile/user testing. Feed the results back into the logs to definitively close, reopen, or change the relevant bugs/features.
-4. Remaining bugs. Resume only after the acceptance gate.
-5. Remaining features. Resume after the acceptance gate. Admin/parameter administration UI is prioritized ahead of authentication/SSO.
-6. FEAT-002 Microsoft/Google SSO: NOT PRIORITIZED. It remains documented but is explicitly deferred.
+1. FEAT-003 — Versioning and update timestamp: IMMEDIATE. **DONE** (source-complete, deploy-verified — see dated entries).
+2. Repository architecture consolidation: immediately after FEAT-003. Follow REPOSITORY_ARCHITECTURE.md; identify the source of truth before moving/deleting anything and preserve all formulas/business rules. **STEP 1 + STEP 2 DONE** (audit-engine archived; audit-app fully archived, active docs relocated to docs/+root — see 2026-09-01 sixth-session entry). Remaining: audit-mobile/→src/ rename + internal restructure.
+3. **BUG-030 (router SCRIPT_NAME bug, possibly production-breaking) — NEW, INSERTED 2026-09-01 (sixth session), ahead of the acceptance gate.** Reconcile the contradiction with the fourth session's PUT/NACE "VERIFIED"/"NOT REPRODUCED" claims, then test the real Apache/.htaccess topology. If confirmed present in production, this blocks the acceptance gate below — no point doing real user testing against `/cases/:id` or `/nace/*` if they may 404 in production. See BUG-030 in `docs/BUGLOG.md`.
+4. USER FEEDBACK / ACCEPTANCE GATE. After the items above, pause normal feature development and perform real browser/mobile/user testing. Feed the results back into the logs to definitively close, reopen, or change the relevant bugs/features.
+5. Remaining bugs. Resume only after the acceptance gate.
+6. Remaining features. Resume after the acceptance gate. Admin/parameter administration UI is prioritized ahead of authentication/SSO.
+7. FEAT-002 Microsoft/Google SSO: NOT PRIORITIZED. It remains documented but is explicitly deferred.
 
 ### Acceptance terminology
 - USER-ACCEPTED — user confirms the behavior is satisfactory.
@@ -27,7 +28,8 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 > Status date: 2026-09-01 (fourth session — independent fresh-sandbox backend re-verification)
 > Repository: macerti/duration_calculator_backend
 > Active app: audit-mobile/
-> Deployment/reference docs: audit-app/
+> Deployment/reference docs: docs/ (moved from audit-app/ on 2026-09-01, sixth session — see dated entry below)
+> Historical/reference-only code (not the active app): audit-app/backend, audit-app/frontend
 > Deployment artifact: separate macerti/duration_calculator repository
 
 ## How to use this file
@@ -73,6 +75,8 @@ Dependency: the PUT investigation is independent enough to start immediately. Th
 
 ### New finding — NACE routes return 404 under PHP built-in dev server
 
+Status: **REOPENED 2026-09-01 (sixth session, repository architecture consolidation step 2) — ROOT-CAUSED with a reproducible mechanism. The "NOT REPRODUCED" status below is superseded; see BUG-030 in `docs/BUGLOG.md` for the full root-cause writeup (a `SCRIPT_NAME`-based router bug that misroutes every multi-segment path under `php -S`) and the open contradiction with the fourth session's 16/16 result that has not yet been reconciled.** Do not trust either session's result over the other without a fresh, carefully-controlled re-run — see BUG-030's "NOT DONE" list.
+
 Status: **RE-TESTED 2026-09-01 (fourth session) — NOT REPRODUCED.** Do not restart the SCRIPT_NAME/REQUEST_URI investigation below without first re-confirming the 404 actually still happens; it did not in two independent sessions now (the earlier CI-root-cause session, and this one).
 
 #### DONE / VERIFIED
@@ -109,13 +113,15 @@ Dependency: NACE investigation is independent of BUG-004 PUT testing. It becomes
 | Work stream | Status | Independent or dependent | Required hand-off |
 |---|---|---|---|
 | BUG-004 initial POST failure | Open (frontend robustness only — backend ruled out) | Independent | Preserve the verified fact that the minimal POST payload returns 201; focus on frontend retry/error-surfacing, not backend |
-| BUG-004 PUT Enregistrer | **VERIFIED 2026-09-01 (fourth session), 16/16 HTTP regression, real DB** | Independent | Do not re-test this path again without new evidence of a regression |
-| NACE 404 classification | **NOT REPRODUCED 2026-09-01 (fourth session)** — treat as resolved unless it recurs | Independent initially | If it recurs, capture SCRIPT_NAME/REQUEST_URI then, not from the old hypothesis |
+| BUG-004 PUT Enregistrer | **UNCERTAIN as of 2026-09-01 (sixth session)** — was VERIFIED (fourth session, 16/16); this session's identical command got 5/16 with `/cases/:id` 404ing. Same router bug as NACE below (BUG-030). Do not treat as VERIFIED or as broken until reconciled. | Independent, but now shares a root cause with the NACE row below | Reconcile the contradiction first (see BUG-030); then re-test PUT specifically |
+| NACE 404 classification | **REOPENED 2026-09-01 (sixth session)** — ROOT-CAUSED (SCRIPT_NAME-based router bug under `php -S`, see BUG-030 in `docs/BUGLOG.md`), contradicting the fourth session's "NOT REPRODUCED". Not yet tested against real Apache/.htaccess topology. | Independent initially; now the same root cause as BUG-004 PUT above | Do not re-close this without testing real Apache topology and reconciling the two sessions' conflicting results |
+| Router SCRIPT_NAME bug (BUG-030) | **ROOT-CAUSED, fix not written** | Blocks confident closure of both rows above | Reconcile PHP-version/invocation discrepancy with fourth session; test real Apache topology; fix without an uncontrolled routing rewrite; re-run full 16-test suite |
 | Router/topology changes | Not started for this finding | Dependent | Read BUG-003 + ORIENTATIONS.md; test both topology variants before syncing |
 | Browser/device confirmation of wizard state fixes | Open | Independent from backend NACE work | Requires actual browser/device tooling — still not available in any sandboxed session to date |
-| Real DirectAdmin deployment | Open | Dependent on core API stability | Must use deployment topology, not PHP built-in-server behavior alone (built-in-server path is now solidly verified — see above) |
+| Real DirectAdmin deployment | Open | Dependent on core API stability | **Now higher priority than before**: if BUG-030 is present in Apache too, production `/cases/:id` and `/nace/*` may be entirely unreachable — this is no longer just a "verify the happy path" item |
 | Authentication/rate limiting/security hardening | Open | Largely independent | Must be completed before real client data is treated as protected production data |
-| FEAT-003 — version/last-update footer | **SOURCE-COMPLETE 2026-09-01 (this session) — see dated entry below** | Independent | Not yet deployed (source/deployment separation); not yet browser/device-VERIFIED (no browser tooling in this sandbox) |
+| FEAT-003 — version/last-update footer | **SOURCE-COMPLETE, DEPLOY-VERIFIED (fifth session)** | Independent | Not yet browser/device-VERIFIED (no browser tooling in this sandbox) |
+| Repository architecture consolidation | **STEP 2 DONE 2026-09-01 (sixth session)** — see dated entry below | Independent | `audit-app/` fully archived; docs relocated; audit-mobile legacy logs flagged/merged. Remaining: rename `audit-mobile/`→`src/` + internal restructure (not attempted, bigger blast radius) |
 
 ## Standing test evidence
 
@@ -413,7 +419,7 @@ The current deployment was tested interactively and exposed three frontend consi
 
 ## 2026-09-01 (fourth session) — Independent fresh-sandbox backend re-verification; no code changes; docs reconciled
 
-**Purpose of this session**: was asked to "start fixing the bugs." Before writing any code, read this file, `audit-mobile/BUGLOG.md`, `audit-app/BUGLOG.md`, and the latest commit (`3d22b7f`, FEAT-003) to establish what was actually still open, since prior sessions' "Current status" header and their own chronological history had drifted out of sync (header still said BUG-004 PUT was "Not tested" and NACE was "OPEN", while a chronological entry further down already reported both passing via CI). Prioritized closing that gap with fresh, independent evidence over starting new feature work, per this file's own instruction not to duplicate investigation.
+**Purpose of this session**: was asked to "start fixing the bugs." Before writing any code, read this file, `audit-mobile/BUGLOG.md`, `docs/BUGLOG.md`, and the latest commit (`3d22b7f`, FEAT-003) to establish what was actually still open, since prior sessions' "Current status" header and their own chronological history had drifted out of sync (header still said BUG-004 PUT was "Not tested" and NACE was "OPEN", while a chronological entry further down already reported both passing via CI). Prioritized closing that gap with fresh, independent evidence over starting new feature work, per this file's own instruction not to duplicate investigation.
 
 **Environment**: sandboxed container, no prior state from any earlier session (fresh clone). Unlike every prior session's stated environment, this one *did* have outbound access to `archive.ubuntu.com`/`security.ubuntu.com`, so `apt-get install php8.3-cli php-mysql php-mbstring php-curl default-mysql-server` succeeded — this is the first session able to run the real PHP/DB regression suite outside of GitHub Actions itself.
 
@@ -441,7 +447,7 @@ The current deployment was tested interactively and exposed three frontend consi
 
 **DEPENDENCY / HAND-OFF for the next developer**
 1. Do not re-run the MariaDB/PHP stand-up + smoke/HTTP suite from scratch just to "double check" — it is now independently confirmed three times (two CI runs + this session). Spend that time on FEAT-003 or the real browser/device gap instead.
-2. FEAT-003 is the top of the backlog per the repo's own most recent commit — read `audit-app/ROADMAP.md`'s "IMMEDIATE REQUEST — FEAT-003" section in full before starting it. It touches both `audit-mobile/` (footer UI) and needs a decision on where "last update" metadata is sourced from (git commit timestamp at build time is the most likely fit, but this session did not decide that — it's a real open design question, not a coding detail).
+2. FEAT-003 is the top of the backlog per the repo's own most recent commit — read `docs/ROADMAP.md`'s "IMMEDIATE REQUEST — FEAT-003" section in full before starting it. It touches both `audit-mobile/` (footer UI) and needs a decision on where "last update" metadata is sourced from (git commit timestamp at build time is the most likely fit, but this session did not decide that — it's a real open design question, not a coding detail).
 3. BUG-004's frontend items (#1 and #3 in the NOT DONE list above) still need a source-code check, not just a docs check — confirm `CalculationWizardScreen.tsx`'s current error-surfacing behavior matches what `audit-mobile/BUGLOG.md`'s 2026-08-31 entry claims was implemented, since that file wasn't independently re-read line-by-line this session.
 
 ### 2026-09-01 (fifth session) — FEAT-003 implemented (version/last-update footer)
@@ -485,3 +491,58 @@ Per the priority order, moved to the consolidation item next. Given the size/ris
 ## FEAT-004 / BUG-029 hand-off
 
 A production-quality web/SEO/routing review is logged. It is intentionally deferred until after versioning, repository architecture, and the user acceptance gate. Developers must classify each item before implementing it. The critical architecture decision is to distinguish public/indexable content from the private/stateful calculation wizard; do not add URLs to every wizard phase solely for SEO.
+
+---
+
+## 2026-09-01 (sixth session) — Repository architecture consolidation step 2 (docs relocated, legacy apps archived); BUG-030 found and root-caused
+
+**Purpose of this session**: continue the mandatory pipeline's item 2 (repository architecture consolidation), picking up where the fifth session's step 1 (archiving `audit-engine/`) left off, per instruction to remove duplicate/legacy application code while preserving all formulas/business rules and unifying the docs.
+
+**Environment**: sandboxed container with outbound access to `archive.ubuntu.com`/`security.ubuntu.com`/npm registry — `apt-get install php8.3-cli php-mysql php-mbstring php-curl default-mysql-server` and `npm` both worked, so this session (like the fourth) could run real PHP/MariaDB verification, not just static/build checks.
+
+### PART 1 — Repository architecture consolidation, step 2 (DONE)
+
+**Moved (git mv, history preserved)**:
+- `audit-app/{BUGLOG,DEV_STATUS,ROADMAP,ORIENTATIONS,TEST_CHECKLIST,DEPLOY}.md` to `docs/`.
+- `audit-app/{SECURITY,CHANGELOG}.md` to repo root, per `REPOSITORY_ARCHITECTURE.md`'s explicit root-file list.
+- Every cross-reference to the old `audit-app/BUGLOG.md`/`DEV_STATUS.md`/`ROADMAP.md` paths updated repo-wide (`README.md`, `audit-mobile/BUGLOG.md`, this file) — verified zero remaining stale references via `grep -rl`.
+
+**Archived (git mv into `docs/archive/`, not deleted)**:
+- `audit-app/backend/` plus `audit-app/frontend/` plus `audit-app/README.md` to `docs/archive/audit-app-legacy-two-folder-implementation/`, with a full `ARCHIVE_NOTE.md` documenting the verification performed before archiving (see below). `audit-app/` itself no longer exists (was empty after the move).
+- `audit-mobile/CHANGELOG.md` (superseded, pre-PHP-port version history) to `docs/archive/audit-mobile-legacy-logs/CHANGELOG.md`, and its full content merged into the end of the canonical root `CHANGELOG.md` (confirmed as the exact chronological predecessor of that file's `[1.0.0]` entry — same 2026-08-19 date, `[1.0.0]`'s own text describes copying this exact frontend in).
+- Retroactively created `docs/archive/audit-engine-abandoned-node-engine/ARCHIVE_NOTE.md` — the fifth session's log said this note existed but it was never actually written.
+
+**Verified nothing was lost before archiving `audit-app/backend`+`frontend` (see the archive's own `ARCHIVE_NOTE.md` for full detail)**:
+- `.github/workflows/build-test-publish.yml` never referenced `audit-app/backend` or `audit-app/frontend` — confirmed by direct read, only ever touches `duration-calculator-php/` and `audit-mobile/`.
+- Diffed every engine file, `data/parameters.php`, all four `data/raw/*.csv` parameter files, `db/schema.sql`, and `db/*Repo.php` files against the canonical `duration-calculator-php/`: canonical is strictly ahead everywhere they differ (NACE accent-folding + multi-field search, the BUG-023 two-statement FK fix, `wizard_state_json` persistence, a `debug` config flag) — no unique formula, parameter, or business rule exists only in the archived copy.
+- Frontend: archived copy has 24 files under `src/` vs `audit-mobile/src/`'s 30, missing `hooks/`/`theme/`/`utils/` entirely — an earlier, smaller iteration; no calculation logic lives in the frontend layer in either version.
+
+**Root README.md**: merged in the still-valid unique content from the now-archived `audit-app/README.md` (GS0106/IAF project description, "why PHP" rationale, quick-start commands), updated to reference canonical paths (`duration-calculator-php/`, `audit-mobile/`) instead of the archived ones. Also corrected a previously-stale claim that the project's living docs "live in the deploy repo" — they don't and never did; flagged this explicitly rather than silently rewriting project policy.
+
+**Found but NOT reconciled this session — a real bug-ID numbering collision**: `audit-mobile/BUGLOG.md` has its own independent `BUG-001` through `BUG-004`/`BUG-019` numbering that is not the same sequence as `docs/BUGLOG.md`'s `BUG-001` through `BUG-030`. They reuse identical numbers for different bugs — most importantly, `audit-mobile/BUGLOG.md`'s `BUG-004` ("wizard save is broken") is the one this file's own "Current status" section tracks as the BUG-004; it has nothing to do with `docs/BUGLOG.md`'s own unrelated `BUG-004` ("`mb_strtolower` undefined"). `BUG-019` is the one case deliberately kept in sync as the same bug in both files. Added prominent warning headers to both `audit-mobile/BUGLOG.md` and `docs/BUGLOG.md` rather than attempting a renumbering pass — renumbering would touch every cross-reference across this file, `ROADMAP.md`, `CHANGELOG.md`, and past commit messages, which is exactly the "uncontrolled rewrite" `REPOSITORY_ARCHITECTURE.md` warns against attempting without dedicated runway. Recommended follow-up for a future session with enough time to verify every cross-reference: renumber `audit-mobile/BUGLOG.md`'s entries into the `docs/BUGLOG.md` sequence, or formally merge the two logs.
+
+Also flagged, not reconciled: `audit-mobile/ROADMAP.md` is stale — several "not yet built" items (NACE search, case history/detail screens) already exist. Left in place with a warning header rather than guessed-at and edited, since verifying each checklist item against current source would need more time than this session had left after the BUG-030 investigation below.
+
+**Verification that the moves didn't break anything**: `grep -rn "audit-app"` across `duration-calculator-php/`, `audit-mobile/src/`, `audit-mobile/*.{ts,tsx,json}`, and `.github/` returned zero hits. The moves were documentation/archival only; no application code was touched.
+
+### PART 2 — BUG-030 found: router bug reopens the NACE-404 finding and puts BUG-004 PUT's VERIFIED status in question
+
+While re-running the standard HTTP regression suite as a routine post-reorg sanity check (not expecting to find anything — this was meant to be a quick confirmation), `php tests/http_api_test.php` returned 5 passed, 11 failed, not the 16/16 the fourth session reported for the identical stated command (`php -S 127.0.0.1:8080 api/index.php` — this session used port 8099, otherwise identical). `smoke_test.php` (24/24) was unaffected — this is purely an HTTP routing issue, not a calculation-engine issue.
+
+**Root cause, empirically confirmed via a temporary debug script (written, tested, then deleted — not left in the repo)**: under PHP's built-in server in router-script mode, `$_SERVER['SCRIPT_NAME']` reflects the requested path for any path that isn't a real file, not the router script's own path. `api/index.php` (line 107) uses `dirname($_SERVER['SCRIPT_NAME'])` to strip a deployment-subdirectory prefix, which works by accident for single-segment paths (`/health`, bare `/cases`) but incorrectly strips the first segment off any multi-segment path (`/nace/search` routed as just `search`; `/cases/5` routed as just `5`), causing a 404. Full write-up with the exact debug output: `docs/BUGLOG.md`, BUG-030.
+
+**This directly reopens two things this project has been treating as settled**:
+1. The NACE-404 finding, previously marked "NOT REPRODUCED" by the fourth session — now REOPENED with a concrete mechanism.
+2. BUG-004's PUT/Enregistrer "VERIFIED, 16/16" status — the same router bug breaks `PUT/GET/DELETE /cases/:id` too. Not asserting BUG-004's actual save/update logic is broken (it very likely isn't — this looks like a pure routing-layer issue, and the underlying repo/engine code wasn't touched), but the HTTP-contract evidence that was used to call it VERIFIED does not currently reproduce, so that status should be treated as UNCERTAIN, not simply re-asserted or reverted, until reconciled.
+
+**Unresolved and explicitly flagged as unresolved, not guessed at**: why did the fourth session's identical-looking command apparently not hit this? Possible explanations logged in BUG-030 (PHP point-version difference, an environment/invocation detail not captured in either write-up, or one of the two sessions' results simply being wrong) — none confirmed. Do not trust either session's result over the other without a fresh, controlled re-run. This is the single most important thing for the next session to resolve before anything else, including before proceeding further with the acceptance gate — see the updated priority order at the top of this file.
+
+**Also newly elevated in priority by this finding**: real Apache/DirectAdmin/`.htaccess` topology testing. Every session to date, including this one, has only ever tested against PHP's built-in dev server. If this router bug is present under real Apache mod_rewrite too (untested, unknown either way), production's `/cases/:id` and `/nace/*` endpoints may be entirely unreachable — a materially bigger problem than anything currently logged, and one no amount of further built-in-server testing can rule in or out.
+
+**NOT DONE**:
+- The reconciliation re-run (item 1 in BUG-030's "NOT DONE" list).
+- Real Apache/.htaccess topology test.
+- Any actual fix to the router — this session only root-caused and documented; per `ORIENTATIONS.md`'s router/topology dependency rule, a routing fix needs the full HTTP regression suite plus a dedicated NACE-specific and cases-specific pass before being trusted, which didn't fit in this session's remaining time after the investigation itself.
+- `audit-mobile/` to `src/` rename and internal restructure (remainder of repository architecture consolidation) — not attempted; bigger blast radius than this session's remaining runway, same reasoning the fifth session gave for deferring it.
+
+**DEPENDENCY / HAND-OFF for the next developer**: read BUG-030 in `docs/BUGLOG.md` in full before touching `api/index.php`'s routing, BUG-004, or the NACE routes. Do not re-run the MariaDB/PHP stand-up "to double-check" without a specific reason tied to reconciling the contradiction above — the setup itself (schema import, seed, smoke test) is not in question, only the HTTP routing layer. Do not mark BUG-004 PUT or NACE search/lookup as either fixed or broken without new evidence from item 1 of BUG-030's "NOT DONE" list.

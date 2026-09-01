@@ -1,5 +1,14 @@
 # Roadmap / Planned Features — audit-mobile
 
+> ⚠️ **Stale — not the canonical roadmap.** `docs/ROADMAP.md` is the
+> actively-maintained project roadmap and priority order; this file
+> predates it and has not been kept in sync (e.g. NACE search and case
+> history/detail screens listed below as "not yet built" already exist —
+> see `ClientsList`/`ClientDetail` screens and `duration-calculator-php/`'s
+> `/nace/search` route). Kept for historical context (early design
+> decisions below) rather than deleted. Flagged, not reconciled, in this
+> pass — 2026-09-01 (repository architecture consolidation, step 2).
+
 ## Requested, not yet built
 - [x] ~~Full Case Builder screen~~ — done in 0.2.0 (single site, multi-standard)
 - [x] ~~Multi-site support in the Case Builder~~ — done in 0.3.0
