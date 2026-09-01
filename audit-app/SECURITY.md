@@ -189,3 +189,6 @@ factor justifications for certification decisions). Nothing here is
   or an equivalent raw-HTML path (none currently exists) — worth
   re-confirming if a PDF-export feature (already on `ROADMAP.md`) ever
   processes this data through an HTML-templating step.
+
+### Authentication architecture update — FEAT-002 SSO
+The authentication Todo above must be implemented as a provider-capable authentication system rather than assuming password-only authentication. In addition to the application's own session/authorization model, support verified external identities from Microsoft Entra/Microsoft accounts and Google through OIDC. Do not store provider passwords or unnecessary provider tokens. Account linking, session security, CSRF/state protection, rate limiting, secure cookies, provider-claim validation, and least-privilege scopes are mandatory parts of the implementation.
