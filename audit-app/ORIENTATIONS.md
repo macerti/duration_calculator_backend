@@ -234,3 +234,8 @@ here are what govern new work by default:
 ## Mandatory source/deployment separation
 
 **SOURCE REPOSITORY RULE:** this repository is the source of truth and is never the deployable artifact. Every application change must be made here first, tested here, then built/packaged and published to **macerti/duration_calculator**. For PHP, the deployable tree is produced from duration-calculator-php/ (no compilation). For audit-mobile, the deployable frontend is the generated Expo web export; source-only frontend changes are not deployed until the generated artifact is published to duration_calculator. Never fix application behavior only in the deployment repository. Every hand-off must record the source commit and deployment-artifact commit, or explicitly state that deployment is pending. A task is not deployed until the corresponding artifact exists in duration_calculator and its deployment workflow has been run/passed where applicable.
+
+
+## Current delivery priority — 2026-09-01
+
+The authoritative sequence is: versioning → repository architecture → user feedback/acceptance gate → remaining bugs → remaining features. Admin/parameter administration UI is prioritized ahead of authentication/SSO. Microsoft/Google SSO remains requested but is explicitly deprioritized until this order is changed by a later dated decision.
