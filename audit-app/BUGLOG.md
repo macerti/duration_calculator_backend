@@ -695,3 +695,15 @@ The active sequence is: FEAT-003 versioning → repository architecture consolid
 - **Fix**: `formatUpdatedAt()` now always converts to a fixed UTC+1 offset (adds 60 minutes to the UTC instant, then reads UTC date/time components) regardless of the source ISO string's own offset. Deliberately a *fixed* offset, not a DST-aware zone like `Europe/Paris`, since the requirement is "UTC+1 always."
 - **Verification**: logic checked against three cases — a UTC (`+00:00`) source, an already-`+01:00` source, and a US-Eastern (`-05:00`) source that crosses a date boundary when converted — all three converted correctly. `npx tsc --noEmit` clean.
 - **Not yet done**: not re-run through CI/redeployed as of this entry (see commit for source-only status); not interaction-verified in a browser (no such tooling in this sandbox, same caveat as all frontend work this project).
+
+
+### BUG-029 — Production-quality audit: framework/dev residue, runtime console errors and deployment hygiene
+
+**Status: OPEN — DISCOVERY REQUIRED**
+**Priority:** After versioning → repository architecture → user acceptance gate.
+
+This is an audit/investigation item, not an assumption that every listed symptom currently exists.
+
+Check the production application for actual browser console errors/warnings, Vite/React/development branding, placeholder/demo content, publicly exposed source maps, unnecessarily large JavaScript bundles, incorrect SPA fallback behavior, missing/branded 404 behavior, and metadata/routing inconsistencies discovered during FEAT-004.
+
+Do not close this by suppressing console output or hiding framework strings. Reproduce the issue, identify the root cause, fix it, then verify the production build in a real browser. If an observation is actually a new feature/change request rather than a defect, move it to ROADMAP.
