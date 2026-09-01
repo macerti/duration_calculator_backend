@@ -115,7 +115,7 @@ Dependency: NACE investigation is independent of BUG-004 PUT testing. It becomes
 | Browser/device confirmation of wizard state fixes | Open | Independent from backend NACE work | Requires actual browser/device tooling — still not available in any sandboxed session to date |
 | Real DirectAdmin deployment | Open | Dependent on core API stability | Must use deployment topology, not PHP built-in-server behavior alone (built-in-server path is now solidly verified — see above) |
 | Authentication/rate limiting/security hardening | Open | Largely independent | Must be completed before real client data is treated as protected production data |
-| FEAT-003 — version/last-update footer | **Open, marked IMMEDIATE priority as of the latest commit (`3d22b7f`, `audit-app/ROADMAP.md`)** | Independent | Not started by any session yet, including this one — see ROADMAP.md for full spec before implementing |
+| FEAT-003 — version/last-update footer | **SOURCE-COMPLETE 2026-09-01 (this session) — see dated entry below** | Independent | Not yet deployed (source/deployment separation); not yet browser/device-VERIFIED (no browser tooling in this sandbox) |
 
 ## Standing test evidence
 
@@ -443,3 +443,28 @@ The current deployment was tested interactively and exposed three frontend consi
 1. Do not re-run the MariaDB/PHP stand-up + smoke/HTTP suite from scratch just to "double check" — it is now independently confirmed three times (two CI runs + this session). Spend that time on FEAT-003 or the real browser/device gap instead.
 2. FEAT-003 is the top of the backlog per the repo's own most recent commit — read `audit-app/ROADMAP.md`'s "IMMEDIATE REQUEST — FEAT-003" section in full before starting it. It touches both `audit-mobile/` (footer UI) and needs a decision on where "last update" metadata is sourced from (git commit timestamp at build time is the most likely fit, but this session did not decide that — it's a real open design question, not a coding detail).
 3. BUG-004's frontend items (#1 and #3 in the NOT DONE list above) still need a source-code check, not just a docs check — confirm `CalculationWizardScreen.tsx`'s current error-surfacing behavior matches what `audit-mobile/BUGLOG.md`'s 2026-08-31 entry claims was implemented, since that file wasn't independently re-read line-by-line this session.
+
+### 2026-09-01 (fifth session) — FEAT-003 implemented (version/last-update footer)
+
+**Purpose of this session**: pulled latest before starting, per this file's own instruction, and found the repo's own most recent authoritative priority order (`cbdcb36`, top of this file) names FEAT-003 as the immediate top-of-backlog item, not yet started by anyone. Implemented it rather than re-touching already-VERIFIED work (BUG-004/NACE) or starting lower-priority backlog items out of order.
+
+**Design decisions made (previously flagged as open by the fourth session)**:
+- Version source of truth: `audit-mobile/package.json` `"version"` field (existing value `5.0.0`, kept — not reset to `1.0.0`, since the spec's versioning *rules* are what's authoritative, not a specific starting number). Bumped to `5.1.0` for this change itself (new user-visible feature → Y+1, Z resets, per the spec's own rule).
+- Update-timestamp source of truth: the committer timestamp of the most recent git commit touching `audit-mobile/` (`git log -1 --format=%cI -- .` run from that directory) — not build-machine clock, not end-user browser clock, satisfying the explicit ROADMAP.md requirement.
+
+**Implementation**:
+- `audit-mobile/scripts/generate-version.js` — new. Reads `package.json` version + git commit timestamp, writes `src/generated/versionInfo.ts` (gitignored — regenerated every install/dev/build, never a stale committed copy per the "derive automatically, don't hard-code" requirement).
+- Wired into `package.json`'s `postinstall` script, so both `npm ci` (CI) and local `npm install` regenerate it automatically — **no CI workflow YAML changes were needed**, since the existing "Install frontend dependencies" step already runs `npm ci`.
+- `audit-mobile/src/components/VersionFooter.tsx` — new. Renders `Version X.Y.Z · Updated on D Mon YYYY at HHhMM`, matching the spec's exact example format. Uses existing `theme/tokens.ts` design tokens (no new raw colors/hex), per `ORIENTATIONS.md`'s UI Visual System principle.
+- `App.tsx` — footer added as a sibling of `NavigationContainer` inside a flex-column wrapper, so it appears identically on every screen (Home, ClientsList, ClientDetail, CalculationWizard, CalculationReport) without touching each screen file individually — single place it can drift out of sync, per the spec's "one authoritative location" requirement.
+- Checked for competing hardcoded version strings elsewhere in `audit-mobile/src` — none found.
+
+**Verification this session (BUILD-VERIFIED, not yet interaction-VERIFIED — same evidence-level caveat as prior frontend sessions, no browser/device tooling available)**:
+- Clean `npm ci` from scratch → confirmed `postinstall` correctly generates `src/generated/versionInfo.ts` with real version/timestamp values (not placeholders).
+- `npx tsc --noEmit` — 0 errors.
+- `npx expo export --platform web --clear` — succeeds; grepped the built bundle directly and confirmed both `"5.1.0"` and the literal string `"Updated on"` are present in the shipped JS, i.e. this isn't a dead code path.
+
+**Not done / open**:
+- Not yet run through CI or deployed (source/deployment separation — next step is push + let `build-test-publish.yml` do its job, same as prior fixes this project has used).
+- Not interaction-VERIFIED in an actual browser/mobile viewport (layout/wrapping/overlap with existing screen content not visually confirmed — flag for the acceptance gate in `cbdcb36`'s priority order, step 3).
+- Per that same priority order, **repository architecture consolidation (`REPOSITORY_ARCHITECTURE.md`) is next**, not more bug/feature work — do not start BUG/FEAT backlog items before that consolidation without a reason to deviate from the recorded priority order.

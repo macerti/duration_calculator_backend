@@ -2,6 +2,16 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-01 (fifth session) — FEAT-003: version and last-update footer (source only, not yet deployed)
+
+- Implemented the IMMEDIATE-priority FEAT-003 request from `ROADMAP.md`: every screen now shows `Version X.Y.Z · Updated on D Mon YYYY at HHhMM` in a persistent footer.
+- Version bumped to `5.1.0` (feature addition) — single source of truth is `audit-mobile/package.json`, consumed automatically via a generated file, never hand-duplicated across screens.
+- Update timestamp is sourced from the last git commit touching `audit-mobile/`, not the build machine's or the viewer's local clock.
+- Verified: clean `npm ci` (confirms auto-generation works), zero-error `npx tsc --noEmit`, successful `npx expo export --platform web --clear` with the new version/footer strings confirmed present in the built bundle. Not yet interaction-verified in an actual browser/device (no such tooling available in this session).
+- Not deployed: source-only change, per the mandatory source/deployment separation rule. See `DEV_STATUS.md` for full implementation detail and open items.
+
+---
+
 ## 2026-09-01 (third session) — BUG-027 fully addressed in source (not yet deployed)
 
 - Fixed BUG-027 #3's remaining gap: `RoundingStepper`'s value is now an editable `TextInput` (comma/period decimal input, non-numeric stripped, commits on blur/submit, reverts on invalid input) instead of a read-only `Text`. Combined with the prior session's `step={0.01}` fix, BUG-027 #3 is now fully closed.
