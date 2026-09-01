@@ -345,3 +345,80 @@ Display format: `Updated on DD Mon YYYY at HHhMM` — no seconds. Use one consis
 ### Priority
 
 This is an **immediate infrastructure/UI requirement**. Implement it before treating the current lower-priority feature backlog as complete. Establish the mechanism before subsequent releases so bug fixes, features, and major UI changes can be tracked consistently.
+
+
+## FEAT-004 — Production-quality web presence, metadata, routing and SEO review
+
+**Status: REQUESTED / DISCOVERY + IMPLEMENTATION PLAN REQUIRED — 2026-09-01**
+**Priority:** After the current mandatory sequence (versioning → repository architecture → user acceptance gate).
+
+### Objective
+The application currently risks presenting itself like a development/Vite/React application rather than a deliberate production product. Review the supplied production-quality requirements against the actual architecture and implement only what is technically appropriate and useful. Do not apply a generic SEO checklist blindly.
+
+### Required review matrix
+
+Classify every item as APPLICABLE / NOT APPLICABLE / CONDITIONAL before implementation:
+
+- **Custom domain:** deployment concern. Confirm the intended production hostname; use it consistently for canonical URLs, metadata, redirects and deployment documentation. Do not invent a second domain.
+- **Proper page source / crawlable HTML:** inspect generated HTML/source. Public content may need crawlable HTML; the private/stateful wizard does not automatically justify SSR solely for SEO.
+- **Custom 404:** applicable. Invalid public routes must produce a branded 404 rather than a misleading successful application page.
+- **Unique page titles:** applicable to meaningful public routes/screens. Wizard states should have sensible document titles without becoming artificial SEO pages.
+- **Meta descriptions:** applicable to public/indexable pages; conditional for private wizard states.
+- **Canonical tags:** applicable to public/indexable URLs. Establish one deliberate canonical production URL per public page.
+- **One clear H1:** applicable to meaningful pages. Do not mechanically add duplicate H1s to wizard subviews.
+- **sitemap.xml:** conditional. Include only intentionally public/indexable URLs; never client records, saved calculations, drafts or ephemeral wizard states.
+- **robots.txt:** applicable. Define an intentional crawl policy and reference the sitemap if one exists.
+- **llms.txt:** optional/conditional. It is a community proposal/convention, not a Google Search requirement. Implement only if useful for public agent-readable information, otherwise document why it is not needed.
+- **Favicon:** applicable. Remove framework/default identity.
+- **Internal links:** applicable to public navigation/content; do not create artificial SEO links inside the calculation workflow.
+- **Breadcrumbs:** already partly implemented. Preserve the established wizard breadcrumb and icon-based Accueil convention; extend only where meaningful.
+- **Structured data:** conditional. Use only schema types accurately describing real visible content.
+- **LocalBusiness schema:** conditional. Use only if the public application/site represents the actual Macerti business and the address/contact identity is verified and visible.
+- **Social share images:** applicable to public/shareable pages; conditional for private wizard states.
+- **Image alt text:** applicable. Audit meaningful images for accurate accessible alternatives and mark decorative images appropriately.
+- **Console errors:** applicable. Audit the real production browser and fix actual application errors/warnings; never solve this by suppressing logging.
+- **Production source maps:** review/security concern. Determine whether public source maps are exposed and remove them unless there is an explicit operational reason.
+- **Large JavaScript bundles:** applicable as a measured performance audit. Measure first; split/lazy-load only where justified.
+- **Vite/React/default branding:** applicable. Remove framework/development identity from titles, favicon, metadata, visible content and generated HTML where unintended.
+- **Placeholder content:** applicable. Audit production-visible text/assets for demo or developer placeholders.
+
+### Critical routing question — wizard URL strategy
+The application currently behaves as a stateful wizard where phases do not necessarily change URL/slug. **Do not automatically convert every wizard phase into a URL.**
+
+The developer must determine:
+
+1. Private/stateful calculation workflow screens can appropriately remain within one application route; exposing ephemeral state in indexable URLs is not inherently beneficial.
+2. Public, meaningful, shareable pages should have stable URLs and may use browser History API/router navigation.
+3. If routes are introduced, direct loading, refresh, browser back/forward, persistence, authorization and server fallback must all work.
+4. Never put client IDs, calculation data, draft state or sensitive parameters into URLs.
+5. Do not make ephemeral wizard states indexable merely because they have URLs.
+6. If the SPA uses History API navigation, use it deliberately for meaningful navigation, deep links, back/forward behavior and analytics rather than adding routes solely for SEO. Google documents History API navigation for SPA screen changes. citeturn0search8
+
+### Public vs private indexing boundary
+Define explicitly:
+
+**Public/indexable surface:** brand, product/service information, help/documentation and other content intentionally intended for discovery.
+
+**Application/private surface:** client list, client details, calculation wizard, saved calculations and sensitive/ephemeral data. These must not be placed in the public sitemap or exposed to crawlers merely to satisfy an SEO checklist.
+
+Canonical URLs are a preference signal, not a substitute for coherent URL architecture. citeturn0search0
+
+### Acceptance criteria
+- No unintended Vite/React/framework-default identity remains in production UI, HTML title, favicon or metadata.
+- Branded 404 exists and invalid public URLs behave correctly.
+- Public pages have deliberate titles, descriptions, canonical URLs and appropriate headings.
+- robots.txt has an intentional policy; private application routes are not accidentally advertised as indexable content.
+- sitemap.xml contains only intentionally public/indexable URLs.
+- llms.txt is either implemented accurately or explicitly rejected with a documented rationale.
+- Breadcrumbs remain consistent with the existing wizard navigation design.
+- Structured data is accurate and validated where used.
+- Public social metadata/images and image accessibility are correct.
+- Production browser console is clean of application errors.
+- Public production source maps are not exposed without a documented reason.
+- Production JavaScript bundle size is measured and optimization is evidence-based.
+- No placeholder/development content remains.
+- Routing strategy is documented and tested for direct load, refresh, back/forward and invalid routes where applicable.
+- No calculation formulas, business rules or sensitive application data change as a side effect.
+
+### References
+Google documents canonical URLs as a preference signal and robots.txt sitemap declarations. citeturn0search0turn0search13 The llms.txt specification is a community proposal; Google states it is not required for Search. citeturn0search1turn0search2
