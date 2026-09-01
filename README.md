@@ -1,4 +1,7 @@
-# Audit Duration Calculator — Source
+# Audit Duration Calculator — Source Repository
+
+> **Repository identity:** this repository was intentionally renamed from `duration_calculator_source` to `duration_calculator_source`. The new name is deliberate: this repository contains the authoritative application source, while `duration_calculator` is the deployable artifact repository.
+
 
 All source for the GS0106/IAF audit duration calculator project. This is the
 **source** repo — for the deployable artifact actually uploaded to hosting,
@@ -58,7 +61,7 @@ template and fill in real values locally; never commit the filled-in file
 
 ## Mandatory CI/build ownership
 
-`macerti/duration_calculator_backend/.github/workflows/build-test-publish.yml` is the single source-owned pipeline. It is the only workflow that should build and publish the deployment artifact.
+`macerti/duration_calculator_source/.github/workflows/build-test-publish.yml` is the single source-owned pipeline. It is the only workflow that should build and publish the deployment artifact.
 
 The pipeline:
 1. creates a disposable MariaDB test service;
@@ -74,6 +77,10 @@ The deployment repository's existing FTP workflow remains separate and must not 
 
 Do not add another build workflow for the same purpose. Do not manually edit generated application files in `duration_calculator`. If CI fails, record the exact failing stage in `audit-app/BUGLOG.md` and `audit-app/DEV_STATUS.md` before changing the implementation.
 
+
+## Repository naming and source/deployment boundary
+
+The rename from `duration_calculator_backend` to `duration_calculator_source` is intentional and must be preserved. The word `backend` was misleading because this repository contains both the frontend source and PHP backend source. `duration_calculator` remains the deployment artifact repository.
 
 ## Current architecture phase
 
