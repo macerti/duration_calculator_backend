@@ -72,6 +72,6 @@ The frontend fix for the silent initial draft-save failure is already in source,
 **Current evidence boundary**
 - VERIFIED: minimal POST /cases payload succeeds.
 - CODE CHANGED: initial draft failure is no longer silently swallowed.
-- NOT VERIFIED: PUT /cases/:id against MariaDB through the deployment topology.
-- NOT VERIFIED: complete browser/device wizard save/reopen lifecycle.
-- NOT VERIFIED: a complete green source CI run followed by artifact publication and FTP deployment.
+- VERIFIED (2026-09-01, real GitHub Actions run `33449892835`, and independently reproduced again the same day in a separate fresh sandbox against real PDO+MySQL — see `audit-app/DEV_STATUS.md`'s "fourth session" entry): PUT /cases/:id against a real database, full lifecycle (POST → PUT → GET → DELETE), 16/16 on `duration-calculator-php/tests/http_api_test.php`. **This item is no longer open — do not re-verify it a third time without a reason to suspect regression.**
+- NOT VERIFIED: complete browser/device wizard save/reopen lifecycle (the actual UI clicking through the flow, as opposed to the raw HTTP contract above). This remains the real gap.
+- VERIFIED: a complete green source CI run followed by artifact publication and FTP deployment (see `audit-app/DEV_STATUS.md`, commit `d16409e`, run `33449892835`, deploy artifact `0f97d9e`).
