@@ -682,3 +682,8 @@ Added a "Récapitulatif annuel" block to each site's Synthèse card, below the e
 
 **Dependency / hand-off**: BUG-027 is now source-complete (#1/#2/#3/#4 all addressed) but entirely at STATICALLY/BUILD-VERIFIED evidence level. The next developer with real device/browser access should click through all four sub-bugs with a case containing Siège + 2 sites × 2+ standards each, paying particular attention to: (a) whether "Site suivant" reads naturally as a skip action or whether product wants an explicitly labeled "Passer" button instead; (b) whether the annual breakdown's placement (per-site, below the standard-tab detail) is the right information architecture, or whether product wants it surfaced more prominently (e.g. always-visible instead of requiring standard-tab context); (c) BUG-025's own outstanding device-verification checklist, which this session did not re-touch.
 
+
+
+## 2026-09-01 — Delivery priority / acceptance gate
+
+The active sequence is: FEAT-003 versioning → repository architecture consolidation → real user/browser/mobile feedback gate → remaining bugs → remaining requested features. BUG-025/026/027 source fixes require real user acceptance before definitive closure. Record user feedback as USER-ACCEPTED, REOPENED, NEW BUG, or CHANGE REQUEST.
