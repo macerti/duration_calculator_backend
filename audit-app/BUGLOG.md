@@ -538,3 +538,51 @@ ROADMAP.md)_
   - Empty value handling should remain governed by the existing required/optional business rules.
 
 **Evidence level:** REPORTED / CODE-INSPECTED. Runtime fix not yet implemented or verified.
+
+
+### BUG-027 — 2026-09-01 deploy test: multi-site Facteurs flow and Synthèse duration presentation
+
+- **Detected**: 2026-09-01 during deployment interaction testing.
+- **Evidence level**: REPORTED / CODE-INSPECTED. Runtime fixes are not yet implemented or verified.
+
+#### 1. Multi-site Facteurs phase starts on the wrong site
+- **Observed behavior**: when processing multiple sites, entering the **Facteurs** phase opens directly on the last site instead of starting with the **Siège** and then progressing through the sites in order.
+- **Expected flow**:
+  1. Start on **Siège**.
+  2. Present each site sequentially, one by one.
+  3. For each site, allow the user to enter the Facteurs information if applicable, or explicitly skip that site's factors.
+  4. After the sites have been processed/skipped, proceed to **Calculer**.
+- **Important UX requirement**: the application should guide the user through the sites sequentially. The user should not have to discover/navigate tabs manually to find which site still needs factors.
+- **Calculate action**: do not expose the final calculation as the only immediate action while sites still need to be processed. The flow should lead the user through Siège → Site 1 → Site 2 → … and then present/enable **Calculer** after the factors step is complete or skipped as appropriate.
+- **Regression case**: test with Siège + 2+ sites and verify the initial active tab is Siège, followed by each site in declared order.
+
+#### 2. Synthèse: replace generic "Total jour à auditer" with useful annual per-site detail
+- **Observed / requested change**: the global **Total jour à auditer** value in Synthèse is not useful enough as currently presented.
+- **Required presentation**: show, **per year and per site**, the **total audit duration**, with a breakdown of the duration **per standard**.
+- The presentation should make it possible to understand how the annual total for each site is composed by standard, rather than only exposing one aggregated "Total jour à auditer" number.
+- Preserve the underlying calculation results; this is a Synthèse information-architecture/presentation change unless implementation proves the data itself is missing.
+- **Multi-site regression case**: verify each site has its own annual total and standard-by-standard duration details, and that values are not mixed between sites.
+
+#### 3. Numeric duration controls: + / − increments and manual typing
+- **Observed behavior**: the current **+ / −** controls can produce unexpected/weird values.
+- **Expected behavior**:
+  - + increases the value by exactly **0.01**.
+  - − decreases the value by exactly **0.01**.
+  - The user can manually type a value directly into the field.
+  - Values must remain numerically valid and should not acquire malformed floating-point artifacts through repeated increments/decrements.
+- Apply the correction to the affected numeric duration controls without changing unrelated numeric fields.
+- **Regression examples**: 1.00 → + → 1.01; 1.01 → − → 1.00; manually type 2.35; repeated +/- operations must remain at two-decimal precision.
+
+#### 4. Remove bottom "Retour" from Synthèse
+- **Observed behavior**: Synthèse currently contains a bottom **Retour** button.
+- **Required behavior**: remove this redundant button.
+- Navigation is already available through the top **phases progress** navigation and the **breadcrumb**. Do not create a third back-navigation mechanism.
+- This aligns with BUG-025, which already requires the report/navigation experience to follow the breadcrumb hierarchy rather than using separate back controls.
+
+#### Implementation / verification order
+1. Correct Facteurs multi-site sequencing and initial Siège selection.
+2. Correct + / − numeric behavior and preserve manual typing.
+3. Redesign Synthèse duration presentation to annual totals per site with per-standard breakdown.
+4. Remove the redundant Synthèse bottom Retour button.
+5. Test single-site and multi-site flows, including multiple standards per site.
+6. Run TypeScript/build checks and verify the actual deployed mobile/browser interaction before marking the findings VERIFIED.
