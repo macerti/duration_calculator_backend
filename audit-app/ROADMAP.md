@@ -205,3 +205,55 @@
 - The consolidated view must reconcile with the underlying per-site calculation results and existing synergy/calculation rules.
 - This feature must integrate with BUG-025/BUG-027: standard selection and site selection must remain correctly scoped, with no state leakage between sites or standards.
 - This is a Synthèse/presentation feature. Existing calculation formulas must not be changed unless a separate calculation defect is identified and logged.
+
+## Requested feature — FEAT-002: Sign in with Microsoft or Google (SSO)
+
+**Status: NOT BUILT / REQUESTED — 2026-09-01**
+
+### Objective
+Allow users to authenticate without creating or remembering a separate application password by offering two standard identity-provider options on the login screen:
+
+- **Continue with Microsoft** — Microsoft account / Microsoft Entra ID SSO, using the identity platform appropriate to the application's target users.
+- **Continue with Google** — Google account sign-in.
+
+The user chooses whichever identity provider is most convenient for them.
+
+### Required behavior
+- Present both providers clearly on the login screen using their official provider identity/branding conventions.
+- Use standard OpenID Connect (OIDC) authentication and the provider-supported secure authorization flow; do not implement password/token handling manually in the frontend.
+- After successful provider authentication, the backend creates or resumes the application's own authenticated session.
+- The application must maintain its own user record and authorization model. A provider identity is an authentication mechanism, not the application's authorization model.
+- Store the minimum identity information required, such as provider, provider subject/unique identifier, verified email where available, display name, and timestamps.
+- Do not store Microsoft or Google passwords, provider access tokens, or unnecessary provider data in the application's database.
+- If the same verified email already has an application account, the implementation must have an explicit and secure account-linking policy rather than silently creating a duplicate user.
+- Logout must terminate the application's session and handle provider logout/session behavior appropriately without assuming that logging out of this application should log the user out of their entire Microsoft/Google account.
+- Protected API endpoints must continue to enforce the application's authenticated session/authorization checks regardless of which provider was used.
+- The authentication flow must work on mobile and desktop browsers.
+- Redirect URIs, client IDs/secrets, provider configuration, and other credentials must be environment/server configuration, never hard-coded or committed to Git.
+
+### Security requirements
+- Prefer provider-supported authentication libraries/SDKs rather than hand-rolling OAuth/OIDC requests and token validation. Microsoft recommends authentication libraries for Microsoft identity flows. citeturn0search1turn0search4
+- Use authorization code flow with appropriate PKCE/OIDC protections for the application type. citeturn0search3
+- Validate issuer, audience/client ID, signature, nonce/state, expiration, and relevant provider identity claims before establishing the local session.
+- Apply CSRF/state protection to the login initiation/callback flow and preserve the existing session security requirements.
+- Use secure, HttpOnly, SameSite-appropriate session cookies and regenerate the session ID after successful authentication.
+- Rate-limit authentication endpoints and log security-relevant authentication events without logging tokens or sensitive credentials.
+- Request only the minimum scopes needed for authentication/profile identification. Microsoft explicitly recommends least-privilege permissions. citeturn0search2
+
+### Account model / migration constraint
+The current security roadmap already identifies authentication as the highest-priority security gap and proposes a PHP session-based local authentication model. This SSO feature must be designed as part of that authentication architecture, not as a separate parallel authentication system. The final implementation should support provider identities through the same user/authorization model and should not create duplicate session or authorization mechanisms.
+
+### Acceptance criteria
+- Login screen offers **Continue with Microsoft** and **Continue with Google**.
+- A user can authenticate successfully with either provider and reaches the same authenticated application experience.
+- Existing/new users are mapped to one application account according to an explicit account-linking rule.
+- No provider password is ever received or stored by the application.
+- Protected API routes reject unauthenticated requests regardless of provider.
+- Mobile and desktop sign-in flows work with correct registered redirect URIs.
+- Invalid, expired, replayed, or mismatched authentication responses do not create a session.
+- Provider secrets are supplied through secure environment/server configuration.
+- Automated tests cover successful sign-in, callback validation failure, duplicate-account/linking behavior, logout, and protected API access.
+
+### Provider references
+- Microsoft identity platform supports OAuth 2.0/OIDC and SSO scenarios. citeturn0search0turn0search5
+- Google Sign-In uses Google Identity Services and OpenID Connect. citeturn0search6
