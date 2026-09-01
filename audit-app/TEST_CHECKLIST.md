@@ -324,3 +324,10 @@ checklist gets used.
 ## 2026-09-01 — Acceptance gate
 
 After FEAT-003 and repository architecture work, the next manual test cycle is a deliberate user-feedback pass. Test BUG-025/026/027 and record the user's acceptance or requested changes before resuming the general backlog.
+
+
+## 2026-09-01 — Production-quality / routing / SEO audit gate
+
+After the mandatory versioning and repository-architecture work, include a dedicated browser audit covering FEAT-004 and BUG-029. Test: production title/favicon; no Vite/React/default placeholder identity; invalid public URL → branded 404; direct load/refresh; browser back/forward for any new routes; wizard state preservation and no sensitive data in URLs; public metadata/canonical/robots/sitemap behavior; mobile/desktop layout; browser console errors; production source-map exposure; production bundle loading/performance; image alt/accessibility; structured-data validity where used.
+
+Do not treat SEO checklist completion as sufficient evidence. Confirm that routing and metadata fit the actual boundary between public pages and private/stateful calculation workflows.
