@@ -257,3 +257,71 @@ The current security roadmap already identifies authentication as the highest-pr
 ### Provider references
 - Microsoft identity platform supports OAuth 2.0/OIDC and SSO scenarios. citeturn0search0turn0search5
 - Google Sign-In uses Google Identity Services and OpenID Connect. citeturn0search6
+
+
+## IMMEDIATE REQUEST — FEAT-003: Application version and last-update display
+
+**Priority: IMMEDIATE / ASAP**  
+**Status: REQUESTED — implementation required before lower-priority backlog work.**  
+**Requested**: 2026-09-01
+
+### Objective
+
+Introduce a clear, user-visible application versioning system and display the current version and source update timestamp at the bottom of the application.
+
+### Version format
+
+Use semantic-style three-part versioning:
+
+**X.Y.Z**
+
+- **X — Major version**: significant, perceptible UI/UX overhaul or major application redesign that materially changes the user experience.
+- **Y — Feature version**: addition of user-visible functionality/features.
+- **Z — Bug-fix version**: fixes to existing behavior, defects, regressions, or small corrective changes that do not constitute a feature or major UI overhaul.
+
+Examples: `1.0.0` baseline, `1.0.1` bug fix, `1.1.0` feature, `1.1.1` subsequent bug fix, `2.0.0` significant UI/UX overhaul.
+
+### Required display
+
+At the **bottom/footer of the application**, visibly display the current application version and latest update date/time.
+
+Example:
+
+**Version 1.2.3 · Updated on 31 Aug 2026 at 09h48**
+
+The visual treatment should match the existing design system and remain unobtrusive but readable.
+
+### Update timestamp source — IMPORTANT
+
+The displayed **Updated on** timestamp must represent the datetime of the **last edit/change to `duration_calculator_backend`**, not the user's browser/device time and not an arbitrary manually entered date.
+
+Establish a reliable source of truth for this value. Prefer deriving it automatically from repository/build/deployment metadata rather than hard-coding it into UI source code.
+
+Display format: `Updated on DD Mon YYYY at HHhMM` — no seconds. Use one consistent application/deployment timezone.
+
+### Version governance
+
+- Maintain the version in **one authoritative location**.
+- Do not hard-code different versions across multiple screens/files.
+- The footer consumes the authoritative version metadata.
+- Every release/change increments the appropriate component according to the X/Y/Z rules.
+- Classification is based on the resulting user-visible change, not internal effort.
+- A feature increments Y and resets Z.
+- A bug fix increments Z.
+- A significant perceptible UI overhaul increments X and resets Y/Z according to normal versioning practice.
+- Preserve version history in the existing changelog/release documentation.
+
+### Acceptance criteria
+
+- Every application screen/page displays the same current `X.Y.Z` version in the footer.
+- The footer displays the automatically maintained last-update timestamp.
+- The timestamp corresponds to the latest relevant `duration_calculator_backend` edit/build/deployment metadata and is not generated from the end user's local clock.
+- The displayed format matches `Updated on 31 Aug 2026 at 09h48`.
+- Version and timestamp remain correct after deployment without manually editing individual screens.
+- Responsive/mobile layouts remain usable.
+- Build/automated verification confirms the metadata is present and consistent.
+- Calculation formulas and calculation behavior are unchanged.
+
+### Priority
+
+This is an **immediate infrastructure/UI requirement**. Implement it before treating the current lower-priority feature backlog as complete. Establish the mechanism before subsequent releases so bug fixes, features, and major UI changes can be tracked consistently.
