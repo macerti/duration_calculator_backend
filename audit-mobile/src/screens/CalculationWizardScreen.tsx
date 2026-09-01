@@ -364,6 +364,18 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
             {lastSavedAt && (
               <Text style={styles.savedIndicator}>Enregistré {lastSavedAt.toLocaleTimeString("fr-FR")}</Text>
             )}
+            <Pressable
+              style={styles.headerSaveBtn}
+              onPress={() => void save(result ? "calculated" : "draft")}
+              disabled={saving}
+              hitSlop={8}
+            >
+              {saving ? (
+                <ActivityIndicator size="small" color={colors.contentInverse} />
+              ) : (
+                <Ionicons name="save-outline" size={16} color={colors.contentInverse} />
+              )}
+            </Pressable>
           </View>
 
           {draftSaveError && (
@@ -663,9 +675,6 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
                     <Pressable style={styles.backButton} onPress={() => setCurrentStep("factors")}>
                       <Text style={styles.backButtonText}>Retour</Text>
                     </Pressable>
-                    <Pressable style={styles.saveButton} onPress={() => save("calculated")} disabled={saving}>
-                      {saving ? <ActivityIndicator color={colors.contentInverse} /> : <Text style={styles.nextButtonText}>Enregistrer</Text>}
-                    </Pressable>
                   </View>
                 </>
               )}
@@ -685,6 +694,15 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" },
   homeBtn: { padding: 6, marginRight: 2 },
   savedIndicator: { fontSize: typography.caption, color: colors.contentQuaternary, marginLeft: "auto" },
+  headerSaveBtn: {
+    marginLeft: spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: radius.pill,
+    backgroundColor: colors.success,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   draftErrorBox: { backgroundColor: colors.errorSurface, borderRadius: radius.lg, padding: spacing.sm + 4, marginTop: spacing.sm },
   draftErrorText: { fontSize: typography.small, color: colors.error, fontWeight: "600", marginBottom: spacing.sm },
   retryButton: { alignSelf: "flex-start", borderWidth: 1, borderColor: colors.error, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
@@ -719,7 +737,6 @@ const styles = StyleSheet.create({
   nextButtonText: { color: colors.contentInverse, fontWeight: "700", fontSize: typography.subtitle, textAlign: "center" },
   backButton: { paddingVertical: spacing.md + 2, paddingHorizontal: spacing.lg - 2, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.borderDefault },
   backButtonText: { color: colors.contentSecondary, fontWeight: "600", fontSize: typography.bodyLarge },
-  saveButton: { flex: 1, backgroundColor: colors.success, borderRadius: radius.lg, paddingVertical: spacing.md + 2, alignItems: "center" },
   stepHint: { fontSize: typography.small, color: colors.warning, marginTop: spacing.sm, textAlign: "center" },
   infoBox: { backgroundColor: colors.infoSurface, borderRadius: radius.lg, padding: spacing.sm + 4, marginTop: spacing.md },
   infoBoxText: { fontSize: typography.body, color: colors.info, fontWeight: "600" },
