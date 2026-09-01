@@ -10,6 +10,7 @@ import Breadcrumbs from "../components/Breadcrumbs";
 import StepTabs, { StepDef } from "../components/StepTabs";
 import ResponsiveContainer from "../components/ResponsiveContainer";
 import NumberField from "../components/NumberField";
+import TextField from "../components/TextField";
 import DualSectorPicker from "../components/DualSectorPicker";
 import PersonnelForm, { PersonnelFormValue, isPersonnelValid } from "../components/PersonnelForm";
 import StandardConfigPanel, { StandardConfigState, emptyStandardConfig } from "../components/StandardConfigPanel";
@@ -84,6 +85,16 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
   const [sites, setSites] = useState<WizardSite[]>([emptyWizardSite(true, clientName)]);
   const [activeSiteIndex, setActiveSiteIndex] = useState(0);
   const [activeStandardTab, setActiveStandardTab] = useState<StandardCode | null>(null);
+  // BUG-025 #3 root cause: the Synthèse per-site standard tab was previously
+  // read from `activeStandardTab`/`stdTab`, which are scoped to the single
+  // site being edited in the Facteurs step (`activeSite`). Synthèse renders
+  // ALL sites at once, so reusing that single shared value meant (a) tapping
+  // a second-standard tab for a site other than the current Facteurs-active
+  // one had no visible effect whenever the Facteurs-active site didn't also
+  // have that standard, and (b) even when it did appear to work, selecting a
+  // standard for one site would leak into every other site sharing that
+  // standard. This is a separate, per-site-keyed selection instead.
+  const [syntheseStandardTabBySite, setSyntheseStandardTabBySite] = useState<Record<string, StandardCode>>({});
 
   const [loadingExisting, setLoadingExisting] = useState(!!caseId);
   const [calculating, setCalculating] = useState(false);
@@ -351,11 +362,9 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
       <View style={{ flex: 1 }}>
         <ScrollView style={styles.scroll} contentContainerStyle={{ padding: 20, paddingBottom: isMobile ? 90 : 30 }}>
           <View style={styles.topRow}>
-            <Pressable onPress={goHome} style={styles.homeBtn} hitSlop={8}>
-              <Ionicons name="home-outline" size={20} color={colors.contentPrimary} />
-            </Pressable>
             <Breadcrumbs
               items={[
+                { icon: "home-outline", onPress: goHome },
                 { label: "Clients", onPress: goToClientsList },
                 { label: clientName, onPress: goToClientDetail },
                 { label: dossierRef || "Nouveau calcul" },
@@ -407,13 +416,13 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
                       </Pressable>
                     )}
                   </View>
-                  <NumberField
+                  <TextField
                     label={site.isHq ? "Nom (pré-rempli avec le nom du client, modifiable)" : "Nom du site (optionnel)"}
                     value={site.displayName}
                     onChangeText={(displayName) => updateSite(i, (s) => ({ ...s, displayName }))}
                     placeholder={site.isHq ? clientName : "Ex: Usine Nord"}
                   />
-                  <NumberField
+                  <TextField
                     label="Adresse (optionnel)"
                     value={site.address}
                     onChangeText={(address) => updateSite(i, (s) => ({ ...s, address }))}
@@ -576,8 +585,11 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
 
                   {result.sites.map((siteResult: any) => {
                     const wizardSite = sites.find((s) => s.siteId === siteResult.siteId);
+                    const selectedStdForSite = syntheseStandardTabBySite[siteResult.siteId];
                     const siteStdTab =
-                      wizardSite && stdTab && wizardSite.activeStandards.includes(stdTab) ? stdTab : wizardSite?.activeStandards[0];
+                      wizardSite && selectedStdForSite && wizardSite.activeStandards.includes(selectedStdForSite)
+                        ? selectedStdForSite
+                        : wizardSite?.activeStandards[0] ?? siteResult.standards[0]?.standard;
                     const stdResult = siteResult.standards.find((st: any) => st.standard === siteStdTab) ?? siteResult.standards[0];
                     return (
                       <View key={siteResult.siteId} style={styles.recapSite}>
@@ -595,7 +607,9 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
                               <Pressable
                                 key={st.standard}
                                 style={[styles.subTab, (siteStdTab === st.standard) && styles.subTabActive]}
-                                onPress={() => setActiveStandardTab(st.standard)}
+                                onPress={() =>
+                                  setSyntheseStandardTabBySite((prev) => ({ ...prev, [siteResult.siteId]: st.standard }))
+                                }
                               >
                                 <Text style={[styles.subTabText, siteStdTab === st.standard && styles.subTabTextActive]}>{st.standard}</Text>
                               </Pressable>
@@ -618,18 +632,21 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
                                 calculatedValue={stdResult.stage1Days}
                                 value={getRounded(roundKey(siteResult.siteId, stdResult.standard, "stage1"), stdResult.stage1Days)}
                                 onChange={(v) => setRounded(roundKey(siteResult.siteId, stdResult.standard, "stage1"), v)}
+                                step={0.01}
                               />
                               <RoundingStepper
                                 label="Étape 2"
                                 calculatedValue={stdResult.stage2Days}
                                 value={getRounded(roundKey(siteResult.siteId, stdResult.standard, "stage2"), stdResult.stage2Days)}
                                 onChange={(v) => setRounded(roundKey(siteResult.siteId, stdResult.standard, "stage2"), v)}
+                                step={0.01}
                               />
                               <RoundingStepper
                                 label="Rédaction du rapport"
                                 calculatedValue={stdResult.years[0]?.reportWritingFinal}
                                 value={getRounded(roundKey(siteResult.siteId, stdResult.standard, "report1"), stdResult.years[0]?.reportWritingFinal)}
                                 onChange={(v) => setRounded(roundKey(siteResult.siteId, stdResult.standard, "report1"), v)}
+                                step={0.01}
                               />
                             </View>
                             {stdResult.years.slice(1).map((y: any) => (
@@ -644,12 +661,14 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
                                   calculatedValue={y.onSiteDurationFinal}
                                   value={getRounded(roundKey(siteResult.siteId, stdResult.standard, `year${y.year}`), y.onSiteDurationFinal)}
                                   onChange={(v) => setRounded(roundKey(siteResult.siteId, stdResult.standard, `year${y.year}`), v)}
+                                  step={0.01}
                                 />
                                 <RoundingStepper
                                   label="Rédaction du rapport"
                                   calculatedValue={y.reportWritingFinal}
                                   value={getRounded(roundKey(siteResult.siteId, stdResult.standard, `report${y.year}`), y.reportWritingFinal)}
                                   onChange={(v) => setRounded(roundKey(siteResult.siteId, stdResult.standard, `report${y.year}`), v)}
+                                  step={0.01}
                                 />
                               </View>
                             ))}
@@ -666,16 +685,10 @@ export default function CalculationWizardScreen({ route, navigation }: Props) {
 
                   <Pressable
                     style={styles.reportButton}
-                    onPress={() => navigation.navigate("CalculationReport", { clientName, dossierRef, sites, result, roundingOverrides })}
+                    onPress={() => navigation.navigate("CalculationReport", { clientId, clientName, dossierRef, sites, result, roundingOverrides })}
                   >
                     <Text style={styles.reportButtonText}>📄 Voir le rapport de calcul complet</Text>
                   </Pressable>
-
-                  <View style={styles.stepNavRow}>
-                    <Pressable style={styles.backButton} onPress={() => setCurrentStep("factors")}>
-                      <Text style={styles.backButtonText}>Retour</Text>
-                    </Pressable>
-                  </View>
                 </>
               )}
             </View>
@@ -692,7 +705,6 @@ const styles = StyleSheet.create({
   loadingWrap: { flex: 1, alignItems: "center", justifyContent: "center" },
   scroll: { flex: 1 },
   topRow: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" },
-  homeBtn: { padding: 6, marginRight: 2 },
   savedIndicator: { fontSize: typography.caption, color: colors.contentQuaternary, marginLeft: "auto" },
   headerSaveBtn: {
     marginLeft: spacing.sm,

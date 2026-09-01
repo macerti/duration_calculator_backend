@@ -18,6 +18,7 @@ export type RootStackParamList = {
   ClientDetail: { clientId: number; clientName: string };
   CalculationWizard: { clientId: number; clientName: string; caseId?: number };
   CalculationReport: {
+    clientId: number;
     clientName: string;
     dossierRef: string;
     sites: WizardSite[];
@@ -59,7 +60,7 @@ export default function App() {
             <Stack.Screen
               name="CalculationReport"
               component={CalculationReportScreen}
-              options={{ title: "Rapport de calcul" }}
+              options={{ title: "Rapport de calcul", headerShown: false }}
             />
           </Stack.Navigator>
         </NavigationContainer>

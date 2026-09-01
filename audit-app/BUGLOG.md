@@ -586,3 +586,54 @@ ROADMAP.md)_
 4. Remove the redundant Synthèse bottom Retour button.
 5. Test single-site and multi-site flows, including multiple standards per site.
 6. Run TypeScript/build checks and verify the actual deployed mobile/browser interaction before marking the findings VERIFIED.
+
+---
+
+### 2026-09-01 (second session) — BUG-025 #1/#2/#3 and BUG-026 fixed; BUG-027 #3 partially fixed; BUG-027 #4 fixed
+
+**Environment available to this session**: no PHP, no MariaDB, no browser/device. `node`/`npm`/`npx` available with network access to the npm registry. Evidence below is therefore capped at STATICALLY VERIFIED / BUILD-VERIFIED, never VERIFIED (no real interaction test was possible). Do not upgrade these to VERIFIED without an actual browser/device pass.
+
+**BUG-025 #3 — root cause found (not merely hypothesis) and fixed.**
+The Synthèse per-site standard tab read `stdTab`, a value derived from `activeStandardTab` scoped to `activeSite` (`sites[activeSiteIndex]`) — i.e. whichever site was last active during the **Facteurs** step, not the site being rendered in the Synthèse loop. Two concrete consequences, confirmed by reading the derivation at the old line 345 (`stdTab = activeStandardTab && activeSite.activeStandards.includes(activeStandardTab) ? activeStandardTab : activeSite.activeStandards[0]`) against the Synthèse render loop:
+  - Tapping a second-standard tab for a Synthèse site other than the Facteurs-active one had no visible effect whenever the Facteurs-active site's own standards didn't include the tapped standard — `stdTab` fell back to the Facteurs-active site's first standard regardless of the click.
+  - Even where a click "worked," the single shared state meant selecting a standard for one site could change the displayed standard for a different site that happened to also offer it — the exact multi-site leak the bug report warned against.
+  - **Fix**: added `syntheseStandardTabBySite: Record<string, StandardCode>`, keyed by `siteResult.siteId`, fully independent of the Facteurs-step `activeStandardTab`/`stdTab`. Each Synthèse site row now resolves and sets its own entry.
+  - **File**: `audit-mobile/src/screens/CalculationWizardScreen.tsx`.
+
+**BUG-025 #2 — fixed.**
+`Breadcrumbs.tsx` only ever rendered text; the wizard rendered "Accueil" as a separate `Ionicons` "home-outline" button entirely outside the breadcrumb trail, while `ClientsListScreen`/`ClientDetailScreen` rendered "Accueil" as a plain-text breadcrumb item. Extended the `Crumb` type with an optional `icon` field (rendered via the same `Ionicons` glyph used elsewhere) and switched all three screens to the same icon-crumb for "Accueil." No emoji was ever present in source for this control — the divergence was icon-button-outside-breadcrumb vs. text-inside-breadcrumb, both now unified into one icon-crumb.
+  - **Files**: `audit-mobile/src/components/Breadcrumbs.tsx`, `CalculationWizardScreen.tsx`, `ClientsListScreen.tsx`, `ClientDetailScreen.tsx`.
+
+**BUG-025 #1 — fixed.**
+`CalculationReportScreen` had no breadcrumb and relied on the native stack header's default back arrow (`headerShown` was not set to `false` for that route, unlike every other in-app screen). Added a `Breadcrumbs` row identical in structure to the wizard's (home icon → Clients → client name → dossier ref → "Rapport" as the current/non-pressable crumb), set `headerShown: false` for the `CalculationReport` route in `App.tsx`, and used `navigation.goBack()` for the "return to calculation" crumb (correct here because the report is reached by a stack **push** from the wizard, so `goBack()` restores the exact in-progress wizard state rather than resetting it). Added `clientId` to the `CalculationReport` route params (needed to reconstruct the "Clients"/client-name crumb targets) and threaded it through the `navigation.navigate("CalculationReport", ...)` call site.
+  - **Files**: `App.tsx`, `CalculationReportScreen.tsx`, `CalculationWizardScreen.tsx`.
+  - **Scope discipline**: report content/calculation logic in `CalculationReportScreen.tsx` was not touched, per the bug's scope warning.
+
+**BUG-027 #4 — fixed.**
+Removed the Synthèse step's own bottom "Retour" button (`CalculationWizardScreen.tsx`, previously just before the closing of the `synthese` step block). `StepTabs` (rendered above the step content on desktop, and as a fixed bottom bar on mobile, independent of `currentStep`) already provides navigation back to "Facteurs" on every platform, confirmed by reading its render conditions (`{!isMobile && <StepTabs .../>}` near the top of the step content, `{isMobile && <StepTabs .../>}` after the `ScrollView`) — the removal does not remove the only path back.
+
+**BUG-027 #3 — PARTIALLY fixed. The increment-precision half is done; manual typing is still missing.**
+`RoundingStepper`'s `nudge()` already rounded via `Math.round((value + delta) * 100) / 100`, which is float-drift-safe for two-decimal precision — the actual defect in the +/- behavior was simply that every Synthèse call site relied on the component's default `step` of `0.25` (a quarter-day) instead of the requested `0.01`. Added `step={0.01}` to all 5 `RoundingStepper` invocations in the Synthèse step (Étape 1, Étape 2, Rédaction du rapport ×2 including the per-year loop, Visite sur site).
+  - **Still open, do not mark this sub-bug closed**: re-reading `RoundingStepper.tsx` while writing this entry shows the value is rendered as a plain non-editable `<Text>{safeValue.toFixed(2)}</Text>`, not a `TextInput`. The bug's second requirement — "the user can manually type a value directly into the field" — is **not implemented at all**, in this session or any prior one found in this log. Next developer: convert that `Text` to an editable numeric `TextInput` (handle comma-vs-period decimal input, reject non-numeric characters, commit on blur/submit, and keep the existing +/- buttons and the 0.001-tolerance "adjusted" comparison working against whatever the field currently holds while being typed into).
+  - **File**: `CalculationWizardScreen.tsx` (call sites); `RoundingStepper.tsx` itself still needs the typing capability added.
+
+**BUG-026 — root cause found and fixed.**
+Siège/site "Nom" and "Adresse" fields were built with the shared `NumberField` component, which hardcodes `keyboardType="numeric"` — correct for calculation inputs, wrong for free-text business fields. Added a new `TextField` component (`keyboardType="default"`, `autoCapitalize="sentences"`, no numeric suffix support since none is needed) and swapped it in for exactly those two fields. No other `NumberField` usage was changed, so genuinely numeric fields elsewhere keep numeric-only validation as required.
+  - **Files**: new `audit-mobile/src/components/TextField.tsx`; `CalculationWizardScreen.tsx` (site name/address fields only).
+
+**VERIFICATION PERFORMED THIS SESSION (real, not assumed)**
+- `npm ci` in `audit-mobile/`: clean install, 515 packages, no errors.
+- `npx tsc --noEmit`: **zero errors** against the full changed tree (Breadcrumbs, both client screens, the wizard, the report screen, App.tsx, the new TextField component).
+- `npx expo export --platform web --clear` with a placeholder `EXPO_PUBLIC_API_URL`: **succeeded**, produced `dist/index.html`, a single web JS bundle, and all expected assets — this is the same build step CI runs before publishing, so the change is known to actually bundle for production, not just typecheck.
+
+**NOT DONE / explicitly still open**
+- No real browser/device interaction test was performed (no such environment was available here). In particular:
+  - BUG-025 #3's fix is a source-level correction of a confirmed logic error, but the actual tap-to-switch interaction on a real Synthèse screen with 2+ sites × 2+ standards has not been clicked through.
+  - BUG-027 #3: manual typing into the stepper value is **not implemented** (see the BUG-027 #3 entry above) — this sub-bug must stay open, not just unverified.
+- BUG-025's own step-navigation "Retour" (Facteurs step, not Synthèse) was intentionally left alone — out of scope for BUG-027 #4's specific wording.
+- BUG-027 #1 (Facteurs multi-site sequencing/initial-Siège-selection) and BUG-027 #2 (Synthèse annual/per-standard total presentation) are **untouched** — not started, do not assume any part of them is addressed by this session's commit.
+- Backend (`duration-calculator-php/`) was not touched or tested this session — no PHP/MariaDB was available in this sandbox. BUG-004's backend persistence status from the prior session (16/16 HTTP suite pass) is unaffected and unchanged.
+- Per the mandatory source/deployment separation rule: none of this is deployed. The change exists only in the source repository until `build-test-publish.yml` runs and publishes to `macerti/duration_calculator`.
+
+**Dependency / hand-off**: next developer with real device/browser access should run through BUG-025's "Incremental implementation / verification order" step 3-6 checklist to upgrade these from STATICALLY/BUILD-VERIFIED to VERIFIED, then tackle BUG-027 #1/#2 (fully open) and the still-missing manual-typing capability for BUG-027 #3.
+

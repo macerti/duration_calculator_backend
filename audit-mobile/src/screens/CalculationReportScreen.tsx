@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { CommonActions } from "@react-navigation/native";
 import { RootStackParamList } from "../../App";
 import { api } from "../api/client";
 import { ParameterSet } from "../types/engine";
 import { resolveMostCriticalRisk } from "../utils/riskResolution";
 import ResponsiveContainer from "../components/ResponsiveContainer";
+import Breadcrumbs from "../components/Breadcrumbs";
 
 type Props = NativeStackScreenProps<RootStackParamList, "CalculationReport">;
 
@@ -17,8 +19,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "CalculationReport">;
  * place after the calculation, so the wizard itself stays simple while this
  * stays fully auditable. PDF export is on the roadmap, not built yet.
  */
-export default function CalculationReportScreen({ route }: Props) {
-  const { clientName, dossierRef, sites, result, roundingOverrides } = route.params;
+export default function CalculationReportScreen({ route, navigation }: Props) {
+  const { clientId, clientName, dossierRef, sites, result, roundingOverrides } = route.params;
   const [params, setParams] = useState<ParameterSet | null>(null);
 
   useEffect(() => {
@@ -39,6 +41,30 @@ export default function CalculationReportScreen({ route }: Props) {
   return (
     <ResponsiveContainer maxWidth={900}>
       <ScrollView contentContainerStyle={styles.container}>
+        {/* BUG-025 #1: the report previously relied on the native stack
+            header's default back arrow (a separate, differently-styled back
+            mechanism) instead of the breadcrumb hierarchy used everywhere
+            else in the app. `navigation.goBack()` returns to the exact
+            in-progress wizard/Synthèse state, since this screen is reached
+            by a push, not a reset. */}
+        <Breadcrumbs
+          items={[
+            { icon: "home-outline", onPress: () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Home" }] })) },
+            {
+              label: "Clients",
+              onPress: () => navigation.dispatch(CommonActions.reset({ index: 1, routes: [{ name: "Home" }, { name: "ClientsList" }] })),
+            },
+            {
+              label: clientName,
+              onPress: () =>
+                navigation.dispatch(
+                  CommonActions.reset({ index: 2, routes: [{ name: "Home" }, { name: "ClientsList" }, { name: "ClientDetail", params: { clientId, clientName } }] })
+                ),
+            },
+            { label: dossierRef || "Calcul", onPress: () => navigation.goBack() },
+            { label: "Rapport" },
+          ]}
+        />
         <Text style={styles.title}>Rapport de calcul</Text>
         <Text style={styles.subtitle}>
           {clientName} — {dossierRef || "Sans référence"}

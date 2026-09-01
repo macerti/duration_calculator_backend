@@ -100,7 +100,10 @@ export default function ClientsListScreen({ navigation }: Props) {
     <ResponsiveContainer>
       <View style={styles.container}>
         <Breadcrumbs
-          items={[{ label: "Accueil", onPress: () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Home" }] })) }, { label: "Clients" }]}
+          items={[
+            { icon: "home-outline", onPress: () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Home" }] })) },
+            { label: "Clients" },
+          ]}
         />
         <View style={styles.header}>
           <Text style={styles.title}>Mes clients</Text>

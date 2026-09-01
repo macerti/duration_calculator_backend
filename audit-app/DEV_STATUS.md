@@ -4,7 +4,7 @@
 >
 > Before changing code, read this file. Update it in the same commit as the work. This file records the latest verified state, what is open, what is blocked, and which work streams are independent or dependent.
 >
-> Status date: 2026-08-31
+> Status date: 2026-09-01 (second session)
 > Repository: macerti/duration_calculator_backend
 > Active app: audit-mobile/
 > Deployment/reference docs: audit-app/
@@ -328,3 +328,36 @@ The current deployment was tested interactively and exposed three frontend consi
 6. Perform the exact interaction test in a real browser/device before changing the evidence level to VERIFIED.
 
 **Deployment boundary:** this status entry records findings only. No source UX fix is claimed as implemented or deployed by BUG-025.
+
+---
+
+## 2026-09-01 (second session) — BUG-025/026/027 source fixes: STATICALLY VERIFIED + BUILD-VERIFIED, not yet browser/device VERIFIED
+
+**Environment**: no PHP, no MariaDB, no browser/device available. `node`/`npm`/`npx` with npm-registry network access were available. This caps the evidence level for everything below — see "Evidence labels" above; nothing here is promoted past STATICALLY VERIFIED or BUILD-VERIFIED (a new label, defined below, for "the real `expo export --platform web` build step CI runs before publish succeeded against this code").
+
+**FIXED (source changed, typecheck + real production build both pass)**
+- BUG-025 #1 — report screen now uses `Breadcrumbs` + `headerShown:false` instead of the native header back arrow; `clientId` added to the `CalculationReport` route params to support it.
+- BUG-025 #2 — "Accueil" is now one consistent icon-crumb (`Breadcrumbs.tsx` extended with an `icon` field) across the wizard, ClientsList, ClientDetail, and the report screen.
+- BUG-025 #3 — **root cause confirmed**: Synthèse's per-site standard tab was reading Facteurs-step-scoped state (`activeStandardTab`/`stdTab`, tied to `activeSite`), not a value scoped to the site being rendered in the Synthèse loop — this explains both "tapping the second tab does nothing" and the multi-site leak risk. Replaced with `syntheseStandardTabBySite`, keyed by `siteResult.siteId`.
+- BUG-027 #4 — removed the redundant Synthèse bottom "Retour" button; confirmed `StepTabs` (top on desktop, fixed bottom bar on mobile) already covers step-back navigation regardless of `currentStep`.
+- BUG-026 — root cause confirmed: Siège name/address used the shared `NumberField` (hardcoded `keyboardType="numeric"`). Added a new `TextField` component and swapped it in for exactly those two fields; no other field's validation was touched.
+
+**PARTIALLY FIXED — do not close**
+- BUG-027 #3 — the +/- controls now use `step={0.01}` (previously defaulted to `0.25`) at all 5 Synthèse `RoundingStepper` call sites, and the existing `Math.round(x*100)/100` nudge math is confirmed float-drift-safe. **However**, re-reading `RoundingStepper.tsx` shows the displayed value is a non-editable `<Text>`, not a `TextInput` — "the user can manually type a value directly into the field" is simply not built yet, in this or any prior session. This is a real gap, not a verification gap; treat BUG-027 #3 as open until typing is added.
+
+**NEW EVIDENCE LABEL USED THIS SESSION**
+- BUILD-VERIFIED: `npx expo export --platform web --clear` (the same command `build-test-publish.yml` runs before assembling the deploy artifact) completed successfully against the changed tree with a placeholder `EXPO_PUBLIC_API_URL`, producing `dist/index.html` and a single web bundle. Stronger than STATICALLY VERIFIED (typecheck only) but still not a substitute for an actual interaction test.
+
+**VERIFICATION PERFORMED (real commands, real output)**
+- `npm ci` in `audit-mobile/` — clean, 515 packages, 0 errors.
+- `npx tsc --noEmit` — 0 errors against the entire changed tree.
+- `npx expo export --platform web --clear` — succeeded, produced the expected `dist/` output.
+
+**NOT DONE**
+- No real browser/device pass on any of BUG-025/026/027 — required before any of these move to VERIFIED. Use BUG-025's existing "Incremental implementation / verification order" (steps 3-6) as the checklist.
+- BUG-027 #1 (Facteurs multi-site sequencing/initial-Siège-selection) and BUG-027 #2 (Synthèse annual/per-standard totals) — untouched, fully open.
+- BUG-027 #3's manual-typing requirement — not implemented; needs `RoundingStepper.tsx` converted to an editable numeric `TextInput` with comma/period and non-numeric-character handling.
+- Backend (`duration-calculator-php/`) untouched this session; BUG-004's prior VERIFIED backend-persistence status is unaffected.
+- **Not deployed**: per the mandatory source/deployment separation rule, this is a source-only commit. `build-test-publish.yml` has not been observed running against it, and nothing has been published to `macerti/duration_calculator`.
+
+**DEPENDENCY / HAND-OFF**: the next developer with real device/browser access should (1) click through BUG-025 #1/#2/#3 and BUG-026 to confirm the fixes actually resolve the reported symptoms, especially BUG-025 #3 with 2+ sites × 2+ standards each; (2) add manual-typing support to `RoundingStepper.tsx` to finish BUG-027 #3; (3) start BUG-027 #1/#2 from scratch. None of this should be treated as deployed until a green `build-test-publish.yml` run is observed and an artifact commit exists in `macerti/duration_calculator`.

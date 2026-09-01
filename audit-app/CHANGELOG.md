@@ -2,6 +2,18 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-01 (second session) — BUG-025/026/027 frontend fixes (source only, not yet deployed)
+
+- Fixed BUG-025 #1 (report screen now uses the app's breadcrumb navigation instead of the native header back arrow), #2 (unified the "Accueil" home icon treatment across all screens via a new `Breadcrumbs` icon-crumb), and #3 (found and fixed the actual root cause of the multi-standard Synthèse tab not switching: it read Facteurs-step-scoped state instead of a per-site value; now keyed by site ID).
+- Fixed BUG-026: Siège name/address fields used a numeric-only input component; added a proper text-input component and swapped it in for just those two fields.
+- Fixed BUG-027 #4: removed the redundant bottom "Retour" button in Synthèse (step navigation is already covered by the existing step tabs).
+- Partially fixed BUG-027 #3: the +/- rounding controls now step by 0.01 as required; manual typing into the field is still not implemented and remains open.
+- BUG-027 #1 and #2 remain untouched.
+- Verification this session: clean `npm ci`, zero-error `npx tsc --noEmit`, and a successful `npx expo export --platform web --clear` (the same build step CI runs). No PHP/MariaDB/browser/device environment was available, so nothing here is claimed as interaction-VERIFIED — see `DEV_STATUS.md` and `BUGLOG.md` for full evidence levels and open items.
+- Not deployed: source-only change, per the mandatory source/deployment separation rule.
+
+---
+
 ## 2026-08-31 — Investigation hand-off
 
 - Added DEV_STATUS.md as the single current hand-off ledger for concurrent development. It explicitly separates verified work, static/reported evidence, open work, and dependencies.

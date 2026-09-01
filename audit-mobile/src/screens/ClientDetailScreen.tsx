@@ -99,7 +99,7 @@ export default function ClientDetailScreen({ route, navigation }: Props) {
       <View style={styles.container}>
         <Breadcrumbs
           items={[
-            { label: "Accueil", onPress: () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Home" }] })) },
+            { icon: "home-outline", onPress: () => navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: "Home" }] })) },
             {
               label: "Clients",
               onPress: () => navigation.dispatch(CommonActions.reset({ index: 1, routes: [{ name: "Home" }, { name: "ClientsList" }] })),
