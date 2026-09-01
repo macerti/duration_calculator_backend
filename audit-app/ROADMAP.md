@@ -190,3 +190,18 @@
 ## Mandatory source/deployment separation
 
 **SOURCE REPOSITORY RULE:** this repository is the source of truth and is never the deployable artifact. Every application change must be made here first, tested here, then built/packaged and published to **macerti/duration_calculator**. For PHP, the deployable tree is produced from duration-calculator-php/ (no compilation). For audit-mobile, the deployable frontend is the generated Expo web export; source-only frontend changes are not deployed until the generated artifact is published to duration_calculator. Never fix application behavior only in the deployment repository. Every hand-off must record the source commit and deployment-artifact commit, or explicitly state that deployment is pending. A task is not deployed until the corresponding artifact exists in duration_calculator and its deployment workflow has been run/passed where applicable.
+
+
+## Requested feature — FEAT-001: Synthèse tabs for per-site programmes and Programme d'audit Client
+
+**Status: NOT BUILT / REQUESTED — 2026-09-01**
+
+- In **Synthèse**, use tabs to display the audit programme for each individual site.
+- Include a dedicated tab named exactly **Programme d'audit Client** for the final consolidated client audit programme, combining the applicable sites.
+- The consolidated client view and the individual site views must both remain accessible; the global tab must not replace the per-site programmes.
+- Each site tab must show its complete programme and relevant duration details for that site.
+- The **Programme d'audit Client** tab must show the final client-level programme with the applicable site durations combined, without double-counting.
+- Multi-standard sites must retain their standard-specific duration/programme breakdown in the appropriate context.
+- The consolidated view must reconcile with the underlying per-site calculation results and existing synergy/calculation rules.
+- This feature must integrate with BUG-025/BUG-027: standard selection and site selection must remain correctly scoped, with no state leakage between sites or standards.
+- This is a Synthèse/presentation feature. Existing calculation formulas must not be changed unless a separate calculation defect is identified and logged.
