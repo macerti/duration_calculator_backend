@@ -485,3 +485,37 @@ ROADMAP.md)_
 - **Requested**: 2026-09-01, by the user directly: the large "Enregistrer" button previously shown only at the bottom of the Synthèse (last) step should be removed, replaced by a small save control available across all wizard phases.
 - **Implemented**: `audit-mobile/src/screens/CalculationWizardScreen.tsx` — added a small round icon button (save icon / spinner while saving) in the shared header row next to the "Enregistré HH:MM" indicator, which is rendered above the step content on every step, not just Synthèse. It calls the same `save()` function the old button used, choosing status `"calculated"` if a result has already been computed (i.e. the same condition the old button represented) or `"draft"` otherwise, so the meaning of the action is unchanged — only its availability and placement changed. The old bottom-of-Synthèse button and its now-unused style were removed.
 - **Verified**: `npx tsc --noEmit` clean, `npx expo export --platform web --clear` succeeds after the change.
+
+
+### BUG-025 — 2026-09-01 deploy test: report navigation, breadcrumb home consistency, and multi-standard Synthèse tab switching
+
+- **Detected**: 2026-09-01 during the user's first real deployment/interaction test of the current frontend artifact.
+- **Evidence level**: REPORTED / CODE-INSPECTED. These are interaction findings from the deployment test; the exact browser/device reproduction environment and the final runtime fix are not yet independently verified in this source session.
+
+#### 1. Report screen must follow the breadcrumb navigation model
+- **Observed / requested behavior**: after reaching the final **Synthèse** step, opening **Rapport de calcul complet** currently enters a separate CalculationReport screen. The user wants the report to remain inside the same navigation/breadcrumb model and **not introduce a separate, differently styled "Retour" button** as the way back.
+- **Code evidence**: CalculationWizardScreen.tsx currently opens CalculationReport with navigation.navigate("CalculationReport", ...); the Synthèse view also renders a dedicated bottom Retour button. CalculationReportScreen.tsx currently has no breadcrumb component of its own.
+- **Required behavior**: report navigation must be represented by the same breadcrumb/navigation hierarchy used elsewhere. Returning from the report must use that hierarchy rather than introducing a second back-navigation convention.
+- **Scope warning**: this is primarily a navigation/UX consistency requirement. Do not change calculation/report data logic while implementing it.
+
+#### 2. "Accueil" must remain an icon in the breadcrumb/navigation treatment
+- **Observed / requested behavior**: the home destination should remain represented by a **real home icon**, not an emoji, and the same visual convention must be used consistently wherever the breadcrumb/navigation pattern appears.
+- **Code evidence**: CalculationWizardScreen.tsx already uses Ionicons with home-outline for its home control, while Breadcrumbs.tsx currently renders every breadcrumb item as text only. The implementation therefore has two partially different home-navigation treatments.
+- **Required behavior**: normalize the breadcrumb/home treatment so "Accueil" is represented by the existing icon system (Ionicons or the project's equivalent icon component), with no emoji substitute. Preserve the same visual/interaction convention across screens.
+- **Do not** reintroduce emoji-based home labels while addressing BUG-025.
+
+#### 3. Multi-standard Synthèse: selecting the second standard does not change the displayed audit programme
+- **Observed**: when a site has multiple active standards, the **Synthèse** section displays standard tabs. Clicking/tapping the second-standard tab is reported to do nothing: the displayed audit programme remains on the first standard instead of switching to the selected standard for that site.
+- **Code evidence**: CalculationWizardScreen.tsx uses a shared activeStandardTab state and derives stdTab from the currently active site's standards. In Synthèse, each result standard tab calls setActiveStandardTab(st.standard), and stdResult is then selected with siteResult.standards.find((st) => st.standard === siteStdTab). The structure appears intended to support switching, so the exact runtime cause is **not yet established** from source inspection alone.
+- **Required behavior**: tapping/clicking a standard tab in a multi-standard site's Synthèse must visibly switch the displayed programme — including the stage/visit durations, report-writing durations, rounding controls, and all standard-specific result details — to that selected standard for that site.
+- **Important multi-site constraint**: changing the standard tab for one site must not accidentally change the selected standard/programme shown for another site. The state model should therefore be validated against multiple sites as well as one site with two or more standards.
+- **Do not classify this as an engine/calculation error yet**: the reported failure is in the Synthèse UI selection/rendering path; the result data itself has not been shown to be wrong.
+
+#### Incremental implementation / verification order
+1. Fix the report screen navigation hierarchy first, keeping the report content unchanged.
+2. Normalize the home/Accueil breadcrumb representation to the existing icon system and remove emoji-based home treatment from affected navigation controls.
+3. Reproduce the multi-standard Synthèse issue with one site and two standards; log the selected tab, activeStandardTab, siteStdTab, and selected stdResult during the interaction if needed.
+4. Repeat with two sites where each site has multiple standards to ensure the selection is scoped correctly.
+5. Run TypeScript/build checks, then perform an actual browser/device interaction test before marking BUG-025 VERIFIED.
+
+- **Deployment status**: source-side UX fixes are **not yet implemented by this log update**. Per repository policy, source changes must be built and published to macerti/duration_calculator before they can be called deployed.
