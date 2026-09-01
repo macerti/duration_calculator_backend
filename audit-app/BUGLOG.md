@@ -519,3 +519,22 @@ ROADMAP.md)_
 5. Run TypeScript/build checks, then perform an actual browser/device interaction test before marking BUG-025 VERIFIED.
 
 - **Deployment status**: source-side UX fixes are **not yet implemented by this log update**. Per repository policy, source changes must be built and published to macerti/duration_calculator before they can be called deployed.
+
+
+### BUG-026 — 2026-09-01 deploy test: mobile text input validation for Siège name and Siège address
+
+- **Detected**: 2026-09-01 during deployment interaction testing.
+- **Area**: **Sites & secteurs** → headquarters (**Siège**) information.
+- **Observed behavior**: on mobile, the **Siège name** and **Siège address** fields behave as numeric-only inputs, preventing normal textual entry.
+- **Expected behavior**: both fields must accept ordinary text input, including letters, numbers, spaces, punctuation, accents, and mixed alphanumeric content as appropriate for real company names and postal addresses.
+- **Important distinction**: these are **textual business-information fields**, not numeric calculation fields. They must not use a numeric keyboard/input type or numeric-only validation.
+- **Mobile requirement**: verify the actual deployed mobile keyboard/input behavior, not only desktop browser behavior. A mobile browser should present a normal text-capable input and allow complete headquarters names and addresses.
+- **Validation requirement**: do not weaken validation for genuinely numeric fields elsewhere in the form. Scope the correction specifically to the Siège name and Siège address fields.
+- **Regression cases**:
+  - Siège name containing letters only.
+  - Siège name containing letters + numbers (e.g. company/legal entity naming).
+  - Siège address containing street name + house/building number.
+  - Address containing accents/apostrophes/hyphens and normal punctuation.
+  - Empty value handling should remain governed by the existing required/optional business rules.
+
+**Evidence level:** REPORTED / CODE-INSPECTED. Runtime fix not yet implemented or verified.
