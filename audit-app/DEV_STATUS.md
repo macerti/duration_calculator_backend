@@ -1,3 +1,23 @@
+# CURRENT DELIVERY PRIORITY — 2026-09-01
+
+## Mandatory pipeline
+
+1. FEAT-003 — Versioning and update timestamp: IMMEDIATE.
+2. Repository architecture consolidation: immediately after FEAT-003. Follow REPOSITORY_ARCHITECTURE.md; identify the source of truth before moving/deleting anything and preserve all formulas/business rules.
+3. USER FEEDBACK / ACCEPTANCE GATE. After the first two items, pause normal feature development and perform real browser/mobile/user testing. Feed the results back into the logs to definitively close, reopen, or change the relevant bugs/features.
+4. Remaining bugs. Resume only after the acceptance gate.
+5. Remaining features. Resume after the acceptance gate. Admin/parameter administration UI is prioritized ahead of authentication/SSO.
+6. FEAT-002 Microsoft/Google SSO: NOT PRIORITIZED. It remains documented but is explicitly deferred.
+
+### Acceptance terminology
+- USER-ACCEPTED — user confirms the behavior is satisfactory.
+- REOPENED — user still observes the reported problem.
+- NEW BUG — new reproducible defect.
+- CHANGE REQUEST — implementation works but the desired UX/behavior changes.
+- VERIFIED — technically verified but awaiting user/product acceptance where applicable.
+
+Do not use older roadmap priority wording as the active priority. This dated decision is authoritative until explicitly replaced.
+
 # Development Status — audit-app
 
 > SINGLE SOURCE OF TRUTH FOR CONCURRENT DEVELOPMENT.
