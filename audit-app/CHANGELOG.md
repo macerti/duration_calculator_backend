@@ -720,3 +720,21 @@ this specific host once we checked DirectAdmin and found no Node.js Selector.
 - Earlier CI runs failed during database configuration and therefore never reached PHP tests, NACE regression tests, PUT/GET case persistence tests, TypeScript, Expo build, or deployment publication.
 - The corrected workflow is committed at `65fae75a2450883152d43e844a1712d7635b3d1a`.
 - A green CI run has not yet been established; downstream stages must not be described as verified until that happens.
+
+
+## 2026-09-01 — Deploy interaction findings (BUG-025)
+
+### Report navigation consistency
+- The deployed interaction test identified that the end-of-wizard **Rapport de calcul complet** currently behaves as a separate screen without the application's normal breadcrumb treatment.
+- Required direction: keep the report content as-is, but make its navigation follow the same breadcrumb hierarchy and avoid a separate report-specific **Retour** convention.
+
+### Breadcrumb home consistency
+- The home destination must remain represented by the project's icon system, not an emoji.
+- Current source inspection found two treatments: an Ionicons home-outline control in the wizard and text-only breadcrumb rendering in the generic Breadcrumbs component. The next UI change should normalize this rather than introduce another home variant.
+
+### Multi-standard Synthèse switching
+- Deploy testing reported that selecting the second standard tab for a multi-standard site does not replace the displayed audit programme in Synthèse.
+- Source inspection confirms that Synthèse is intended to switch through activeStandardTab → stdTab → stdResult, but the runtime cause is not established yet.
+- This remains an open frontend interaction issue until reproduced and verified after the fix. It must be tested with both one multi-standard site and multiple multi-standard sites to prevent cross-site state leakage.
+
+**Evidence level:** REPORTED / CODE-INSPECTED. No deployment or runtime fix is claimed by this changelog entry.
