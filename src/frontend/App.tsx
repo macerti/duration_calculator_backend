@@ -6,6 +6,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ToastProvider } from "./src/components/Toast";
 import ErrorBoundary from "./src/components/ErrorBoundary";
 import VersionFooter from "./src/components/VersionFooter";
+import { TestRunnerProvider } from "./src/components/testing/TestRunnerContext";
 
 import HomeScreen from "./src/screens/HomeScreen";
 import ClientsListScreen from "./src/screens/ClientsListScreen";
@@ -46,8 +47,10 @@ export default function App() {
 
   return (
     <ErrorBoundary onGoHome={() => Platform.OS === "web" && typeof window !== "undefined" && window.location.reload()}>
-      <ToastProvider>
-        <View style={styles.root}>
+      <TestRunnerProvider>
+        <ToastProvider>
+          <View style={styles.root}>
+
           <View style={styles.navArea}>
             <NavigationContainer>
               <StatusBar style="auto" />
@@ -75,7 +78,8 @@ export default function App() {
           <VersionFooter />
         </View>
       </ToastProvider>
-    </ErrorBoundary>
+    </TestRunnerProvider>
+  </ErrorBoundary>
   );
 }
 

@@ -649,25 +649,38 @@ While Part 1/2 above were in progress, four commits landed on `origin/main` from
   - Ran `git pull` (clean, up to date with `origin/main`).
   - Executed `scripts/check-repo-hygiene.sh`: all 4 checks passed cleanly (config.example.php, secret scan, source READMEs, no stale paths).
 - **Archived completed history**:
-  - Created `docs/archive/COMPLETED_HISTORY.md` archiving all completed features from v1.0.0 through v5.1.1 (persistent wizard state, synergy matrix, per-line factor percent, NACE technical codes, version footer FEAT-003, repository consolidation, etc.) and all closed bugs (BUG-001 through BUG-024, BUG-028, BUG-030, BUG-032–034).
+  - Created `docs/archive/COMPLETED_HISTORY.md` archiving all completed features from v1.0.0 through v5.1.1 and all closed bugs (BUG-001 through BUG-024, BUG-028, BUG-030, BUG-032–034).
   - Cleaned `docs/ROADMAP.md`: replaced the 30+ struck-through completed items with a direct pointer to `docs/archive/COMPLETED_HISTORY.md`. Marked `FEAT-003` as completed & archived.
-- **Formulated Top 10 Upcoming Action Queue** in `docs/ROADMAP.md` and `docs/DEV_STATUS.md`:
-  1. *BUG-031*: Production API `basePath` fix in live `config.php` (Immediate Blocker).
-  2. *Acceptance Gate*: Interactive/visual verification of BUG-025, 026, 027, 035 per `TEST_CHECKLIST.md`.
-  3. *FEAT-001*: Synthèse per-site tabs & consolidated Programme d'audit Client (Top Feature).
-  4. *Technical Debt*: Design token migration across remaining 12 frontend screens/components.
-  5. *Technical Debt*: Top-level `tests/` relocation & automated frontend unit tests.
-  6. *Security*: Authentication & session security on API endpoints (`SECURITY.md` §Todo #1).
-  7. *Security*: Rate limiting & input bounds validation (`validationBounds`, `SECURITY.md` §Todo #2 & #3).
-  8. *FEAT-004 / BUG-029*: Production-quality presence, metadata, SEO, custom 404.
-  9. *Parked*: Parameter administration UI & automated dossier reference codification.
-  10. *Parked*: PDF export of calculation reports.
 - **Refreshed `docs/DEV_STATUS.md`**:
   - Replaced stale pre-5.1.0 "Current status" text with the true current status and updated concurrent work map.
 
+---
+
+## 2026-09-02 (thirteenth session) — BUG-031 confirmed resolved on live host & Built In-App Guided Acceptance Test Runner
+
+**Purpose of this session**: PO confirmation of BUG-031 resolution on production server (`tools.macerti.com`), adoption of the PO-defined 3-tier priority framework (P0 / P1 / P2), and implementation of the In-App Guided Acceptance Test Runner and Report Exporter to replace raw markdown checklists.
+
+**DONE / VERIFIED**:
+- **P0 Critical Blockers**: ALL CLEAR.
+  - **BUG-031 CLOSED & VERIFIED**: Confirmed resolved on the live host by Mahdi. Production API is responding normally.
+- **P0/P1/P2 Priority Realignment**:
+  - P0: Critical errors / app down (0 remaining).
+  - P1: Active core to build (Test Runner, Parameter Admin UI, FEAT-001 Synthèse tabs, PDF Export, SSO, Design tokens, Top-level tests).
+  - P2: Reserved for later (Rate limiting, FEAT-004 SEO, Global case list, Extension toggle, Pull-to-refresh).
+- **Component 1 (In-App Guided Acceptance Test Runner & Exporter) — SOURCE-COMPLETE**:
+  - `src/frontend/src/components/testing/testScenarios.ts`: 25+ structured test scenarios derived directly from `docs/TEST_CHECKLIST.md` across 12 functional domains (HOME, CLIENTS, CASES, SITE, NAE, FACTORS, SYNTHESE, REPORT, NAV, RESPONSIVE, SAVE, SECURITY).
+  - `src/frontend/src/components/testing/useTestRunnerState.ts`: LocalStorage-persisted testing state, auto-calculation of progress metrics, and one-click export to Markdown (`RAPPORT_TEST_ACCEPTANCE_YYYY-MM-DD.md`) and JSON (`acceptance_tests_report_YYYY-MM-DD.json`).
+  - `src/frontend/src/components/testing/TestRunnerModal.tsx`: Comprehensive guided testing modal with step instructions, expected outcomes, verification prompts (`✅ PASS`, `❌ FAIL`, `⏭️ SKIP`), observation notes, and floating minimized assistant mode.
+  - `src/frontend/src/components/testing/TestRunnerContext.tsx`: Global context and floating trigger pill accessible anywhere in the application.
+  - `src/frontend/src/screens/HomeScreen.tsx`: Prominent test launch card with live progress bar and direct modal trigger.
+  - `src/frontend/App.tsx`: Wrapped with `TestRunnerProvider`.
+  - Hygiene checks re-verified: `scripts/check-repo-hygiene.sh` (ALL CHECKS PASSED).
+
 **DEPENDENCY / HAND-OFF for the next developer**:
-- The repository documentation is now clean and organized. Completed items are archived; active backlog is prioritized.
-- **Top blocker**: BUG-031 needs Mahdi to edit `config.php` on the live server (`tools.macerti.com`) to set `$config['basePath'] = '/duration_calculator/api';`.
-- **Top development feature**: FEAT-001 (Synthèse multi-site audit programme tabs) is unblocked and ready for implementation.
-- **Top technical debt**: Design token migration in `src/frontend` and moving `src/backend/tests/` to top-level `tests/`.
+- The embedded guided test runner is live in `src/frontend/`. Testers can launch it directly from the app, follow the steps, record results, and export standard reports.
+- **Next active P1 tasks**:
+  1. Parameter Admin UI & Dossier Codification (`ParameterAdminScreen.tsx` + API endpoints).
+  2. FEAT-001 (Synthèse per-site tabs & Programme d'audit Client consolidated view).
+  3. PDF Export of Calculation Report.
+
 
