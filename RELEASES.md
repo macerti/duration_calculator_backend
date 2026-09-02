@@ -20,14 +20,20 @@ reading both repos' commit logs side by side.
 ## Entries (newest first)
 
 ### 2026-09-02 — repository architecture consolidation (this session)
-- Source commit: `c261b88` (refactor: repository architecture consolidation).
-  See `docs/DEV_STATUS.md`'s ninth-session entry for full scope: `src/frontend`/`src/backend`
+- Source commit: `c261b88` (refactor: repository architecture consolidation),
+  plus `447a725` (docs: BUG-031 + ninth-session logs). See
+  `docs/DEV_STATUS.md`'s ninth-session entry for full scope: `src/frontend`/`src/backend`
   restructure, Makefile, CONTRIBUTING.md, this file, `docs/CALCULATION_RULES.md`, BUG-031.
-- Deployment-artifact commit: not yet published — no application behavior
-  changed (pure reorganization + docs), so this does not need to be
-  urgently deployed, but it should still be pushed through CI once merged
-  so the artifact repo's tree matches source layout expectations for the
-  *next* real deploy.
+- Deployment-artifact commit: `6cd4f28` (`macerti/duration_calculator`,
+  2026-09-02 08:56:47 UTC). CI run (GitHub Actions run `33611323569`)
+  completed with conclusion `success` on the real runner — this is an
+  independent confirmation beyond this session's own local sandbox
+  testing, i.e. the restructured `src/frontend`/`src/backend` paths work
+  in CI's actual environment too, not just the sandbox this was verified
+  in first.
+- Live status: N/A (no application behavior changed, so nothing needed
+  to reach the live host for this entry specifically — BUG-031 above is
+  the one that does).
 - Live status: N/A (no behavior change).
 
 ### 2026-09-02 — BUG-030 fix verified (eighth session, docs-only)
