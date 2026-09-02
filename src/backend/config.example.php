@@ -4,12 +4,12 @@
 
 return [
     'db' => [
-        'host' => 'localhost',
-        'port' => 3306,
-        'name' => 'your_db_name',
-        'user' => 'your_db_user',
+        'host'     => 'localhost',
+        'port'     => 3306,
+        'name'     => 'your_db_name',
+        'user'     => 'your_db_user',
         'password' => 'your_db_password',
-        'charset' => 'utf8mb4',
+        'charset'  => 'utf8mb4',
     ],
     // URL path in front of the API routes in production, e.g.
     // '/duration_calculator/api' if the app is deployed at
@@ -30,4 +30,26 @@ return [
     // the live site — a detailed error message is information a real
     // attacker can use to map the app's internals.
     'debug' => false,
+
+    // -----------------------------------------------------------------
+    // SSO — Microsoft Entra ID (Azure AD) & Google OAuth 2.0
+    // Leave empty ('') to disable that provider.
+    // Never commit real secrets — keep them only in the live config.php.
+    // -----------------------------------------------------------------
+
+    // The full public URL where the frontend is served, without trailing slash.
+    // Used to build the redirect_uri sent to Microsoft/Google, e.g.:
+    //   https://tools.macerti.com/duration_calculator
+    // The callback URLs registered in Azure Portal and Google Cloud Console
+    // MUST match: <app_url>/api/auth/callback/microsoft  (and /google).
+    'app_url' => 'https://tools.macerti.com/duration_calculator',
+
+    // Microsoft Entra ID — from portal.azure.com → App registrations
+    'microsoft_client_id'     => 'YOUR_AZURE_APPLICATION_CLIENT_ID',
+    'microsoft_client_secret' => 'YOUR_AZURE_CLIENT_SECRET_VALUE',
+
+    // Google OAuth 2.0 — from console.cloud.google.com → Credentials
+    'google_client_id'     => 'YOUR_GOOGLE_CLIENT_ID',
+    'google_client_secret' => 'YOUR_GOOGLE_CLIENT_SECRET',
 ];
+

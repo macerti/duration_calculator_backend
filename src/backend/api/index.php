@@ -15,6 +15,9 @@ require_once __DIR__ . '/../db/pdo.php';
 require_once __DIR__ . '/../db/parameterSetRepo.php';
 require_once __DIR__ . '/../db/calculationCaseRepo.php';
 require_once __DIR__ . '/../db/clientRepo.php';
+require_once __DIR__ . '/../auth/OAuthSession.php';
+require_once __DIR__ . '/../auth/MicrosoftOAuth.php';
+require_once __DIR__ . '/../auth/GoogleOAuth.php';
 
 use function AuditEngine\loadDefaultParameterSet;
 use function AuditEngine\loadConfig;
@@ -34,6 +37,17 @@ use function AuditEngine\getClient;
 use function AuditEngine\updateClientName;
 use function AuditEngine\deleteClient;
 use function AuditEngine\deleteCalculationCase;
+use function AuditEngine\Auth\sessionStart;
+use function AuditEngine\Auth\sessionSetUser;
+use function AuditEngine\Auth\sessionGetUser;
+use function AuditEngine\Auth\sessionDestroy;
+use function AuditEngine\Auth\sessionSetOAuthState;
+use function AuditEngine\Auth\sessionGetOAuthState;
+use function AuditEngine\Auth\sessionClearOAuthState;
+use function AuditEngine\Auth\microsoftBuildAuthUrl;
+use function AuditEngine\Auth\microsoftHandleCallback;
+use function AuditEngine\Auth\googleBuildAuthUrl;
+use function AuditEngine\Auth\googleHandleCallback;
 
 // --- CORS ---
 $config = null;
@@ -257,6 +271,139 @@ try {
         $found = getCalculationCase($id);
         if ($found === null) respond(['error' => "No case with id $id"], 404);
         respond($found);
+    }
+
+    // =========================================================
+    // AUTH ROUTES — OAuth 2.0 / OIDC sign-in (Microsoft + Google)
+    // =========================================================
+
+    // GET /auth/me — return current signed-in user, or 401
+    if ($method === 'GET' && $segments === ['auth', 'me']) {
+        // Auth routes always return JSON — no redirect, no HTML.
+        $user = sessionGetUser();
+        if ($user === null) {
+            respond(['error' => 'Not authenticated'], 401);
+        }
+        respond($user);
+    }
+
+    // POST /auth/logout — destroy session
+    if ($method === 'POST' && $segments === ['auth', 'logout']) {
+        sessionDestroy();
+        respond(['ok' => true]);
+    }
+
+    // GET /auth/microsoft — start Microsoft OIDC flow
+    if ($method === 'GET' && $segments === ['auth', 'microsoft']) {
+        $clientId = $config['microsoft_client_id'] ?? '';
+        if ($clientId === '') {
+            respond(['error' => 'Microsoft SSO is not configured on this server.'], 501);
+        }
+        $state       = bin2hex(random_bytes(16));
+        $redirectUri = ($config['app_url'] ?? '') . '/api/auth/callback/microsoft';
+        sessionSetOAuthState($state, 'microsoft');
+        // Redirect — not JSON. Auth routes are browser redirects, not AJAX.
+        header('Content-Type: text/html; charset=utf-8', true);
+        header('Location: ' . microsoftBuildAuthUrl($clientId, $redirectUri, $state));
+        http_response_code(302);
+        exit;
+    }
+
+    // GET /auth/google — start Google OAuth flow
+    if ($method === 'GET' && $segments === ['auth', 'google']) {
+        $clientId = $config['google_client_id'] ?? '';
+        if ($clientId === '') {
+            respond(['error' => 'Google SSO is not configured on this server.'], 501);
+        }
+        $state       = bin2hex(random_bytes(16));
+        $redirectUri = ($config['app_url'] ?? '') . '/api/auth/callback/google';
+        sessionSetOAuthState($state, 'google');
+        header('Content-Type: text/html; charset=utf-8', true);
+        header('Location: ' . googleBuildAuthUrl($clientId, $redirectUri, $state));
+        http_response_code(302);
+        exit;
+    }
+
+    // GET /auth/callback/microsoft — Microsoft redirects here after login
+    if ($method === 'GET' && $segments === ['auth', 'callback', 'microsoft']) {
+        header('Content-Type: text/html; charset=utf-8', true);
+        $appUrl = rtrim($config['app_url'] ?? '', '/');
+
+        $incomingState  = $_GET['state'] ?? '';
+        $expectedState  = sessionGetOAuthState();
+        $code           = $_GET['code'] ?? '';
+        $error          = $_GET['error'] ?? '';
+
+        if ($error) {
+            sessionClearOAuthState();
+            header('Location: ' . $appUrl . '/?auth_error=' . urlencode($error));
+            http_response_code(302); exit;
+        }
+
+        if (!$incomingState || $incomingState !== $expectedState) {
+            sessionClearOAuthState();
+            header('Location: ' . $appUrl . '/?auth_error=state_mismatch');
+            http_response_code(302); exit;
+        }
+
+        sessionClearOAuthState();
+
+        try {
+            $user = microsoftHandleCallback(
+                $config['microsoft_client_id'],
+                $config['microsoft_client_secret'],
+                $appUrl . '/api/auth/callback/microsoft',
+                $code
+            );
+            sessionSetUser($user);
+            header('Location: ' . $appUrl . '/?auth=ok');
+        } catch (\Throwable $e) {
+            error_log('[duration_calculator] Microsoft OAuth error: ' . $e->getMessage());
+            header('Location: ' . $appUrl . '/?auth_error=callback_failed');
+        }
+        http_response_code(302);
+        exit;
+    }
+
+    // GET /auth/callback/google — Google redirects here after login
+    if ($method === 'GET' && $segments === ['auth', 'callback', 'google']) {
+        header('Content-Type: text/html; charset=utf-8', true);
+        $appUrl = rtrim($config['app_url'] ?? '', '/');
+
+        $incomingState = $_GET['state'] ?? '';
+        $expectedState = sessionGetOAuthState();
+        $code          = $_GET['code'] ?? '';
+        $error         = $_GET['error'] ?? '';
+
+        if ($error) {
+            sessionClearOAuthState();
+            header('Location: ' . $appUrl . '/?auth_error=' . urlencode($error));
+            http_response_code(302); exit;
+        }
+
+        if (!$incomingState || $incomingState !== $expectedState) {
+            sessionClearOAuthState();
+            header('Location: ' . $appUrl . '/?auth_error=state_mismatch');
+            http_response_code(302); exit;
+        }
+
+        sessionClearOAuthState();
+
+        try {
+            $user = googleHandleCallback(
+                $config['google_client_id'],
+                $config['google_client_secret'],
+                $appUrl . '/api/auth/callback/google',
+                $code
+            );
+            sessionSetUser($user);
+            header('Location: ' . $appUrl . '/?auth=ok');
+        } catch (\Throwable $e) {
+            error_log('[duration_calculator] Google OAuth error: ' . $e->getMessage());
+            header('Location: ' . $appUrl . '/?auth_error=callback_failed');
+        }
+        http_response_code(302);
+        exit;
     }
 
     respond(['error' => "Not found: $method $path"], 404);
