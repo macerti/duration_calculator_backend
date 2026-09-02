@@ -23,6 +23,19 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 > Concurrent-development rule: read DEV_STATUS.md before starting work. It is the current hand-off ledger for verified work, open work, evidence level, and dependencies. Update it with every behavior change or test investigation.
 
 ## Active investigations — 2026-08-31
+
+> ⚠️ **SUPERSEDED — 2026-09-02 (eleventh session).** Every item below is
+> stale; kept verbatim (not rewritten) per this project's own convention of
+> appending new evidence rather than silently rewriting history. Current
+> status: BUG-004 PUT and NACE-404 were both root-caused as the same router
+> bug (BUG-030), fixed in 5.1.1, and re-verified 16/16 under real Apache +
+> `.htaccess` topology (BUG-030's eighth-session entry). The wizard-save bug
+> itself (frontend robustness, not the routing layer) is now tracked as
+> `BUG-035`. Concurrent status ledger adoption happened as described — see
+> `docs/DEV_STATUS.md`, which has recorded exactly this for ten sessions
+> since. **Read `docs/DEV_STATUS.md`'s "Current status" section for what is
+> actually still open, not this list.**
+
 - [ ] BUG-004 initial draft-save failure: exact minimal mount payload was tested directly against POST /cases and returned HTTP 201 with the expected calculation. Payload shape is therefore not a proven cause. The missing retry and swallowed .catch() remain a real robustness defect. Production-triggering condition is not identified.
 - [ ] BUG-004 Enregistrer PUT: not yet tested. Do not assume the PUT failure shares the POST failure's cause.
 - [ ] NACE 404 under PHP built-in server: GET /nace/search?q=... and GET /nace/:code returned 404. Path-stripping is suspected, but dev-server-only vs real regression is not classified. Capture SCRIPT_NAME and REQUEST_URI before changing routing.

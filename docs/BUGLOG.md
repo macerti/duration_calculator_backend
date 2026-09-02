@@ -1,16 +1,29 @@
 # Bug Log — Audit Duration Calculator
 
-> ⚠️ **Numbering collision with `audit-mobile/BUGLOG.md`.** That file has
-> its own independent `BUG-001`–`BUG-004`/`BUG-019` numbering that reuses
-> the same IDs for **different bugs** than the ones below (e.g. this
-> file's `BUG-004` is "`mb_strtolower` undefined", unrelated to
-> `audit-mobile/BUGLOG.md`'s `BUG-004`, the "wizard save" bug that
-> `docs/DEV_STATUS.md` tracks as *the* current BUG-004). `BUG-019` below
-> is the one deliberate exception, intentionally kept in sync as the same
-> bug in both files. See `audit-mobile/BUGLOG.md`'s own header for the
-> full note; not reconciled/renumbered in this pass — see
-> `docs/DEV_STATUS.md`'s 2026-09-01 (repository architecture
-> consolidation, step 2) entry for the recommended follow-up.
+> ✅ **Numbering collision RESOLVED — 2026-09-02 (eleventh session, technical-debt pass).**
+> This file previously warned that `src/frontend/BUGLOG.md` (formerly
+> `audit-mobile/BUGLOG.md`) had its own independent `BUG-001`–`BUG-004`
+> numbering reusing the same IDs as different bugs here — most importantly,
+> its own `BUG-004` ("wizard save is broken") was also the bug
+> `docs/DEV_STATUS.md`'s "Current status" section informally tracks as
+> *the* BUG-004, unrelated to **this file's** `BUG-004` below
+> (`mb_strtolower` undefined). Flagged as needing a dedicated renumbering
+> pass since the sixth session (2026-09-01); deferred by four sessions in a
+> row as too risky to attempt without full runway. That pass has now been
+> done: `src/frontend/BUGLOG.md`'s four entries are folded into this file's
+> canonical sequence as **BUG-032 through BUG-035** (full original detail
+> preserved, nothing summarized away — see those entries below).
+> `src/frontend/BUGLOG.md` itself is now a short pointer to this file. Old
+> historical prose elsewhere in this project (this file's own past entries,
+> `docs/DEV_STATUS.md`'s dated log, `CHANGELOG.md`, past commit messages)
+> still says "BUG-004" when narrating what was true *at the time* — that
+> text is deliberately left alone (rewriting history mid-narrative is
+> exactly what this project's own hand-off convention warns against; see
+> `docs/DEV_STATUS.md`'s "Update rule"). **Going forward, cite `BUG-035`**
+> for the wizard-save/autosave bug and `BUG-004` (below) only for the
+> unrelated `mb_strtolower` bug — the ambiguity is closed for all new
+> references even though old text is unchanged. `BUG-019` remains the one
+> case that was always the same bug in both files.
 
 ### BUG-001 — Deleted the verified PHP backend along with a stale contaminated folder
 - **Detected**: While starting the DEPLOY.md/logs write-up, `ls` on the
@@ -815,3 +828,55 @@ respond(['error' => "Not found: $method $path"], 404);
 
 **Evidence level**: STRONG CIRCUMSTANTIAL (the exact error-message-format match to this specific line of code is direct, verifiable evidence that PHP executed for this request; the `basePath` diagnosis built on top of that is the best-supported hypothesis given everything logged in this project, but is not itself independently confirmed against the live host).
 
+### BUG-032 — `expo-constants` used but not installed (folded in from `src/frontend/BUGLOG.md`'s own BUG-001, eleventh session)
+
+**Status: FIXED, closed. Historical — pre-release.**
+
+- **Detected**: `npx tsc --noEmit` — `TS2307: Cannot find module 'expo-constants'`.
+- **Cause**: `src/config/api.ts` imports `expo-constants` for reading `app.json` extras, but it wasn't an explicit dependency (only pulled in transitively by `expo`).
+- **Fix**: `npm install expo-constants` explicitly.
+- **Fixed in**: 0.1.0 (pre-release).
+
+### BUG-033 — `HomeScreen` health-state spread overwrote the discriminant field (folded in from `src/frontend/BUGLOG.md`'s own BUG-002, eleventh session)
+
+**Status: FIXED, closed. Historical — pre-release.**
+
+- **Detected**: Same typecheck pass as BUG-032 — `TS2322`/`TS2783` on `setHealth({ status: "ok", ...h })`.
+- **Cause**: The API's `/health` response also has a field called `status` (its own `"ok"` string from the server), and spreading `...h` after `status: "ok"` let the server's `status` field silently overwrite the discriminant the UI state union relies on — TypeScript caught it, but this would have been a real runtime bug (health card permanently stuck showing nothing, or worse, silently wrong branch) had it shipped.
+- **Fix**: Destructured explicitly instead of spreading: `{ status: "ok", parameterSetId: h.parameterSetId, version: h.version, dbConnected: h.dbConnected, dbBackedParameters: h.dbBackedParameters }`.
+- **Fixed in**: 0.1.0 (pre-release).
+
+### BUG-034 — `expo export --platform web` failed on peer dependency mismatch (folded in from `src/frontend/BUGLOG.md`'s own BUG-003, eleventh session)
+
+**Status: FIXED, closed. Historical — pre-release.**
+
+- **Detected**: `react-dom` installed at a version whose peer `react` requirement (`^19.2.8`) didn't match the project's actual `react` version (`19.2.3`), causing `npm install --legacy-peer-deps` to be silently needed / plain install to fail.
+- **Cause**: `npm install react-dom` without a version pin grabbed latest, which had drifted ahead of the Expo-managed `react` version in this project.
+- **Fix**: Pinned `react-dom@19.2.3` to match the project's `react` version exactly.
+- **Fixed in**: 0.1.0 (pre-release).
+
+### BUG-035 — audit-mobile/frontend wizard save is unreliable in two places (folded in from `src/frontend/BUGLOG.md`'s own BUG-004, eleventh session — this is the bug `docs/DEV_STATUS.md`'s "Current status" section informally tracks as "BUG-004"; NOT the same bug as this file's own separate BUG-004, "`mb_strtolower` undefined")
+
+**Status: PARTIALLY OPEN.** Backend HTTP-contract path fully VERIFIED (16/16, since BUG-030's fix in 5.1.1). Frontend error-surfacing/retry code was written 2026-08-31 and **re-confirmed present in current source this session** (see "RE-CONFIRMED" below — this closes a re-confirmation item that had been sitting open since the fourth session). The one gap unchanged across every session to date: no real browser/device interaction test has ever been performed for either symptom.
+
+- **Reported by**: user, from live testing on the deployed app. Two symptoms:
+  1. Nothing gets saved if the user drops off during the *first* step of the wizard (Sites & Secteurs) — autosave was supposed to kick in as soon as the wizard opens ("create calcul").
+  2. Clicking **Enregistrer** at the very end of the wizard (Synthèse step) showed a generic error toast and the calculation was not saved.
+
+- **Symptom 1 — root cause CONFIRMED by code reading**:
+  - `CalculationWizardScreen.tsx`, on mount for a brand-new calculation, fires exactly one `api.saveCase(...)` (`POST /cases`) to create the initial draft. The original bug: if that call rejected for *any* reason, a silent `.catch()` swallowed the error and only set `hydratedRef.current = true` — it never set `existingCaseId`. The recurring autosave effect is gated on `existingCaseId` being set, so once the initial draft-creation call failed, autosave became a permanent silent no-op for the rest of the session — no retry, no user-visible error.
+  - This is a structural bug independent of whatever originally caused the initial POST to fail — even a transient first-call hiccup (cold start, transient DB connection, validation edge case) would permanently kill autosave for that session with zero feedback.
+
+- **Symptom 2 — root cause hypotheses (not independently re-tested this session)**: `PUT /cases/:id` re-runs `calculateCase()` server-side before persisting; a shape mismatch between the wizard's `buildInput()` and what the PHP engine expects would 500 with a generic client-facing message (`debug` is `false` in production). Also possible: symptom 1's silent failure meant `existingCaseId` was still `undefined` at the end of the wizard, so `save()` took the fresh-`POST` branch with the *complete* payload instead of the PUT branch — if there's a validation/shape difference between the minimal draft payload and the full end-of-wizard payload, that would explain a final-save-only error. Neither hypothesis has been confirmed or ruled out by a real repro in any session to date.
+
+- **Fix applied 2026-08-31**: `createInitialDraft()` is now a named, retryable operation. A failed initial POST no longer marks the wizard as hydrated (so autosave can't silently pretend a case exists). The failure is surfaced in an explicit error state with a deterministic **Réessayer l'enregistrement** retry action. No automatic blind POST retry was added, since a response-loss retry can create duplicate cases without an idempotency mechanism — this is intentional, not an oversight.
+
+- **RE-CONFIRMED 2026-09-02 (eleventh session)** — direct source read of the current `src/frontend/src/screens/CalculationWizardScreen.tsx` (not just trusting the docs), specifically to close the fourth session's open re-confirmation item ("confirm the current `CalculationWizardScreen.tsx` still reflects that surfaced-error behavior before closing this item"): `draftSaveError` state (line 105), `createInitialDraft()` with explicit try/catch that resets `hydratedRef.current = false` and sets `draftSaveError` on failure (lines 147–163), and the `Réessayer l'enregistrement` retry button wired to `() => void createInitialDraft()` (lines 408–409) are all present and intact after the repository restructure and every subsequent session's changes. **This closes the fourth session's outstanding "confirm the source still reflects this" item — it does.**
+
+- **Still NOT DONE / OPEN** (unchanged by this session, all require real host/browser/device access no sandboxed session has ever had):
+  1. Reproduce the production first-call failure under conditions that could expose a transient/cold-start/network issue.
+  2. Instrument or otherwise expose the actual first `POST /cases` failure response/status when it occurs in production.
+  3. Real browser/device test of the complete wizard save/reopen lifecycle — the single biggest gap across this entire project, flagged in every session's hand-off since the second session and still true today.
+  4. Symptom 2's root cause is still not independently confirmed — see hypotheses above.
+
+- **Dependency / hand-off**: do not re-derive the symptom-1 root cause or re-verify the retry-button/error-state code from scratch — both are done, see above. The next actionable step for this bug is either (a) a real device/browser click-through, or (b) pulling the real PHP error log from the production host for an actual "Enregistrer" failure — both are host/device-access-blocked exactly like BUG-031, not sandbox-actionable.
