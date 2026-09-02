@@ -43,89 +43,46 @@ For every work session, record four things:
 
 Do not turn an architectural hypothesis into a confirmed root cause. Record the evidence level explicitly.
 
-## Current status
+## Current status (as of Twelfth Session — 2026-09-02)
 
-### BUG-004 — audit-mobile wizard save
+### 1. BUG-031 — Production API 404 / `basePath` configuration (TOP ACTIVE DEFECT)
+- **Scope**: Live production instance at `https://tools.macerti.com/duration_calculator/`.
+- **Status**: OPEN. Requires live server action (not sandbox-reproducible).
+- **Diagnosis**: Live server `config.php` lacks explicit `basePath = '/duration_calculator/api'` introduced in 5.1.1 (BUG-030).
+- **Required Action**: Host admin (Mahdi) updates `config.php` on the live server and verifies `GET .../api/health`.
 
-Scope: initial draft creation and subsequent Enregistrer update.
+### 2. Acceptance Gate: BUG-025, BUG-026, BUG-027 & BUG-035
+- **Scope**: Frontend UI & interaction flows across multi-site calculations, Siège input validation, and wizard draft autosave/retry.
+- **Status**: SOURCE-COMPLETE & STATICALLY/BUILD-VERIFIED.
+- **Backend Evidence**: 16/16 HTTP regression passed; 24/24 engine smoke test passed; real Apache 13/13 passed.
+- **Frontend Evidence**: `CalculationWizardScreen.tsx` has `draftSaveError` and retry button intact; builds clean (`expo export`).
+- **Open Action**: Real browser/device manual verification using [docs/TEST_CHECKLIST.md](TEST_CHECKLIST.md).
 
-**PUT/Enregistrer HTTP-contract status: RE-VERIFIED 2026-09-02 (seventh session).** BUG-030 had put the "VERIFIED, 16/16" claim below in doubt (same router bug also broke `/cases/:id`). With BUG-030's routing fix in place, `PUT /cases/:id updates case`, `PUT returns recalculated result`, `GET /cases/:id returns saved case` (input/status/rounding overrides preserved), and `DELETE /cases/:id` all pass again in a fresh run — see BUG-030 in `docs/BUGLOG.md`. The underlying save/update logic itself was never the suspect (per BUG-030's own analysis); this closes the routing-layer doubt specifically. Real browser/device interaction-level verification is still open, unchanged by this fix.
+### 3. BUG-030 (Router SCRIPT_NAME bug) — CLOSED & VERIFIED
+- **Resolution**: Replaced `SCRIPT_NAME` inspection with explicit `basePath` in `src/backend/api/index.php`.
+- **Verification**: 16/16 passed in PHP built-in server; 13/13 passed in real Apache 2.4 prefork + `mod_rewrite` + MariaDB 10.11.
 
-#### DONE / VERIFIED
-
-- Tested the exact initial draft-save payload emitted by the wizard on mount for a brand-new calculation: empty site, zero personnel, default ISO 9001 configuration.
-- Sent that payload directly to POST /cases.
-- Observed HTTP 201.
-- Confirmed the response contained the expected calculation object.
-- Therefore, the initial payload shape is not inherently invalid and must not be treated as the proven cause of the production first-save failure.
-- **2026-09-01 (fourth session) — RE-VERIFIED independently, fresh sandbox, real PDO+SQL DB (not a repeat of the CI run's own output — a separate reproduction of it):** stood up PHP 8.3 + MySQL 8.0.46 (client-compatible stand-in for MariaDB 10.11 — see caveat below) from scratch against `duration-calculator-php/` (the actual deployed backend, not the legacy `audit-app/backend` copy), applied `db/schema.sql`, ran `seed.php`, started `php -S 127.0.0.1:8080 api/index.php`, and ran the exact CI regression command `php tests/http_api_test.php http://127.0.0.1:8080`. Result: **16/16 passed**, including `PUT /cases/:id updates case`, `PUT returns recalculated result`, `GET /cases/:id returns saved case` (input/status/rounding overrides all preserved), and `DELETE /cases/:id`. `php tests/smoke_test.php`: **24/24 passed**. `/health` reported `dbConnected:true`.
-- **Therefore Symptom 2 (Enregistrer / PUT failure) backend path is now VERIFIED, not just CI-reported** — this closes the "NOT DONE" item below about testing PUT with a real DB, independently of trusting the earlier GitHub Actions run.
-- **Caveat — do not over-claim**: this used MySQL 8.0 (Ubuntu's `default-mysql-server`), not MariaDB 10.11 as CI/production use. Behavior matched in every tested path here, but a MySQL/MariaDB dialect difference remains a theoretical gap versus a true MariaDB reproduction. Still no real DirectAdmin/Apache-topology test, and no browser/device test of the actual wizard UI performing these calls — only the raw HTTP contract is verified. If a production first-save failure is still reported after this, look at frontend request construction, cold-start timing, or DirectAdmin/Apache-specific behavior, not the PHP/DB persistence logic itself.
-
-#### NOT DONE / OPEN
-
-1. Reproduce the production first-call failure under conditions that could expose a transient/cold-start/network issue.
-2. Instrument or otherwise expose the actual first POST /cases failure response/status when it occurs.
-3. Add an explicit error state and retry strategy for initial draft creation; do not silently swallow the failure. (Per `audit-mobile/BUGLOG.md`, source changes for this were made in an earlier session — confirm the current `CalculationWizardScreen.tsx` still reflects that surfaced-error behavior before closing this item.)
-4. ~~Test PUT /cases/:id using the exact payload generated by the wizard's Enregistrer action.~~ **DONE 2026-09-01 (fourth session) — see above.**
-5. ~~Test the complete lifecycle: mount → POST draft → edit → calculate → PUT calculated case → reload/reopen.~~ **DONE 2026-09-01 (fourth session), at the HTTP-contract level (health → NACE → POST → PUT → GET → DELETE). Still open at the real-browser/device level.**
-6. Distinguish backend failure, frontend request construction failure, transient transport failure, and race/lifecycle failure before assigning a final root cause. **Backend is now ruled out as a source of failure for well-formed requests; remaining candidates are frontend/transport/DirectAdmin-topology.**
-
-Dependency: the PUT investigation is independent enough to start immediately. The first-POST investigation should use the evidence above and must not restart by assuming payload shape is broken, and should not re-run the HTTP regression suite again from scratch — it is now independently confirmed twice (CI + this session).
-
----
-
-### New finding — NACE routes return 404 under PHP built-in dev server
-
-Status: **FIXED 2026-09-02 (seventh session) — see BUG-030 in `docs/BUGLOG.md` for the fix (explicit `basePath` config, no longer derived from `SCRIPT_NAME`) and the reconciliation of the contradiction below. `GET /nace/search` and `GET /nace/:code` both pass in a fresh 16/16 HTTP regression run, under every invocation style tested.**
-
-Status: **REOPENED 2026-09-01 (sixth session, repository architecture consolidation step 2) — ROOT-CAUSED with a reproducible mechanism. The "NOT REPRODUCED" status below is superseded; see BUG-030 in `docs/BUGLOG.md` for the full root-cause writeup (a `SCRIPT_NAME`-based router bug that misroutes every multi-segment path under `php -S`) and the open contradiction with the fourth session's 16/16 result that has not yet been reconciled.** Do not trust either session's result over the other without a fresh, carefully-controlled re-run — see BUG-030's "NOT DONE" list.
-
-Status: **RE-TESTED 2026-09-01 (fourth session) — NOT REPRODUCED.** Do not restart the SCRIPT_NAME/REQUEST_URI investigation below without first re-confirming the 404 actually still happens; it did not in two independent sessions now (the earlier CI-root-cause session, and this one).
-
-#### DONE / VERIFIED
-
-- Tested GET /nace/search?q=...
-- Tested GET /nace/:code
-- Both returned 404 Not found when tested against PHP's built-in development server. **(Original finding, since superseded — see below.)**
-- Current working hypothesis: request path stripping is dropping the nace segment.
-- Investigation reached the point of preparing a debug endpoint to expose SCRIPT_NAME and REQUEST_URI.
-- That endpoint was intended to determine whether this is a PHP built-in-server/dev-server artifact (similar in class to BUG-003) or a genuine router regression.
-- The investigation stopped before the debug endpoint was completed and before the cause was classified.
-- **2026-09-01 (fourth session)**: fresh sandbox, `php -S 127.0.0.1:8080 api/index.php` (same PHP built-in dev server class as the original finding) against `duration-calculator-php/`. `GET /nace/search?q=...` → 200 with results. `GET /nace/01` → 200 with the expected code. Both are asserted by `tests/http_api_test.php`, which passed 16/16. **The 404 did not reproduce.** Whatever caused the original finding (router code at the time, or a since-fixed regression) is not present in the current `api/index.php`.
-
-#### NOT DONE / DO NOT REPEAT
-
-- No root cause for the *original* 404 was ever confirmed, and now likely never will be — treat it as fixed-by-a-later-change rather than root-caused, unless it resurfaces.
-- No conclusion has been reached about whether production Apache/DirectAdmin routing (as opposed to the PHP built-in dev server, tested here) is affected — that gap is unchanged by this session.
-- Do not mark NACE search/code lookup as currently broken. Do not re-open this as a mystery without a fresh reproduction; if it recurs, capture SCRIPT_NAME/REQUEST_URI at that time rather than assuming the old hypothesis still applies.
-
-#### NEXT TEST SEQUENCE
-
-1. Capture SCRIPT_NAME and REQUEST_URI at the PHP router boundary.
-2. Log/return the exact path after every stripping step.
-3. Test the two failing routes again.
-4. Test a known-good route beside them.
-5. Compare direct PHP-server behavior with the intended Apache .htaccess topology.
-6. Only then classify as dev-server-only artifact or real routing regression.
-7. If it is a real regression, identify the smallest topology-specific fix and run the full route smoke suite before changing shared routing code.
-
-Dependency: NACE investigation is independent of BUG-004 PUT testing. It becomes co-dependent with any router/topology change: before touching shared routing, read BUG-003 and the topology notes in ORIENTATIONS.md.
+### 4. Repository Architecture Consolidation & Hygiene — COMPLETED
+- `src/frontend/` and `src/backend/` clean structure in place.
+- Work Package G hygiene scripts (`check-repo-hygiene.sh`, `check-deploy-artifact.sh`) active and passing in Makefile and CI.
+- Numbering collision resolved: frontend `BUG-001`..`004` folded into canonical `docs/BUGLOG.md` as `BUG-032`..`BUG-035`.
+- Historical completed features and closed bugs archived to [docs/archive/COMPLETED_HISTORY.md](archive/COMPLETED_HISTORY.md).
 
 ## Concurrent work map
 
 | Work stream | Status | Independent or dependent | Required hand-off |
 |---|---|---|---|
-| BUG-004 initial POST failure | Open (frontend robustness only — backend ruled out) | Independent | Preserve the verified fact that the minimal POST payload returns 201; focus on frontend retry/error-surfacing, not backend |
-| BUG-004 PUT Enregistrer | **UNCERTAIN as of 2026-09-01 (sixth session)** — was VERIFIED (fourth session, 16/16); this session's identical command got 5/16 with `/cases/:id` 404ing. Same router bug as NACE below (BUG-030). Do not treat as VERIFIED or as broken until reconciled. | Independent, but now shares a root cause with the NACE row below | Reconcile the contradiction first (see BUG-030); then re-test PUT specifically |
-| NACE 404 classification | **REOPENED 2026-09-01 (sixth session)** — ROOT-CAUSED (SCRIPT_NAME-based router bug under `php -S`, see BUG-030 in `docs/BUGLOG.md`), contradicting the fourth session's "NOT REPRODUCED". Not yet tested against real Apache/.htaccess topology. | Independent initially; now the same root cause as BUG-004 PUT above | Do not re-close this without testing real Apache topology and reconciling the two sessions' conflicting results |
-| Router SCRIPT_NAME bug (BUG-030) | **ROOT-CAUSED, fix not written** | Blocks confident closure of both rows above | Reconcile PHP-version/invocation discrepancy with fourth session; test real Apache topology; fix without an uncontrolled routing rewrite; re-run full 16-test suite |
-| Router/topology changes | Not started for this finding | Dependent | Read BUG-003 + ORIENTATIONS.md; test both topology variants before syncing |
-| Browser/device confirmation of wizard state fixes | Open | Independent from backend NACE work | Requires actual browser/device tooling — still not available in any sandboxed session to date |
-| Real DirectAdmin deployment | Open | Dependent on core API stability | **Now higher priority than before**: if BUG-030 is present in Apache too, production `/cases/:id` and `/nace/*` may be entirely unreachable — this is no longer just a "verify the happy path" item |
-| Authentication/rate limiting/security hardening | Open | Largely independent | Must be completed before real client data is treated as protected production data |
-| FEAT-003 — version/last-update footer | **SOURCE-COMPLETE, DEPLOY-VERIFIED (fifth session)** | Independent | Not yet browser/device-VERIFIED (no browser tooling in this sandbox) |
-| Repository architecture consolidation | **STEP 2 DONE 2026-09-01 (sixth session)** — see dated entry below | Independent | `audit-app/` fully archived; docs relocated; audit-mobile legacy logs flagged/merged. Remaining: rename `audit-mobile/`→`src/` + internal restructure (not attempted, bigger blast radius) |
+| **BUG-031 live `config.php` update** | OPEN (Immediate Blocker) | Independent (Needs live server access) | Update `basePath` in production `config.php` to `/duration_calculator/api`; test `/health` |
+| **User Acceptance Gate (BUG-025/026/027/035)** | SOURCE-COMPLETE (Awaiting browser/device testing) | Dependent on live/staging API availability | Test scenarios in `TEST_CHECKLIST.md` in a real browser or mobile client |
+| **FEAT-001 (Synthèse multi-site tabs)** | NOT BUILT / Top Feature | Independent of host access | Build site tabs + consolidated client programme tab; preserve multi-standard calculations |
+| **Technical Debt: Design Token Migration** | PARTIALLY COMPLETE | Independent | Migrate remaining 12 frontend screens/components to `src/theme/tokens.ts` |
+| **Technical Debt: Top-Level `tests/`** | OPEN (Deferred in WP-G) | Independent | Relocate `src/backend/tests/` to top-level `tests/` and add frontend logic tests |
+| **Authentication & Session Security** | OPEN | Independent (Backend + Frontend) | Implement PHP session auth per `SECURITY.md` §Todo #1 before storing live client data |
+| **Rate Limiting & Bounds Validation** | OPEN | Independent | Enforce `validationBounds` and IP rate limits per `SECURITY.md` §Todo #2 & #3 |
+| **FEAT-004 / BUG-029 (Production Quality/SEO)** | OPEN / Audit Required | Independent | Remove framework defaults, add branded 404, robots.txt, canonical metadata |
+| **Parameter Admin UI & Dossier Codification** | PARKED | Dependent on Authentication | Build parameter editing UI and automated reference scheme generator |
+| **PDF Export of Calculation Report** | PARKED | Independent | Implement report PDF generation target |
+
 
 ## Standing test evidence
 
@@ -669,3 +626,49 @@ While Part 1/2 above were in progress, four commits landed on `origin/main` from
 - `RELEASES.md` was not updated this session — nothing was deployed (source-only commit; no frontend/backend behavior changed in a way that needs a new deploy for its own sake, per the mandatory source/deployment separation rule). The regular CI publish step will still run for this commit and refresh the deployment artifact's docs/config files, which is expected and fine.
 
 **DEPENDENCY / HAND-OFF for the next developer**: work package G is done — all five `REPOSITORY_ARCHITECTURE.md` section-G checks exist, are wired into both local (`make check-hygiene`, `make build-deploy`) and CI workflows, and were negative-tested, not just written and assumed correct. The repository architecture consolidation's `REPOSITORY_ARCHITECTURE.md` "Definition of done" list is now fully satisfied except the one deliberately-deferred `tests/`-location item. **Nothing in the mandatory pipeline is actionable from a sandbox right now** — the only two open items (BUG-031, BUG-030's `AllowOverride`) both need Mahdi or someone with real `tools.macerti.com` access. If picking this up with continued sandbox-only access: the `src/frontend/BUGLOG.md`/`ROADMAP.md` merge/renumber (flagged repeatedly since the sixth session) is the next unblocked, non-host-dependent piece of real work.
+
+---
+
+## 2026-09-02 (eleventh session) — Bug log collision resolution (BUG-032–035) & CalculationWizardScreen re-confirmation
+
+**Purpose of this session**: technical-debt pass addressing the long-standing numbering collision between `src/frontend/BUGLOG.md` and `docs/BUGLOG.md`.
+
+**DONE / VERIFIED**:
+- Merged `src/frontend/BUGLOG.md`'s independent `BUG-001`..`BUG-004` into `docs/BUGLOG.md` as canonical `BUG-032`..`BUG-035`.
+- Re-confirmed `BUG-035` (`CalculationWizardScreen.tsx` wizard-save error handling/retry button) directly in source: `draftSaveError` state and retry button intact.
+- Reduced `src/frontend/BUGLOG.md` to a pointer file to eliminate duplicate maintenance.
+- Flagged stale 2026-08-31 active investigations in `docs/ROADMAP.md` as SUPERSEDED.
+
+---
+
+## 2026-09-02 (twelfth session) — Archive completed roadmap/bug history & establish Top 10 upcoming action queue
+
+**Purpose of this session**: user-directed pass to refresh repository status, review past test results, permanently archive completed features and closed bugs into an old history archive, eliminate deferred technical debt, and establish the Top 10 upcoming actions for team priority reorganization.
+
+**DONE / VERIFIED**:
+- **Repository status & hygiene check**:
+  - Ran `git pull` (clean, up to date with `origin/main`).
+  - Executed `scripts/check-repo-hygiene.sh`: all 4 checks passed cleanly (config.example.php, secret scan, source READMEs, no stale paths).
+- **Archived completed history**:
+  - Created `docs/archive/COMPLETED_HISTORY.md` archiving all completed features from v1.0.0 through v5.1.1 (persistent wizard state, synergy matrix, per-line factor percent, NACE technical codes, version footer FEAT-003, repository consolidation, etc.) and all closed bugs (BUG-001 through BUG-024, BUG-028, BUG-030, BUG-032–034).
+  - Cleaned `docs/ROADMAP.md`: replaced the 30+ struck-through completed items with a direct pointer to `docs/archive/COMPLETED_HISTORY.md`. Marked `FEAT-003` as completed & archived.
+- **Formulated Top 10 Upcoming Action Queue** in `docs/ROADMAP.md` and `docs/DEV_STATUS.md`:
+  1. *BUG-031*: Production API `basePath` fix in live `config.php` (Immediate Blocker).
+  2. *Acceptance Gate*: Interactive/visual verification of BUG-025, 026, 027, 035 per `TEST_CHECKLIST.md`.
+  3. *FEAT-001*: Synthèse per-site tabs & consolidated Programme d'audit Client (Top Feature).
+  4. *Technical Debt*: Design token migration across remaining 12 frontend screens/components.
+  5. *Technical Debt*: Top-level `tests/` relocation & automated frontend unit tests.
+  6. *Security*: Authentication & session security on API endpoints (`SECURITY.md` §Todo #1).
+  7. *Security*: Rate limiting & input bounds validation (`validationBounds`, `SECURITY.md` §Todo #2 & #3).
+  8. *FEAT-004 / BUG-029*: Production-quality presence, metadata, SEO, custom 404.
+  9. *Parked*: Parameter administration UI & automated dossier reference codification.
+  10. *Parked*: PDF export of calculation reports.
+- **Refreshed `docs/DEV_STATUS.md`**:
+  - Replaced stale pre-5.1.0 "Current status" text with the true current status and updated concurrent work map.
+
+**DEPENDENCY / HAND-OFF for the next developer**:
+- The repository documentation is now clean and organized. Completed items are archived; active backlog is prioritized.
+- **Top blocker**: BUG-031 needs Mahdi to edit `config.php` on the live server (`tools.macerti.com`) to set `$config['basePath'] = '/duration_calculator/api';`.
+- **Top development feature**: FEAT-001 (Synthèse multi-site audit programme tabs) is unblocked and ready for implementation.
+- **Top technical debt**: Design token migration in `src/frontend` and moving `src/backend/tests/` to top-level `tests/`.
+

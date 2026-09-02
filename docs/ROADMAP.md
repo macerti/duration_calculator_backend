@@ -22,147 +22,74 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 
 > Concurrent-development rule: read DEV_STATUS.md before starting work. It is the current hand-off ledger for verified work, open work, evidence level, and dependencies. Update it with every behavior change or test investigation.
 
-## Active investigations — 2026-08-31
+## Active & Upcoming Action Queue (Top 10 Actions)
 
-> ⚠️ **SUPERSEDED — 2026-09-02 (eleventh session).** Every item below is
-> stale; kept verbatim (not rewritten) per this project's own convention of
-> appending new evidence rather than silently rewriting history. Current
-> status: BUG-004 PUT and NACE-404 were both root-caused as the same router
-> bug (BUG-030), fixed in 5.1.1, and re-verified 16/16 under real Apache +
-> `.htaccess` topology (BUG-030's eighth-session entry). The wizard-save bug
-> itself (frontend robustness, not the routing layer) is now tracked as
-> `BUG-035`. Concurrent status ledger adoption happened as described — see
-> `docs/DEV_STATUS.md`, which has recorded exactly this for ten sessions
-> since. **Read `docs/DEV_STATUS.md`'s "Current status" section for what is
-> actually still open, not this list.**
+> Historical completed features and closed bug resolutions have been permanently archived in:
+> 📁 [docs/archive/COMPLETED_HISTORY.md](archive/COMPLETED_HISTORY.md)
+>
+> Prioritized order reflects current delivery strategy: Live blockers & User Acceptance Gate → High-priority features → Technical debt & security hardening → Parked items.
 
-- [ ] BUG-004 initial draft-save failure: exact minimal mount payload was tested directly against POST /cases and returned HTTP 201 with the expected calculation. Payload shape is therefore not a proven cause. The missing retry and swallowed .catch() remain a real robustness defect. Production-triggering condition is not identified.
-- [ ] BUG-004 Enregistrer PUT: not yet tested. Do not assume the PUT failure shares the POST failure's cause.
-- [ ] NACE 404 under PHP built-in server: GET /nace/search?q=... and GET /nace/:code returned 404. Path-stripping is suspected, but dev-server-only vs real regression is not classified. Capture SCRIPT_NAME and REQUEST_URI before changing routing.
-- [ ] Concurrent status ledger adoption: all future work streams should record exact tests, environment, evidence level, and dependencies in DEV_STATUS.md.
+### 1. BUG-031 — Production API `basePath` fix / verification on `tools.macerti.com`
+- **Category:** Immediate Blocker (Production Operations)
+- **Status:** OPEN. Needs live host action.
+- **Action:** Live server file manager / SSH edit in `config.php`: set `$config['basePath'] = '/duration_calculator/api';`. Test `GET https://tools.macerti.com/duration_calculator/api/health`. Fallback check: verify `AllowOverride All` in DirectAdmin.
 
+### 2. User Acceptance Gate — Visual & interactive testing of BUG-025, 026, 027, 035
+- **Category:** Immediate Quality Gate
+- **Status:** SOURCE-COMPLETE (awaiting real browser/mobile testing).
+- **Action:** Execute scenarios in [TEST_CHECKLIST.md](TEST_CHECKLIST.md) on live/staging: multi-site wizard navigation, Siège validation, Facteurs tabs, and wizard auto-save/retry.
 
-## Requested, not yet built
-- [x] ~~Persistent wizard state (auto-save on create + continuous save +
-      full hydration on reopen)~~ — done in 5.0.0, verified live
-- [x] ~~Synergy: checkbox-derived Basique/Élevé + auditor×standard
-      matrix~~ — done in 5.0.0, built after re-verifying against the spec
-- [x] ~~Per-line factor percent editing~~ — done in 5.0.0
-- [x] ~~Live running factor totals with cap-exceeded display~~ — done in
-      5.0.0
-- [x] ~~Unlimited justified "Autre" entries~~ — done in 5.0.0
-- [x] ~~Per-standard risk override~~ — done in 5.0.0
-- [x] ~~Sub-tabs per standard (Facteurs, Synthèse)~~ — done in 5.0.0
-- [x] ~~Rename Récap → Synthèse~~ — done in 5.0.0
-- [x] ~~Site/Siège labeling (fixed label + editable name + address +
-      auto-renumbering + building icon)~~ — done in 5.0.0
-- [x] ~~NACE search by technical code (Code_QM_Qualite/OH/EM)~~ — done in
-      5.0.0
-- [x] ~~Browse-all-sectors checkbox modal~~ — done in 5.0.0
-- [x] ~~Client delete cascades to its calculations~~ — done in 5.0.0
-      (explicit reversal of the 4.0.0 SET-NULL decision, see decisions log)
-- [x] ~~Home breadcrumb missing on clients list / client detail~~ — done
-      in 5.0.0
-- [x] ~~Sampling toggle rule re-verification~~ — done in 5.0.0, confirmed
-      correct as already built, no change needed
+### 3. FEAT-001 — Synthèse tabs for per-site programmes and Programme d'audit Client
+- **Category:** New Feature (Core Business Functionality)
+- **Status:** REQUESTED / TOP FEATURE PRIORITY.
+- **Action:** Build individual site audit programme tabs + dedicated consolidated "Programme d'audit Client" tab combining all applicable site durations without double-counting, preserving multi-standard synergy calculations.
 
-- [x] ~~Design token system (semantic UI tokens)~~ — done in 4.1.0
-      (`src/theme/tokens.ts`), adopted in shared components only — see
-      "Design token migration" below for the rest
-- [x] ~~Security audit~~ — done in 4.1.0, see `SECURITY.md` for full
-      findings; quick/safe fixes applied immediately, bigger items
-      (auth, rate limiting) tracked there as prioritized Todo
-- [x] ~~Test checklist with version history~~ — done in 4.1.0
-      (`TEST_CHECKLIST.md`)
-- [x] ~~Toast position (undo toast should be at the bottom)~~ — done in 4.1.0
-- [ ] **Authentication** — see `SECURITY.md` §Todo #1. Currently zero access
-      control on any endpoint. Top priority before real client data goes in.
-- [ ] **Rate limiting** — see `SECURITY.md` §Todo #2.
-- [ ] Full input-bounds validation using `validationBounds` (exists in the
-      parameter set, never wired into actual enforcement) — see
-      `SECURITY.md` §Todo #3
-- [ ] Confirm/set up database backups on the real DirectAdmin host — see
-      `SECURITY.md` §Todo #4
-- [ ] **Design token migration, remaining scope**: `HomeScreen`,
-      `ClientsListScreen`, `ClientDetailScreen`, `CalculationWizardScreen`,
-      `CalculationReportScreen`, `NumberField`, `SegmentedPicker`,
-      `DualSectorPicker`, `FactorPicker`, `StandardConfigPanel`,
-      `SynergyPanel`, `PersonnelForm`, `ErrorBoundary` — migrate
-      opportunistically when each is next touched for an unrelated change,
-      per `ORIENTATIONS.md`, rather than as one dedicated pass
-- [x] ~~First real DB integration test~~ — done in 2.0.0
-- [x] ~~NACE sector search wired into the site form~~ — done in 2.0.0
-- [x] ~~Client → Calculation model~~ — done in 2.0.0
-- [x] ~~Report-writing time per visit (not lump-summed)~~ — done in 3.0.0,
-      verified against spec line 889
-- [x] ~~Remove 2-sector cap~~ — done in 3.0.0
-- [x] ~~Fix contradictory personnel-validation messaging + smart Next~~ —
-      done in 3.0.0
-- [x] ~~Progressive shift-team questions~~ — done in 3.0.0
-- [x] ~~Separate Retour vs Accueil navigation~~ — done in 3.0.0
-- [x] ~~EAC code alongside NACE~~ — done in 3.0.0
-- [x] ~~Dedicated traceability report screen (Option 2)~~ — done in 3.0.0,
-      **not yet visually verified in a real browser** — please confirm
-      layout/readability on next test pass
-- [ ] **PDF export of the calculation report** — explicitly requested to be
-      parked here rather than built now. Report screen's data structure is
-      already report-shaped, so this is mostly a rendering-target problem
-      (server-side PDF generation, likely via the existing `pdf` skill
-      pattern used elsewhere) once picked up.
-- [ ] First real deploy to the actual DirectAdmin host (still only tested via
-      a local MariaDB standing in for the real `macerti_audit_calc`)
-- [ ] Visual confirmation of `CalculationWizardScreen`'s stale-closure fix
-      and the personnel-step smart-routing fix, in an actual browser/device —
-      both were fixed via architectural review (a well-understood React bug
-      class matching the reported symptoms) rather than a directly
-      reproduced-then-confirmed repro, since no headless browser is available
-      in the build sandbox. Should be correct; please stress-test the exact
-      original repro steps (siège+site1, deliberately mismatch one, correct
-      it, switch tabs rapidly) on next pass.
-- [ ] Custom pull-to-refresh with stretch/bounce visual feedback (the actual
-      *data-loss* risk from the browser's native gesture is fixed —
-      `overscroll-behavior-y: contain` — but the nice-to-have interactive
-      feedback animation described isn't built)
-- [x] ~~Full re-edit of an existing calculation's Sites/Effectif/Facteurs steps
-      when reopening a saved case~~ — **still not built**, but the crash this
-      caused is fixed (see 4.0.0 CHANGELOG); reopening still lands on Récap
-      only, sectors still aren't reverse-mapped
-- [x] ~~Synergy/integration inputs in the UI~~ — done in 4.0.0
-- [x] ~~Delete for clients and calculations~~ — done in 4.0.0, optimistic
-      with 30s undo, no confirmation dialogs
-- [x] ~~Client rename UI~~ — done in 4.0.0 (endpoint existed since 2.0.0)
-- [x] ~~Shake + label validation on empty client name~~ — done in 4.0.0
-- [x] ~~Home icon instead of emoji, repositioned~~ — done in 4.0.0
-- [x] ~~Accent-insensitive NACE search~~ — done in 4.0.0
-- [x] ~~Search by NACE/EAC code, not just description~~ — done in 4.0.0
-- [x] ~~Year-grouped visual separators in recap/report~~ — done in 4.0.0
-- [x] ~~Numeric substitution in report formulas (not just formula shape)~~ —
-      done in 4.0.0
-- [x] ~~Rounding-guide column (suggested nearest-quarter, manual stays the
-      real value)~~ — done in 4.0.0
-- [x] ~~Global error boundary~~ — done in 4.0.0 (found necessary while
-      fixing the blank-page crash; kept as permanent infrastructure)
-- [ ] Global case list across all clients (currently per-client only)
-- [ ] Extension-site toggle in the UI
-- [ ] Visual confirmation, in a real browser, of everything shipped in 4.0.0
-      that could only be typecheck/bundle-verified here: the shake animation,
-      the undo toast's depleting progress bar, and the year-group visual
-      styling. See CHANGELOG 4.0.0 for the full list.
-- [ ] Synergy UI currently applies the same integration-level + auditor
-      inputs identically across all of a site's active standards (correct
-      per the engine's own formula) — if a real scenario ever needs
-      *different* synergy inputs per standard at the same site, the data
-      model (`SiteStandardInput.synergy` is already per-standard) supports
-      it; the UI just doesn't expose that granularity yet since nothing
-      indicated it was needed
-- [ ] Tighten `allowedOrigins` in `config.php` once the frontend has a real URL
-- [ ] Delete any one-off seed-trigger script from `api/` if the no-SSH seeding
-      workaround from `DEPLOY.md` gets used
-- [ ] Continue business-logic test coverage across more scenarios (sièges,
-      sites, effectifs, facteurs, différents cas métier) — explicitly called
-      out as an ongoing priority, not a one-time task; verify against the
-      Excel/Markdown reference files specifically when in doubt, not general
-      reasoning about what "should" be right
+### 4. Technical Debt: Design Token Migration (Frontend)
+- **Category:** Technical Debt (Do Not Defer)
+- **Status:** PARTIALLY COMPLETE (Tokens defined in `src/theme/tokens.ts`, shared components migrated).
+- **Action:** Migrate remaining 12 components/screens (`HomeScreen`, `ClientsListScreen`, `ClientDetailScreen`, `CalculationWizardScreen`, `CalculationReportScreen`, `NumberField`, `SegmentedPicker`, `DualSectorPicker`, `FactorPicker`, `StandardConfigPanel`, `SynergyPanel`, `PersonnelForm`, `ErrorBoundary`) to semantic design tokens.
+
+### 5. Technical Debt: Top-Level `tests/` Relocation & Frontend Unit Tests
+- **Category:** Technical Debt & Quality Assurance
+- **Status:** OPEN (Explicitly deferred in Work Package G).
+- **Action:** Relocate `src/backend/tests/` to top-level `tests/backend/` and add automated frontend unit/logic tests (Jest/Vitest) for wizard calculations and hooks to avoid relying solely on manual checklists.
+
+### 6. Authentication & Session Security (SECURITY.md §Todo #1)
+- **Category:** Security & Architecture
+- **Status:** OPEN / HIGH PRIORITY before real client data.
+- **Action:** Implement secure PHP session-based authentication on API endpoints, HttpOnly/SameSite session cookies, and login gate.
+
+### 7. Rate Limiting & Input Validation Bounds (SECURITY.md §Todo #2 & #3)
+- **Category:** Security & Hardening
+- **Status:** OPEN.
+- **Action:** Enforce `validationBounds` (defined in IAF parameter sets) on the backend API and add IP/session rate limiting for calculation endpoints.
+
+### 8. FEAT-004 / BUG-029 — Production-quality web presence, metadata, branded 404 & SEO
+- **Category:** Production Polish
+- **Status:** REQUESTED / AUDIT REQUIRED.
+- **Action:** Replace React/Expo framework defaults, add branded 404 page, set unique titles and canonical metadata for public pages, configure `robots.txt` and `sitemap.xml`.
+
+### 9. Parameter Admin UI & Dossier Reference Codification
+- **Category:** Parked / Scheduled Feature
+- **Status:** PARKED.
+- **Action:** Admin UI to configure IAF parameter tables directly, plus automated calculation reference numbering scheme (prefix + counter + date pattern).
+
+### 10. PDF Export of Calculation Report
+- **Category:** Parked Feature
+- **Status:** PARKED.
+- **Action:** Server-side or client-side generation of downloadable PDF calculation reports formatted from the Report screen data.
+
+---
+
+## Remaining Backlog Items (Secondary Queue)
+
+- [ ] **Global case list**: Browse all calculation cases across all clients in one unified view.
+- [ ] **Extension-site toggle in UI**: Expose the backend-supported `isExtension` flag in the wizard site form.
+- [ ] **Custom pull-to-refresh animation**: Add interactive stretch/bounce feedback for mobile web.
+- [ ] **Database backups verification**: Confirm and automate periodic database backup strategy on the host.
+- [ ] **Tighten allowedOrigins**: Restrict CORS origins in `config.php` to production domain once DNS/URLs are fixed.
+- [ ] **FEAT-002: SSO (Microsoft/Google)**: Explicitly deferred until core local session authentication is established.
+
 
 ## Ideas / not yet requested (parked)
 - Parameter admin UI (edit factor catalogue / IAF tables from a browser
@@ -292,11 +219,11 @@ The current security roadmap already identifies authentication as the highest-pr
 - Google Sign-In uses Google Identity Services and OpenID Connect. citeturn0search6
 
 
-## IMMEDIATE REQUEST — FEAT-003: Application version and last-update display
+## FEAT-003: Application version and last-update display
 
-**Priority: IMMEDIATE / ASAP**  
-**Status: REQUESTED — implementation required before lower-priority backlog work.**  
+**Status: COMPLETED & ARCHIVED (5.1.0 / 5.1.1)** — Built 2026-09-01, verified live. See [COMPLETED_HISTORY.md](archive/COMPLETED_HISTORY.md) for full archive.
 **Requested**: 2026-09-01
+
 
 ### Objective
 
