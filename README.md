@@ -1,6 +1,6 @@
 # Audit Duration Calculator — Source Repository
 
-> **Repository identity:** this repository was intentionally renamed from `duration_calculator_source` to `duration_calculator_source`. The new name is deliberate: this repository contains the authoritative application source, while `duration_calculator` is the deployable artifact repository.
+> **Repository identity:** this repository was intentionally renamed from `duration_calculator_backend` to `duration_calculator_source`. The new name is deliberate: this repository contains the authoritative application source, while `duration_calculator` is the deployable artifact repository.
 
 
 GS0106 / IAF MD5 / MD1 / MD11 audit duration calculation tool — a rebuild of
@@ -13,7 +13,7 @@ frontend built to static files.** No Node.js runtime needed on the server.
 the backend (`duration-calculator-php/`).
 
 **Why PHP**: this started as Node/TypeScript (see
-`docs/archive/audit-engine-abandoned-node-engine/`). Once it was confirmed
+`docs/archive/AUDIT_ENGINE_LEGACY.md`). Once it was confirmed
 the target DirectAdmin host has no Node.js Selector, the engine was ported
 to PHP — same formulas, same worked examples, verified against the same
 test cases. PHP + MySQL/MariaDB is close to universally available on shared
@@ -51,22 +51,25 @@ see [`duration_calculator`](https://github.com/macerti/duration_calculator).
   This is what the deploy repo's backend portion is built from — for PHP
   there's no separate build step, so this content is closer to
   copy-verbatim than `audit-mobile/` is.
-- **`audit-app/`** — an earlier two-folder-topology version of the PHP
-  backend (`backend/public/` as its own doc root, `/api/...` as a URL
-  namespace rather than a physical folder), plus an earlier version of the
-  frontend. Kept for reference/history, not the deployment target — see
-  `docs/ORIENTATIONS.md`'s decisions log for why both exist. **Note as of
-  2026-09-01 (repository architecture consolidation, step 2)**: this
-  folder now contains only that historical code. The project's active
-  living docs that used to live here (`BUGLOG.md`, `DEV_STATUS.md`,
-  `ROADMAP.md`, `ORIENTATIONS.md`, `TEST_CHECKLIST.md`, `DEPLOY.md`) have
-  moved to `docs/`, and `SECURITY.md`/`CHANGELOG.md` have moved to the
-  repo root, per `REPOSITORY_ARCHITECTURE.md`.
-- Historical/abandoned implementations have been archived under
-  `docs/archive/` rather than kept as active-looking top-level folders —
+- **`audit-app/`** — no longer exists. It was an earlier two-folder-topology
+  version of the PHP backend (`backend/public/` as its own doc root,
+  `/api/...` as a URL namespace rather than a physical folder), plus an
+  earlier version of the frontend. Deleted 2026-09-01 (repository
+  architecture consolidation, step 2) after diffing every file against the
+  canonical `duration-calculator-php/`/`audit-mobile/` and confirming
+  nothing unique would be lost — see `docs/archive/AUDIT_APP_LEGACY.md` for
+  exactly what was verified. Its active living docs (`BUGLOG.md`,
+  `DEV_STATUS.md`, `ROADMAP.md`, `ORIENTATIONS.md`, `TEST_CHECKLIST.md`,
+  `DEPLOY.md`) moved to `docs/` before the deletion, and
+  `SECURITY.md`/`CHANGELOG.md` moved to the repo root, per
+  `REPOSITORY_ARCHITECTURE.md`.
+- Historical/abandoned implementations are deleted, not kept as
+  active-looking top-level folders — `REPOSITORY_ARCHITECTURE.md`
+  explicitly prohibits using `docs/archive/` as a dumping ground for
+  duplicate code. Only a concise history note survives each deletion:
   e.g. the original Node/TypeScript engine implementation (before the
-  project moved to PHP) now lives at
-  `docs/archive/audit-engine-abandoned-node-engine/`.
+  project moved to PHP) is gone, documented at
+  `docs/archive/AUDIT_ENGINE_LEGACY.md`.
 
 ## Quick start (local testing before deploying)
 
@@ -137,7 +140,7 @@ The rename from `duration_calculator_backend` to `duration_calculator_source` is
 
 ## Current architecture phase
 
-The immediate architecture phase is governed by `ARCHITECTURE_CORRECTION.md` and `REPOSITORY_ARCHITECTURE.md`. It requires one canonical source tree, deletion of unnecessary historical application trees, an explicit deployment contract, reproducible developer commands, stronger CI hygiene, and source-to-artifact release traceability. Do not archive obsolete code merely for comfort; recover any required business rules/tests, document necessary decisions, then delete the redundant implementation.
+The immediate architecture phase is governed by `REPOSITORY_ARCHITECTURE.md` (`ARCHITECTURE_CORRECTION.md` now just points there — see that file for why). It requires one canonical source tree, deletion of unnecessary historical application trees, an explicit deployment contract, reproducible developer commands, stronger CI hygiene, and source-to-artifact release traceability. Do not archive obsolete code merely for comfort; recover any required business rules/tests, document necessary decisions, then delete the redundant implementation.
 
 ## Repository maintenance
 

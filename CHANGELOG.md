@@ -4,7 +4,7 @@ Same versioning convention as the other projects: **x** = overhaul, **y** = feat
 
 ## 2026-09-01 (sixth session) — Repository architecture consolidation step 2; BUG-030 found (router bug, reopens NACE-404 and BUG-004 PUT evidence)
 
-- Repository architecture consolidation continued: `audit-app/`'s active docs (`BUGLOG`, `DEV_STATUS`, `ROADMAP`, `ORIENTATIONS`, `TEST_CHECKLIST`, `DEPLOY`) moved to `docs/`; `SECURITY`/`CHANGELOG` moved to repo root. `audit-app/backend` and `audit-app/frontend` (the superseded two-folder implementation) archived to `docs/archive/audit-app-legacy-two-folder-implementation/` after diffing every file against the canonical `duration-calculator-php/`/`audit-mobile/` to confirm nothing unique would be lost. `audit-app/` no longer exists. Stale `audit-mobile/CHANGELOG.md` merged into this file (see the pre-PHP-port history section near the end) and archived verbatim to `docs/archive/audit-mobile-legacy-logs/`.
+- Repository architecture consolidation continued: `audit-app/`'s active docs (`BUGLOG`, `DEV_STATUS`, `ROADMAP`, `ORIENTATIONS`, `TEST_CHECKLIST`, `DEPLOY`) moved to `docs/`; `SECURITY`/`CHANGELOG` moved to repo root. `audit-app/backend` and `audit-app/frontend` (the superseded two-folder implementation) compared file-by-file against the canonical `duration-calculator-php/`/`audit-mobile/` to confirm nothing unique would be lost, then deleted (per `REPOSITORY_ARCHITECTURE.md`'s "delete, don't archive" policy) — see `docs/archive/AUDIT_APP_LEGACY.md` for what was verified. `audit-app/` no longer exists. Stale `audit-mobile/CHANGELOG.md` merged into the pre-2026-08-19 section of this file, then deleted (it was fully superseded by that merge, so keeping a second verbatim copy would itself have been the "archive as dumping ground" problem the new policy warns against).
 - Found and flagged (not fixed): `audit-mobile/BUGLOG.md` uses an independent `BUG-XXX` numbering sequence that collides with this project's own — the two files' `BUG-001`–`BUG-004` are different bugs. Added warning headers to both files rather than attempting a risky renumbering pass.
 - **BUG-030 (new)**: root-caused a router bug in `duration-calculator-php/api/index.php` that misroutes every multi-segment URL path (`/nace/*`, `/cases/:id`) under PHP's built-in dev server, via an unreliable `SCRIPT_NAME`-based prefix-stripping approach. This reopens the previously-"NOT REPRODUCED" NACE-404 finding and puts BUG-004's previously-"VERIFIED" PUT/Enregistrer HTTP evidence in question — see `docs/BUGLOG.md`'s BUG-030 and `docs/DEV_STATUS.md`'s sixth-session entry for full detail, the open contradiction with the fourth session's result, and next steps (real Apache-topology test is now higher priority).
 
@@ -788,12 +788,12 @@ verbatim and merged here for one continuous version history. They are the
 direct chronological predecessor of `[1.0.0]` above — that entry's own "Added"
 section describes copying this exact frontend in as `frontend/` during the
 PHP port. A verbatim copy is also kept at
-`docs/archive/audit-mobile-legacy-logs/CHANGELOG.md` for traceability.
+`the pre-2026-08-19 section of this fileCHANGELOG.md` for traceability.
 
 Same versioning convention as `audit-engine`:
 - **x** — overhaul: new concept, architecture change, or a big/visible new capability
 - **y** — a requested feature landed
-- **z** — a bug was found and fixed (see `docs/archive/audit-mobile-legacy-logs/BUGLOG.md`)
+- **z** — a bug was found and fixed (see `the pre-2026-08-19 section of this fileBUGLOG.md`)
 
 ## [0.3.0] — 2026-08-19
 
