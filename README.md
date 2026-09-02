@@ -9,8 +9,8 @@ via DirectAdmin shared hosting: **PHP + MariaDB backend, React (Expo)
 frontend built to static files.** No Node.js runtime needed on the server.
 
 **Both pieces are required — this is not one file.** The frontend
-(`audit-mobile/`) is only forms and display; every GS0106 formula lives in
-the backend (`duration-calculator-php/`).
+(`src/frontend/`) is only forms and display; every GS0106 formula lives in
+the backend (`src/backend/`).
 
 **Why PHP**: this started as Node/TypeScript (see
 `docs/archive/AUDIT_ENGINE_LEGACY.md`). Once it was confirmed
@@ -34,29 +34,29 @@ see [`duration_calculator`](https://github.com/macerti/duration_calculator).
 - All application source changes MUST be made and reviewed here first.
 - After a source change is tested, the developer MUST build/package the deployable artifact and publish the resulting deploy files to the separate repository **macerti/duration_calculator**.
 - The duration_calculator repository is the deployment artifact / production mirror. Hosting deployment is driven from that repository, not from this source repository.
-- For the PHP backend, build means producing the deploy-ready single-folder PHP tree from duration-calculator-php/; there is no PHP compilation step.
-- For audit-mobile/, build means running the configured Expo web export and publishing the resulting static files. A source-only frontend change is NOT deployed until its generated web artifact has been published to duration_calculator.
+- For the PHP backend, build means producing the deploy-ready single-folder PHP tree from src/backend/; there is no PHP compilation step.
+- For src/frontend/, build means running the configured Expo web export and publishing the resulting static files. A source-only frontend change is NOT deployed until its generated web artifact has been published to duration_calculator.
 - Never hand-edit only the deployment repository to fix application behavior. If the source repository is not updated, the deployment change is invalid and will be overwritten by the next build.
 - Every development hand-off MUST state both source commit and deployment-artifact commit, or explicitly state that deployment has not yet happened.
 - A task is not deployed merely because source code was committed. Deployment is complete only when the corresponding artifact exists in duration_calculator and its deployment workflow has been run/passed where applicable.
 
 ## Layout
 
-- **`audit-mobile/`** — the actual frontend source of truth. Expo/React
+- **`src/frontend/`** — the actual frontend source of truth. Expo/React
   Native app (works on iOS, Android, and web from one codebase). This is
   what gets built (`npx expo export --platform web`) to produce the static
   files that ship inside the deploy repo.
-- **`duration-calculator-php/`** — the PHP + MariaDB backend source, exactly
+- **`src/backend/`** — the PHP + MariaDB backend source, exactly
   as deployed (single-folder topology: `engine/`, `data/`, `db/`, `api/`).
   This is what the deploy repo's backend portion is built from — for PHP
   there's no separate build step, so this content is closer to
-  copy-verbatim than `audit-mobile/` is.
+  copy-verbatim than `src/frontend/` is.
 - **`audit-app/`** — no longer exists. It was an earlier two-folder-topology
   version of the PHP backend (`backend/public/` as its own doc root,
   `/api/...` as a URL namespace rather than a physical folder), plus an
   earlier version of the frontend. Deleted 2026-09-01 (repository
   architecture consolidation, step 2) after diffing every file against the
-  canonical `duration-calculator-php/`/`audit-mobile/` and confirming
+  canonical `src/backend/`/`src/frontend/` and confirming
   nothing unique would be lost — see `docs/archive/AUDIT_APP_LEGACY.md` for
   exactly what was verified. Its active living docs (`BUGLOG.md`,
   `DEV_STATUS.md`, `ROADMAP.md`, `ORIENTATIONS.md`, `TEST_CHECKLIST.md`,
@@ -70,22 +70,29 @@ see [`duration_calculator`](https://github.com/macerti/duration_calculator).
   e.g. the original Node/TypeScript engine implementation (before the
   project moved to PHP) is gone, documented at
   `docs/archive/AUDIT_ENGINE_LEGACY.md`.
+- **Renamed 2026-09-02** (repository architecture consolidation, remaining
+  scope closed): `audit-mobile/` → `src/frontend/` and
+  `duration-calculator-php/` → `src/backend/`, via `git mv` (history
+  preserved, no file content changed). This was the last item
+  `REPOSITORY_ARCHITECTURE.md`'s "Required target" section still had open —
+  see `docs/DEV_STATUS.md`'s dated entry for the full verification that
+  nothing broke (regression suite, typecheck, build) after the move.
 
 ## Quick start (local testing before deploying)
 
 **Backend:**
 ```bash
-cd duration-calculator-php
+cd src/backend
 cp config.example.php config.php   # edit config.php with your DB credentials
 php -S localhost:8000 -t .
 ```
 
 **Frontend:**
 ```bash
-cd audit-mobile
+cd src/frontend
 npm install
 EXPO_PUBLIC_API_URL=http://localhost:8000 npx expo export --platform web --clear
-# static site is now in audit-mobile/dist/
+# static site is now in src/frontend/dist/
 ```
 
 ⚠️ Always pass `--clear` when rebuilding with a *different*
@@ -140,8 +147,8 @@ The rename from `duration_calculator_backend` to `duration_calculator_source` is
 
 ## Current architecture phase
 
-The immediate architecture phase is governed by `REPOSITORY_ARCHITECTURE.md` (`ARCHITECTURE_CORRECTION.md` now just points there — see that file for why). It requires one canonical source tree, deletion of unnecessary historical application trees, an explicit deployment contract, reproducible developer commands, stronger CI hygiene, and source-to-artifact release traceability. Do not archive obsolete code merely for comfort; recover any required business rules/tests, document necessary decisions, then delete the redundant implementation.
+The architecture phase governed by `REPOSITORY_ARCHITECTURE.md` (`ARCHITECTURE_CORRECTION.md` now just points there — see that file for why) reached its final structural step on 2026-09-02: the canonical tree (`src/frontend/`, `src/backend/{api,engine,data,db}`), the deployment contract (`RELEASES.md`), reproducible developer commands (root `Makefile`), and the durable calculation-rules reference (`docs/CALCULATION_RULES.md`) are now all in place — see `docs/DEV_STATUS.md`'s dated entry for the full evidence trail (regression suite, typecheck, build). Two smaller definition-of-done items from that spec are intentionally not attempted this pass and are logged as open, not silently skipped: the CI/repository-hygiene checks in work package G (detecting committed secrets, stale-path references, etc. as automated checks rather than manual review), and moving the PHP `tests/` directory out from under `src/backend/` into a fully top-level `tests/` — kept co-located because the test files' relative `require`s make that the lower-risk choice for how tightly this backend's tests are coupled to it, per the spec's own "where practical" wording; see `docs/DEV_STATUS.md` for the reasoning if this is revisited.
 
 ## Repository maintenance
 
-The repository structure is being consolidated to remove duplicated historical application trees and establish one clear source of truth. See **REPOSITORY_ARCHITECTURE.md** for the mandatory organization, cleanup, business-rule preservation, CI/CD safety, and documentation requirements.
+The repository structure has been consolidated to a single clear source of truth (`src/frontend/`, `src/backend/`) with no duplicated historical application trees. See **REPOSITORY_ARCHITECTURE.md** for the organization, cleanup, business-rule preservation, CI/CD safety, and documentation requirements this now satisfies.

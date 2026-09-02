@@ -155,7 +155,8 @@ factor justifications for certification decisions). Nothing here is
 ### 5. Dependency vulnerabilities — audited, currently low real-world risk
 - **Risk**: theoretical Availability (DoS via malformed image parsing) —
   **only during local builds**, not in the deployed app.
-- `npm audit` on `audit-mobile` currently reports 15 findings (10 moderate,
+- `npm audit` on `src/frontend` (named `audit-mobile` at the time of this
+  finding; moved 2026-09-02, same package) currently reports 15 findings (10 moderate,
   5 high). Investigated on 2026-08-23, not just noted-and-ignored: every
   one is inside Expo's **build toolchain** (`metro`, `@expo/cli`,
   `@expo/config-plugins`, `xcode`) — devDependencies used only when running

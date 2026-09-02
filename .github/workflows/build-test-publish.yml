@@ -53,7 +53,7 @@ jobs:
           mariadb -h127.0.0.1 -P3306 -uaudit -paudit audit_test -e "SELECT 1"
 
       - name: Create CI database configuration
-        working-directory: duration-calculator-php
+        working-directory: src/backend
         run: |
           cat > config.php <<'PHP'
           <?php
@@ -73,17 +73,17 @@ jobs:
           php -r '$c=require "config.php"; var_export(["host"=>$c["db"]["host"],"port"=>$c["db"]["port"],"name"=>$c["db"]["name"],"user"=>$c["db"]["user"]]); echo PHP_EOL; require "db/pdo.php"; echo AuditEngine\pingDb() ? "PDO MariaDB connection: OK\n" : "PDO MariaDB connection: FAILED\n"; if (!AuditEngine\pingDb()) exit(1);'
 
       - name: Install schema and seed parameters
-        working-directory: duration-calculator-php
+        working-directory: src/backend
         run: |
           mariadb -h127.0.0.1 -P3306 -uaudit -paudit audit_test < db/schema.sql
           php seed.php
 
       - name: Run PHP engine smoke tests
-        working-directory: duration-calculator-php
+        working-directory: src/backend
         run: php tests/smoke_test.php
 
       - name: Start PHP API
-        working-directory: duration-calculator-php/api
+        working-directory: src/backend/api
         run: |
           php -S 127.0.0.1:8080 index.php > /tmp/audit-api.log 2>&1 &
           for i in $(seq 1 30); do
@@ -95,7 +95,7 @@ jobs:
           grep -q '"dbConnected":true' /tmp/health.json
 
       - name: Run HTTP API regression tests
-        working-directory: duration-calculator-php
+        working-directory: src/backend
         run: php tests/http_api_test.php http://127.0.0.1:8080
 
       - name: Set up Node.js
@@ -103,18 +103,18 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: audit-mobile/package-lock.json
+          cache-dependency-path: src/frontend/package-lock.json
 
       - name: Install frontend dependencies
-        working-directory: audit-mobile
+        working-directory: src/frontend
         run: npm ci
 
       - name: Typecheck frontend
-        working-directory: audit-mobile
+        working-directory: src/frontend
         run: npx tsc --noEmit
 
       - name: Build Expo web artifact
-        working-directory: audit-mobile
+        working-directory: src/frontend
         env:
           EXPO_PUBLIC_API_URL: ${{ env.PRODUCTION_API_URL }}
         run: npx expo export --platform web --clear
@@ -123,17 +123,17 @@ jobs:
         run: |
           rm -rf _deploy
           mkdir -p _deploy
-          cp -R audit-mobile/dist/. _deploy/
+          cp -R src/frontend/dist/. _deploy/
 
           mkdir -p _deploy/api _deploy/data _deploy/db _deploy/engine _deploy/tests
-          cp -R duration-calculator-php/api/. _deploy/api/
-          cp -R duration-calculator-php/data/. _deploy/data/
-          cp -R duration-calculator-php/db/. _deploy/db/
-          cp -R duration-calculator-php/engine/. _deploy/engine/
-          cp -R duration-calculator-php/tests/. _deploy/tests/
-          cp duration-calculator-php/.htaccess _deploy/.htaccess
-          cp duration-calculator-php/config.example.php _deploy/config.example.php
-          cp duration-calculator-php/seed.php _deploy/seed.php
+          cp -R src/backend/api/. _deploy/api/
+          cp -R src/backend/data/. _deploy/data/
+          cp -R src/backend/db/. _deploy/db/
+          cp -R src/backend/engine/. _deploy/engine/
+          cp -R src/backend/tests/. _deploy/tests/
+          cp src/backend/.htaccess _deploy/.htaccess
+          cp src/backend/config.example.php _deploy/config.example.php
+          cp src/backend/seed.php _deploy/seed.php
 
           test -f _deploy/index.html
           test -f _deploy/api/index.php
@@ -164,6 +164,6 @@ jobs:
             echo "Deployment artifact is already current."
           else
             git add -A
-            git commit -m "build: publish artifact from duration_calculator_backend"
+            git commit -m "build: publish artifact from duration_calculator_source"
             git push origin main
           fi

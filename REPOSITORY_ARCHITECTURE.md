@@ -1,5 +1,7 @@
 # Architecture Correction Pipeline — 2026-09-01
 
+> **Status update — 2026-09-02**: the physical migration this document requires (`audit-mobile/` → `src/frontend/`, `duration-calculator-php/` → `src/backend/{api,engine,data,db}`, plus the root `Makefile`/`CONTRIBUTING.md`/`RELEASES.md`/`docs/CALCULATION_RULES.md` this phase calls for) is now done — see `docs/DEV_STATUS.md`'s dated entry for the evidence trail. This document's "Required target" and "Definition of done" sections below are left as-written since they remain the accurate description of what was targeted and now exists; two items are explicitly deferred rather than done (PHP `tests/` kept co-located under `src/backend/` rather than moved to a fully top-level `tests/`, and the automated CI/hygiene checks in work package G) — both reasoned through in `docs/DEV_STATUS.md` rather than silently skipped.
+
 ## Purpose
 
 This is an active implementation brief for the **repository architecture phase**. It incorporates the external expert review into this repository's actual constraints.
@@ -35,8 +37,8 @@ Do not create empty organizational folders. Keep names responsibility-based.
 
 ### Canonical source decisions
 
-- **Frontend:** current active Expo/React Native implementation in `audit-mobile/` is the current functional source and should become `src/frontend/` (or an equivalent responsibility-based location).
-- **PHP backend:** current deployment-source implementation in `duration-calculator-php/` is the current backend source candidate and should become `src/backend/` (or equivalent).
+- **Frontend:** the active Expo/React Native implementation, formerly `audit-mobile/`, is now `src/frontend/` (moved 2026-09-02, `git mv`, history preserved).
+- **PHP backend:** the deployment-source implementation, formerly `duration-calculator-php/`, is now `src/backend/` (moved 2026-09-02, `git mv`, history preserved).
 - **audit-app/:** obsolete parallel implementation. It must be compared against the canonical implementations for any missing behavior/business rule, then deleted if nothing unique is required.
 - **audit-engine/:** obsolete Node implementation. Because the target hosting architecture is PHP/MariaDB and Node is not the deployment runtime, it must not remain as an active project tree. Delete it unless a specific unique, still-required test/rule cannot be recovered elsewhere; preserve such necessary information as a concise documentation file, not as a second application.
 - Any other duplicate generated, experimental, abandoned or historical application tree follows the same rule: recover required information, then delete it.
