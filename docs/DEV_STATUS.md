@@ -43,45 +43,44 @@ For every work session, record four things:
 
 Do not turn an architectural hypothesis into a confirmed root cause. Record the evidence level explicitly.
 
-## Current status (as of Twelfth Session — 2026-09-02)
+## Current status (P0 / P1 / P2 Framework — 2026-09-02)
 
-### 1. BUG-031 — Production API 404 / `basePath` configuration (TOP ACTIVE DEFECT)
-- **Scope**: Live production instance at `https://tools.macerti.com/duration_calculator/`.
-- **Status**: OPEN. Requires live server action (not sandbox-reproducible).
-- **Diagnosis**: Live server `config.php` lacks explicit `basePath = '/duration_calculator/api'` introduced in 5.1.1 (BUG-030).
-- **Required Action**: Host admin (Mahdi) updates `config.php` on the live server and verifies `GET .../api/health`.
+### Priority 0 (P0) — Critical Blockers & Errors: ALL CLEAR
+- **BUG-031 (Production API 404)**: **CLOSED & VERIFIED on live production (2026-09-02)** by Mahdi. Live server `config.php` has been corrected with `$config['basePath'] = '/duration_calculator/api';`, and production API endpoints are operational.
+- **BUG-030 (Router SCRIPT_NAME bug)**: CLOSED & VERIFIED in 5.1.1 (16/16 PHP test, 13/13 Apache test).
+- **Active P0 bugs**: **0 remaining.**
 
-### 2. Acceptance Gate: BUG-025, BUG-026, BUG-027 & BUG-035
-- **Scope**: Frontend UI & interaction flows across multi-site calculations, Siège input validation, and wizard draft autosave/retry.
-- **Status**: SOURCE-COMPLETE & STATICALLY/BUILD-VERIFIED.
-- **Backend Evidence**: 16/16 HTTP regression passed; 24/24 engine smoke test passed; real Apache 13/13 passed.
-- **Frontend Evidence**: `CalculationWizardScreen.tsx` has `draftSaveError` and retry button intact; builds clean (`expo export`).
-- **Open Action**: Real browser/device manual verification using [docs/TEST_CHECKLIST.md](TEST_CHECKLIST.md).
+### Priority 1 (P1) — Active Tasks to Build Now
+1. **In-App Guided Acceptance Test Runner & Report Exporter (NEW)**: Embed test runner directly into the app (launch menu, step-by-step guidance prompts, questionnaire for visual aspects, standardized JSON/Markdown report export for human/AI developers).
+2. **Parameter Admin UI & Dossier Codification**: PO top priority improvement (web UI for IAF parameter tables + configurable calculation reference generator).
+3. **FEAT-001 (Synthèse multi-site tabs & Programme d'audit Client)**: Individual site tabs + consolidated client programme combining durations without double-counting.
+4. **PDF Export of Calculation Report**: Downloadable audit duration report PDF generation.
+5. **Authentication & SSO**: Microsoft Entra ID & Google Account sign-in with PHP session backend.
+6. **Technical Debt (Design Tokens)**: Migrate remaining 12 frontend screens/components to `src/theme/tokens.ts`.
+7. **Technical Debt (Testing Architecture)**: Move `src/backend/tests/` to top-level `tests/` and add automated frontend calculation unit tests.
 
-### 3. BUG-030 (Router SCRIPT_NAME bug) — CLOSED & VERIFIED
-- **Resolution**: Replaced `SCRIPT_NAME` inspection with explicit `basePath` in `src/backend/api/index.php`.
-- **Verification**: 16/16 passed in PHP built-in server; 13/13 passed in real Apache 2.4 prefork + `mod_rewrite` + MariaDB 10.11.
-
-### 4. Repository Architecture Consolidation & Hygiene — COMPLETED
-- `src/frontend/` and `src/backend/` clean structure in place.
-- Work Package G hygiene scripts (`check-repo-hygiene.sh`, `check-deploy-artifact.sh`) active and passing in Makefile and CI.
-- Numbering collision resolved: frontend `BUG-001`..`004` folded into canonical `docs/BUGLOG.md` as `BUG-032`..`BUG-035`.
-- Historical completed features and closed bugs archived to [docs/archive/COMPLETED_HISTORY.md](archive/COMPLETED_HISTORY.md).
+### Priority 2 (P2) — For Later (Future Backlog)
+- Rate limiting & input bounds validation (`validationBounds`).
+- FEAT-004 / BUG-029: Production web presence, metadata, SEO, branded 404.
+- Global case list across all clients.
+- Extension-site toggle in UI.
+- Custom pull-to-refresh animation.
 
 ## Concurrent work map
 
-| Work stream | Status | Independent or dependent | Required hand-off |
+| Work stream | Priority | Status | Required hand-off |
 |---|---|---|---|
-| **BUG-031 live `config.php` update** | OPEN (Immediate Blocker) | Independent (Needs live server access) | Update `basePath` in production `config.php` to `/duration_calculator/api`; test `/health` |
-| **User Acceptance Gate (BUG-025/026/027/035)** | SOURCE-COMPLETE (Awaiting browser/device testing) | Dependent on live/staging API availability | Test scenarios in `TEST_CHECKLIST.md` in a real browser or mobile client |
-| **FEAT-001 (Synthèse multi-site tabs)** | NOT BUILT / Top Feature | Independent of host access | Build site tabs + consolidated client programme tab; preserve multi-standard calculations |
-| **Technical Debt: Design Token Migration** | PARTIALLY COMPLETE | Independent | Migrate remaining 12 frontend screens/components to `src/theme/tokens.ts` |
-| **Technical Debt: Top-Level `tests/`** | OPEN (Deferred in WP-G) | Independent | Relocate `src/backend/tests/` to top-level `tests/` and add frontend logic tests |
-| **Authentication & Session Security** | OPEN | Independent (Backend + Frontend) | Implement PHP session auth per `SECURITY.md` §Todo #1 before storing live client data |
-| **Rate Limiting & Bounds Validation** | OPEN | Independent | Enforce `validationBounds` and IP rate limits per `SECURITY.md` §Todo #2 & #3 |
-| **FEAT-004 / BUG-029 (Production Quality/SEO)** | OPEN / Audit Required | Independent | Remove framework defaults, add branded 404, robots.txt, canonical metadata |
-| **Parameter Admin UI & Dossier Codification** | PARKED | Dependent on Authentication | Build parameter editing UI and automated reference scheme generator |
-| **PDF Export of Calculation Report** | PARKED | Independent | Implement report PDF generation target |
+| **In-App Guided Acceptance Test Runner** | **P1 (Top Tooling)** | Planned / Ready to Build | Build in-app guided runner with step prompts, visual verification questions, and test report export |
+| **Parameter Admin UI & Dossier Codification** | **P1 (Top Feature)** | Planned / High PO Value | Build web UI for IAF parameter tables and automated reference scheme generator |
+| **FEAT-001 (Synthèse multi-site tabs)** | **P1 (Core Calc)** | Planned / Top Feature | Build site tabs + consolidated client programme tab; preserve multi-standard calculations |
+| **PDF Export of Calculation Report** | **P1 (Client Deliverable)** | Planned / Elevated to P1 | Implement report PDF generation target |
+| **Authentication & SSO (Microsoft/Google)** | **P1 (Security/Auth)** | Planned / P1 Priority | Implement standard OIDC sign-in + PHP session security model |
+| **Technical Debt: Design Token Migration** | **P1 (Tech Debt)** | In-Progress (Shared done) | Migrate remaining 12 frontend screens/components to `src/theme/tokens.ts` |
+| **Technical Debt: Top-Level `tests/` & Unit Tests** | **P1 (Tech Debt)** | Open (Deferred in WP-G) | Relocate `src/backend/tests/` to top-level `tests/` and add frontend logic tests |
+| **Rate Limiting & Bounds Validation** | **P2 (For Later)** | Backlog | Enforce `validationBounds` and IP rate limits per `SECURITY.md` §Todo #2 & #3 |
+| **FEAT-004 / BUG-029 (Production Quality/SEO)** | **P2 (For Later)** | Backlog | Remove framework defaults, add branded 404, robots.txt, canonical metadata |
+| **Global Case List & Extension-Site Toggle** | **P2 (For Later)** | Backlog | Secondary UI enhancements once core workflows are mature |
+
 
 
 ## Standing test evidence

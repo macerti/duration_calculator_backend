@@ -22,73 +22,79 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 
 > Concurrent-development rule: read DEV_STATUS.md before starting work. It is the current hand-off ledger for verified work, open work, evidence level, and dependencies. Update it with every behavior change or test investigation.
 
-## Active & Upcoming Action Queue (Top 10 Actions)
+## Active Priority Queue (P0 / P1 / P2 Framework)
 
 > Historical completed features and closed bug resolutions have been permanently archived in:
 > 📁 [docs/archive/COMPLETED_HISTORY.md](archive/COMPLETED_HISTORY.md)
 >
-> Prioritized order reflects current delivery strategy: Live blockers & User Acceptance Gate → High-priority features → Technical debt & security hardening → Parked items.
-
-### 1. BUG-031 — Production API `basePath` fix / verification on `tools.macerti.com`
-- **Category:** Immediate Blocker (Production Operations)
-- **Status:** OPEN. Needs live host action.
-- **Action:** Live server file manager / SSH edit in `config.php`: set `$config['basePath'] = '/duration_calculator/api';`. Test `GET https://tools.macerti.com/duration_calculator/api/health`. Fallback check: verify `AllowOverride All` in DirectAdmin.
-
-### 2. User Acceptance Gate — Visual & interactive testing of BUG-025, 026, 027, 035
-- **Category:** Immediate Quality Gate
-- **Status:** SOURCE-COMPLETE (awaiting real browser/mobile testing).
-- **Action:** Execute scenarios in [TEST_CHECKLIST.md](TEST_CHECKLIST.md) on live/staging: multi-site wizard navigation, Siège validation, Facteurs tabs, and wizard auto-save/retry.
-
-### 3. FEAT-001 — Synthèse tabs for per-site programmes and Programme d'audit Client
-- **Category:** New Feature (Core Business Functionality)
-- **Status:** REQUESTED / TOP FEATURE PRIORITY.
-- **Action:** Build individual site audit programme tabs + dedicated consolidated "Programme d'audit Client" tab combining all applicable site durations without double-counting, preserving multi-standard synergy calculations.
-
-### 4. Technical Debt: Design Token Migration (Frontend)
-- **Category:** Technical Debt (Do Not Defer)
-- **Status:** PARTIALLY COMPLETE (Tokens defined in `src/theme/tokens.ts`, shared components migrated).
-- **Action:** Migrate remaining 12 components/screens (`HomeScreen`, `ClientsListScreen`, `ClientDetailScreen`, `CalculationWizardScreen`, `CalculationReportScreen`, `NumberField`, `SegmentedPicker`, `DualSectorPicker`, `FactorPicker`, `StandardConfigPanel`, `SynergyPanel`, `PersonnelForm`, `ErrorBoundary`) to semantic design tokens.
-
-### 5. Technical Debt: Top-Level `tests/` Relocation & Frontend Unit Tests
-- **Category:** Technical Debt & Quality Assurance
-- **Status:** OPEN (Explicitly deferred in Work Package G).
-- **Action:** Relocate `src/backend/tests/` to top-level `tests/backend/` and add automated frontend unit/logic tests (Jest/Vitest) for wizard calculations and hooks to avoid relying solely on manual checklists.
-
-### 6. Authentication & Session Security (SECURITY.md §Todo #1)
-- **Category:** Security & Architecture
-- **Status:** OPEN / HIGH PRIORITY before real client data.
-- **Action:** Implement secure PHP session-based authentication on API endpoints, HttpOnly/SameSite session cookies, and login gate.
-
-### 7. Rate Limiting & Input Validation Bounds (SECURITY.md §Todo #2 & #3)
-- **Category:** Security & Hardening
-- **Status:** OPEN.
-- **Action:** Enforce `validationBounds` (defined in IAF parameter sets) on the backend API and add IP/session rate limiting for calculation endpoints.
-
-### 8. FEAT-004 / BUG-029 — Production-quality web presence, metadata, branded 404 & SEO
-- **Category:** Production Polish
-- **Status:** REQUESTED / AUDIT REQUIRED.
-- **Action:** Replace React/Expo framework defaults, add branded 404 page, set unique titles and canonical metadata for public pages, configure `robots.txt` and `sitemap.xml`.
-
-### 9. Parameter Admin UI & Dossier Reference Codification
-- **Category:** Parked / Scheduled Feature
-- **Status:** PARKED.
-- **Action:** Admin UI to configure IAF parameter tables directly, plus automated calculation reference numbering scheme (prefix + counter + date pattern).
-
-### 10. PDF Export of Calculation Report
-- **Category:** Parked Feature
-- **Status:** PARKED.
-- **Action:** Server-side or client-side generation of downloadable PDF calculation reports formatted from the Report screen data.
+> Priority framework defined by Product Owner:
+> - **Priority 0 (P0 — Critical / Blocker)**: The app is down, critical errors, severe bugs. Fix immediately.
+> - **Priority 1 (P1 — Active Tasks to Build)**: High-value improvements, active features, in-app test tooling, and non-deferred technical debt.
+> - **Priority 2 (P2 — For Later)**: Items reserved for when the application matures further.
 
 ---
 
-## Remaining Backlog Items (Secondary Queue)
+### Priority 0 (P0) — Critical Blockers & Errors
+*No active P0 bugs remaining.*
+- **BUG-031 (Production API 404)**: **CLOSED & VERIFIED on live production (2026-09-02)** by Mahdi. Live `config.php` has been corrected with `$config['basePath'] = '/duration_calculator/api';`, and endpoints are operational.
 
-- [ ] **Global case list**: Browse all calculation cases across all clients in one unified view.
-- [ ] **Extension-site toggle in UI**: Expose the backend-supported `isExtension` flag in the wizard site form.
-- [ ] **Custom pull-to-refresh animation**: Add interactive stretch/bounce feedback for mobile web.
-- [ ] **Database backups verification**: Confirm and automate periodic database backup strategy on the host.
+---
+
+### Priority 1 (P1) — Active Tasks to Build Now
+
+#### 1. In-App Guided Acceptance Test Runner & Report Exporter (NEW!)
+- **Category:** User Acceptance Testing / Embedded Test Tooling
+- **Status:** APPROVED / TOP IMMEDIATE TOOLING TASK
+- **Objective:** Embed the acceptance test suite directly into the application rather than relying on an external static markdown checklist.
+- **Features:**
+  - Dedicated menu / modal to launch Guided Test Mode from Home or Settings.
+  - Step-by-step interactive prompt boxes / notifications guiding the tester (e.g., "Enter headcount 50", "Add ISO 9001 and ISO 14001", "Verify Suggestion chip appears").
+  - Automated state checks where possible + interactive checklist / radio questions ("Did the shake animation trigger?", "Does the annual breakdown table read clearly?").
+  - One-click export of a standardized test report (JSON/Markdown) readable by human developers and AI developers to update logs without manual transcript synthesis.
+
+#### 2. Parameter Admin UI & Dossier Reference Codification
+- **Category:** Core Administration & PO Top Priority
+- **Status:** ELEVATED TO P1 (Top PO Value)
+- **Objective:** Web interface for administrators to inspect and edit IAF parameter tables (MD5, MD1, MD11) and factor catalogs from the browser instead of modifying PHP source code and reseeding.
+- **Dossier Codification:** Configurable automatic calculation reference numbering generator (`prefix + date components + incremental counter`) auto-populating `dossierRef`.
+
+#### 3. FEAT-001 — Synthèse Per-Site Tabs & Consolidated "Programme d'audit Client"
+- **Category:** Core Calculation UX
+- **Status:** P1 ACTIVE FEATURE
+- **Objective:** In **Synthèse**, present dedicated tabs for each individual site's audit programme, plus a dedicated consolidated tab named **Programme d'audit Client** that calculates the global combined duration without double-counting, respecting multi-site synergy and IAF rules.
+
+#### 4. PDF Export of Calculation Report
+- **Category:** Export & Client Deliverable
+- **Status:** ELEVATED TO P1
+- **Objective:** Generate downloadable, print-ready PDF audit duration calculation reports directly from the Calculation Report screen data, complete with formulas, factor justifications, and audit day breakdowns.
+
+#### 5. Authentication & SSO (Microsoft Entra ID / Google Account)
+- **Category:** Security & Identity
+- **Status:** P1 ARCHITECTURE & SECURITY
+- **Objective:** Standard OIDC single sign-on with "Continue with Microsoft" and "Continue with Google" buttons, mapped into a secure PHP session-based user model with HttpOnly cookies.
+
+#### 6. Technical Debt: Frontend Design Token Migration
+- **Category:** Technical Debt (Do Not Defer)
+- **Status:** P1 IN-PROGRESS
+- **Objective:** Replace hardcoded colors, spacing, and typography across the remaining 12 screens and components (`HomeScreen`, `ClientsListScreen`, `ClientDetailScreen`, `CalculationWizardScreen`, `CalculationReportScreen`, pickers, panels) with semantic tokens from [`src/theme/tokens.ts`](../src/frontend/src/theme/tokens.ts).
+
+#### 7. Technical Debt: Top-Level `tests/` Relocation & Frontend Unit Tests
+- **Category:** Technical Debt & Quality Assurance
+- **Status:** P1 TESTING DEBT
+- **Objective:** Move `src/backend/tests/` to top-level `tests/backend/` and introduce automated Jest/Vitest unit tests for frontend wizard calculation state and hooks to eliminate reliance on purely manual validation.
+
+---
+
+### Priority 2 (P2) — For Later (Future Backlog)
+
+- [ ] **Rate Limiting & Input Validation Bounds**: Enforce `validationBounds` (defined in IAF parameter sets) on the backend API and add IP rate limiting (`SECURITY.md` §Todo #2 & #3).
+- [ ] **FEAT-004 / BUG-029: Production Web Presence & SEO**: Branded 404 page, removal of framework defaults, canonical URLs, `robots.txt`, and `sitemap.xml`.
+- [ ] **Global Case List**: Browse all calculation cases across all clients in one unified list view.
+- [ ] **Extension-Site Toggle in UI**: Expose the backend-supported `isExtension` toggle in the wizard site form.
+- [ ] **Custom Pull-to-Refresh Animation**: Interactive stretch/bounce feedback for mobile browsers.
+- [ ] **Database Backup Automation**: Automated cron backups on the DirectAdmin host.
+
 - [ ] **Tighten allowedOrigins**: Restrict CORS origins in `config.php` to production domain once DNS/URLs are fixed.
-- [ ] **FEAT-002: SSO (Microsoft/Google)**: Explicitly deferred until core local session authentication is established.
 
 
 ## Ideas / not yet requested (parked)

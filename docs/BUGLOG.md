@@ -805,7 +805,8 @@ Every prior session tested only against PHP's built-in dev server (`php -S`). Th
 
 ### BUG-031 — Production API confirmed completely unreachable at `tools.macerti.com/duration_calculator/`; narrows BUG-030's open "AllowOverride vs basePath" question
 
-**Status: OPEN. Not fixed this session — deliberately deferred per explicit instruction to log it and fix it right after the repository architecture restructure, which this session's other work completes. This is now the top-priority remaining bug.**
+**Status: FIXED & VERIFIED on live production (2026-09-02).** Confirmed fixed by Mahdi on the live host (`tools.macerti.com`). The live `config.php` has been corrected with `$config['basePath'] = '/duration_calculator/api';`, and the production API routes are now responding correctly.
+
 
 **Detected**: 2026-09-02 (ninth session), from a screenshot supplied directly by Mahdi (not discovered via this project's own testing — first real-world production evidence anyone has had, since no session has ever had live-host access). The screenshot shows the live "Mes clients" screen at `tools.macerti.com/duration_calculator/...` (phone browser, device clock 04:11, page footer reading "Version 5.1.1 · Updated on 2 Sep 2026 at 04h04") displaying two identical-shaped errors: `Not found: GET /duration_calculator/api/clients` and `Not found: POST /duration_calculator/api/clients` (the second while attempting to create a client named "Uy" via the "Nouveau client" dialog).
 
