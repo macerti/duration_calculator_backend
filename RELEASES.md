@@ -20,10 +20,9 @@ reading both repos' commit logs side by side.
 ## Entries (newest first)
 
 ### 2026-09-02 — repository architecture consolidation (this session)
-- Source commit: pending (this session's own work, not yet pushed as of
-  writing this entry — see `docs/DEV_STATUS.md`'s ninth-session entry for
-  full scope: `src/frontend`/`src/backend` restructure, Makefile,
-  CONTRIBUTING.md, this file, `docs/CALCULATION_RULES.md`, BUG-031).
+- Source commit: `c261b88` (refactor: repository architecture consolidation).
+  See `docs/DEV_STATUS.md`'s ninth-session entry for full scope: `src/frontend`/`src/backend`
+  restructure, Makefile, CONTRIBUTING.md, this file, `docs/CALCULATION_RULES.md`, BUG-031.
 - Deployment-artifact commit: not yet published — no application behavior
   changed (pure reorganization + docs), so this does not need to be
   urgently deployed, but it should still be pushed through CI once merged

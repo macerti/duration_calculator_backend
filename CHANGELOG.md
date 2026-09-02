@@ -2,6 +2,17 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-02 (ninth session) — no version change — repository architecture consolidation completed; BUG-031 opened
+
+- No calculation/business-logic code changed this session — pure reorganization plus one bug-log entry from live evidence, matching this project's own convention that reorg/doc-only sessions don't bump the version.
+- Completed the repository architecture restructure four prior sessions (fifth through eighth) had judged too large and deferred: `audit-mobile/` → `src/frontend/` and `duration-calculator-php/` → `src/backend/{api,engine,data,db}` (`git mv`, history preserved), every CI/import/doc path reference updated (including a stale `duration_calculator_backend` string left in `.github/workflows/build-test-publish.yml`'s publish-commit message by an earlier session's repo rename), plus the remaining `REPOSITORY_ARCHITECTURE.md` deliverables: root `Makefile`, `CONTRIBUTING.md`, `RELEASES.md` (seeded from a real side-by-side read of this repo's log and `macerti/duration_calculator`'s), and `docs/CALCULATION_RULES.md`.
+- Rewrote `docs/DEPLOY.md`, which had gone stale describing a two-service deployment topology that isn't what's actually running; also fixed a "3 new tables" claim to the correct 4 (`clients` was missing), caught by actually running `schema.sql` rather than re-reading the doc.
+- Full regression re-run against the moved tree, not just reasoned about: `smoke_test.php` 24/24, `http_api_test.php` 16/16 (through a real local MariaDB), frontend `tsc --noEmit` clean, `expo export --platform web` succeeds with the correct base path, and `make build-deploy`'s assembled tree diffs identical (top-level listing) against a fresh clone of the real deployment artifact repo.
+- **Opened BUG-031**: a screenshot of the live production app showed every `/api/...` request 404ing with the app's own `Not found: $method $path` error format (not a generic webserver 404), which is direct evidence the request reached PHP — narrowing BUG-030's still-open `AllowOverride` question toward a more specific, more easily fixed hypothesis: the live server's actual `config.php` (gitignored, never touched by the deploy pipeline) most likely still has the default empty `basePath`, not manually updated after BUG-030's fix shipped code for it. See `docs/BUGLOG.md` for the full reasoning and the exact recommended fix/verification steps — this is now the top-priority open item, ahead of BUG-030's separate still-open `AllowOverride` confirmation.
+- Two `REPOSITORY_ARCHITECTURE.md` definition-of-done items explicitly deferred rather than silently skipped: PHP `tests/` stayed co-located under `src/backend/` instead of moving fully top-level (relative-`require` coupling), and the automated CI/repo-hygiene checks (work package G) untouched. Full detail, including the exact commands/results for every regression check above, in `docs/DEV_STATUS.md`'s ninth-session entry.
+
+---
+
 ## 2026-09-02 (eighth session) — no version change — first real Apache/.htaccess topology verification
 
 - No application code changed this session — verification and documentation only (same category as the fourth session's DB re-verification entry).
