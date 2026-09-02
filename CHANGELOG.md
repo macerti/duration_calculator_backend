@@ -2,6 +2,16 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-02 (tenth session) — no version change — Work Package G (repository hygiene checks) completed
+
+- No calculation/business-logic code changed — the repository architecture restructure's one deliberately-deferred item (`REPOSITORY_ARCHITECTURE.md` section G) is now done, matching this project's convention that reorg/tooling-only sessions don't bump the version.
+- Added `scripts/check-repo-hygiene.sh` and `scripts/check-deploy-artifact.sh`, wired into `Makefile` and CI (`.github/workflows/build-test-publish.yml`). Both were negative-tested against a scratch repo/artifact before being trusted, and one false positive (Expo's web export legitimately mirroring asset paths under a `node_modules`-named folder) was caught and fixed during that testing rather than shipped.
+- The checks' first real run against the tracked tree caught genuine, previously-unnoticed gaps, all fixed this session: `src/backend/` had no `README.md`; `src/frontend/README.md` and a comment in `src/frontend/src/config/api.ts` still described the pre-restructure layout (the latter also had a wrong local dev port — fixed `4000` → `8000` to match `make dev-backend`); `src/frontend/package.json`'s leftover `"audit-mobile"` name was renamed to `"duration-calculator-frontend"` (lockfile regenerated, `npm ci` re-verified clean).
+- Also found manually (not by the automated check itself) and fixed: `_deploy/` — the local build-artifact directory — was never in `.gitignore`, meaning a careless `git add -A` could have committed the entire deployment artifact into this source repo.
+- Verified after all changes: `npx tsc --noEmit` clean, `npx expo export --platform web --clear` succeeds, `php tests/smoke_test.php` 24/24, full `make build-deploy` (including the new artifact check) succeeds end-to-end. Full detail in `docs/DEV_STATUS.md`'s tenth-session entry.
+
+---
+
 ## 2026-09-02 (ninth session) — no version change — repository architecture consolidation completed; BUG-031 opened
 
 - No calculation/business-logic code changed this session — pure reorganization plus one bug-log entry from live evidence, matching this project's own convention that reorg/doc-only sessions don't bump the version.

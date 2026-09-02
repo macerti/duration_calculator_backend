@@ -94,7 +94,7 @@ echo "\nmround\n";
 check('mround(3.1, 0.25) == 3', mround(3.1, 0.25), 3.0);
 check('mround(3.2, 0.25) == 3.25', mround(3.2, 0.25), 3.25);
 
-echo "\nFull case — single site (matches audit-mobile integration test)\n";
+echo "\nFull case — single site (matches src/frontend integration test)\n";
 $caseInput = [
     'dossierRef' => 'PHP-PORT-TEST',
     'multiSite' => false,

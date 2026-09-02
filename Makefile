@@ -3,7 +3,7 @@
 # .github/workflows/build-test-publish.yml ever diverge, that workflow file
 # is the source of truth (fix this Makefile to match it, not the reverse).
 
-.PHONY: dev-backend dev-frontend test test-http build-deploy clean
+.PHONY: dev-backend dev-frontend test test-http check-hygiene build-deploy clean
 
 dev-backend:
 	@if [ ! -f src/backend/config.php ]; then \
@@ -40,6 +40,12 @@ test-http:
 	cd src/backend && php tests/http_api_test.php http://127.0.0.1:8080 ; \
 		kill $$(cat /tmp/audit-api-test.pid) 2>/dev/null ; rm -f /tmp/audit-api-test.pid
 
+# Work Package G (REPOSITORY_ARCHITECTURE.md "G. Repository hygiene") — see
+# scripts/check-repo-hygiene.sh for what this checks and why it's scoped
+# the way it is.
+check-hygiene:
+	scripts/check-repo-hygiene.sh
+
 # Mirrors the CI "Assemble deployment artifact" step exactly, so you can
 # inspect the real single-folder tree locally before it's ever published.
 # EXPO_PUBLIC_API_URL should be set to the real production API URL for a
@@ -57,6 +63,7 @@ build-deploy:
 	cp src/backend/.htaccess _deploy/.htaccess
 	cp src/backend/config.example.php _deploy/config.example.php
 	cp src/backend/seed.php _deploy/seed.php
+	scripts/check-deploy-artifact.sh _deploy
 	@echo "Deployment tree assembled at _deploy/ — inspect it, do not push it anywhere manually; CI owns publishing to macerti/duration_calculator."
 
 clean:

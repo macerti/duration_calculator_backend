@@ -36,6 +36,9 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v5
 
+      - name: Repository hygiene checks (Work Package G)
+        run: scripts/check-repo-hygiene.sh
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -140,6 +143,9 @@ jobs:
           test -f _deploy/engine/duration.php
           test -f _deploy/db/pdo.php
           test ! -e _deploy/config.php
+
+      - name: Deployment artifact content check (Work Package G)
+        run: scripts/check-deploy-artifact.sh _deploy
 
       - name: Checkout deployment repository
         uses: actions/checkout@v5
