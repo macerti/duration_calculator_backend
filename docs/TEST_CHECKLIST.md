@@ -293,6 +293,13 @@ Sections covered: SAVE-04 only (HTTP regression suite). SAVE-01/02/03/05 and eve
 Failures: none in the final run — but this pass exists precisely because SAVE-04 failed first. See notes.
 Notes: This pass reconciles BUG-030 (`docs/BUGLOG.md`) — a router bug that misrouted every multi-segment API path (`/nace/*`, `/cases/:id`) under some `php -S` invocations but not others, which is why an earlier session's SAVE-04 run reported 16/16 while a later one reported 5/16 for what looked like the identical command. Ran `http_api_test.php` under both previously-divergent invocation styles this session: reproduced 5 passed/11 failed first (confirming the bug was real, not a fluke), then 16/16 under both styles after fixing the router to use an explicit `basePath` config value instead of `SCRIPT_NAME`. `smoke_test.php` 24/24, unaffected. No frontend/browser/device testing performed this session.
 
+### v5.1.1 — 2026-09-02 (eighth session) — first real Apache/.htaccess topology pass
+
+Tested by: eighth session (automated, sandboxed container — no browser/device available)
+Sections covered: SAVE-04 (HTTP regression), re-tested against real Apache + mod_rewrite + mod_php instead of `php -S` for the first time in this project, with the real production `basePath` (`/duration_calculator/api`) actually set. Also covers `.htaccess` security deny-rules, which no prior pass had tested against a real webserver at all.
+Failures: 0/13 in the protected configuration. Additionally ran the same checks with `AllowOverride None` (Apache's default) to confirm the deny-rules and rewrite routing are not vacuously passing — see failure-mode result below.
+Notes: 13/13 checks passed with `AllowOverride All` set: all 7 routing/CORS checks (health, NACE search, NACE code lookup, POST/GET/PUT/DELETE cases, OPTIONS preflight) and 5 `.htaccess` deny-rule checks (`db/schema.sql`, `db/pdo.php`, `data/raw/*.csv`, simulated `.bak`/`.swp` leftover files), plus security headers on a live Apache response. **Important negative-control result**: with `AllowOverride None` (Apache's own default, not this app's fault but a real hosting-configuration dependency), `GET /api/health` returns 404 (API entirely unreachable) and `GET /db/schema.sql` returns 200 (schema file leaks) — confirming the passing result above is not vacuous, and that the real DirectAdmin host's `AllowOverride` setting has never been confirmed and is a genuine open risk in either direction. See `docs/BUGLOG.md` BUG-030 and `docs/DEV_STATUS.md`'s eighth-session entry for full detail. No frontend/browser/device testing performed this session.
+
 
 ## Mandatory source/deployment separation
 

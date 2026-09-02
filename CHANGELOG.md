@@ -2,6 +2,15 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-02 (eighth session) — no version change — first real Apache/.htaccess topology verification
+
+- No application code changed this session — verification and documentation only (same category as the fourth session's DB re-verification entry).
+- Closed BUG-030's last open item: stood up a real Apache 2.4 + `mod_rewrite` + `mod_php` + MariaDB 10.11 instance (not PHP's built-in dev server) with the app deployed at the real production subpath and `basePath` set to the real production value. 13/13 checks passed: full HTTP regression (health, NACE search/lookup, case POST/GET/PUT/DELETE, OPTIONS) plus every `.htaccess` security deny-rule (`.sql`, `db/*.php`, `.csv`, simulated backup/swap files), tested as real requests, not simulated.
+- **New action item, not a code fix**: confirmed (via a controlled negative test — `AllowOverride None` instead of `All`) that this app's routing and its data-exposure protection both depend entirely on the real host granting `.htaccess` override permission, which has never been confirmed against the actual `tools.macerti.com` DirectAdmin host. With overrides off, the API 404s entirely on one hand, or `db/schema.sql`/the NACE and parameter CSVs become publicly downloadable on the other — no error surfaces either way. Recommend confirming this directly against the live host or DirectAdmin panel. Full detail in `docs/BUGLOG.md` (BUG-030 update) and `docs/DEV_STATUS.md` (eighth-session entry).
+- Also recorded a sandbox/tooling-only finding (not an application issue): a backgrounded MariaDB process does not survive past the end of a single command invocation in this project's automated testing sandbox, unlike Apache; worked around by running the full DB+Apache+test sequence in one script. Documented so a future automated session doesn't re-diagnose it.
+
+---
+
 ## 2026-09-02 (seventh session) — 5.1.1 — BUG-030 fixed: router no longer relies on SCRIPT_NAME
 
 - Fixed BUG-030: `duration-calculator-php/api/index.php` computed its deployment-subdirectory prefix from `dirname($_SERVER['SCRIPT_NAME'])`, which PHP's built-in dev server sets inconsistently for router-script requests depending on how the router script path is invoked — silently misrouting every multi-segment URL (`/nace/*`, `/cases/:id`) under some invocations but not others. Replaced with an explicit `basePath` config value (new key in `config.example.php`, default `''`); routing behavior no longer depends on dev-server invocation details.
