@@ -104,11 +104,22 @@ if (pingDb()) {
 }
 
 // --- Routing ---
-$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+// Base path comes from explicit config, not from dirname($_SERVER['SCRIPT_NAME']).
+// SCRIPT_NAME is set inconsistently by PHP's built-in dev server for
+// router-script requests: it depends on whether the router script argument
+// passed to `php -S` includes a directory component, which has nothing to
+// do with the actual deployment topology. See BUG-030 in docs/BUGLOG.md —
+// this silently broke every multi-segment route (/nace/*, /cases/:id) under
+// some invocations of `php -S` but not others, while apparently working
+// under real Apache + mod_rewrite (SCRIPT_NAME behaves consistently there).
+// A fixed config value removes the ambiguity entirely: empty for local/dev
+// testing (API served at the origin root), the real deployment subpath in
+// production (e.g. '/duration_calculator/api').
+$basePath = rtrim($config['basePath'] ?? '', '/');
 $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? '/';
 $path = $requestPath;
-if ($scriptDir !== '' && str_starts_with($path, $scriptDir)) {
-    $path = substr($path, strlen($scriptDir));
+if ($basePath !== '' && str_starts_with($path, $basePath)) {
+    $path = substr($path, strlen($basePath));
 }
 $path = '/' . ltrim($path, '/');
 $method = $_SERVER['REQUEST_METHOD'];

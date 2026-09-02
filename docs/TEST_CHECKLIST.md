@@ -286,6 +286,13 @@ This checklist was created alongside v4.0.0. No test pass has been logged
 against it yet — the first real entry above should be the first time this
 checklist gets used.
 
+### v5.1.1 — 2026-09-02
+
+Tested by: seventh session (automated, sandboxed container — no browser/device available)
+Sections covered: SAVE-04 only (HTTP regression suite). SAVE-01/02/03/05 and every other section above still need real browser/device testing — not touched this session.
+Failures: none in the final run — but this pass exists precisely because SAVE-04 failed first. See notes.
+Notes: This pass reconciles BUG-030 (`docs/BUGLOG.md`) — a router bug that misrouted every multi-segment API path (`/nace/*`, `/cases/:id`) under some `php -S` invocations but not others, which is why an earlier session's SAVE-04 run reported 16/16 while a later one reported 5/16 for what looked like the identical command. Ran `http_api_test.php` under both previously-divergent invocation styles this session: reproduced 5 passed/11 failed first (confirming the bug was real, not a fluke), then 16/16 under both styles after fixing the router to use an explicit `basePath` config value instead of `SCRIPT_NAME`. `smoke_test.php` 24/24, unaffected. No frontend/browser/device testing performed this session.
+
 
 ## Mandatory source/deployment separation
 

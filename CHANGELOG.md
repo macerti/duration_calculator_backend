@@ -2,6 +2,15 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-02 (seventh session) — 5.1.1 — BUG-030 fixed: router no longer relies on SCRIPT_NAME
+
+- Fixed BUG-030: `duration-calculator-php/api/index.php` computed its deployment-subdirectory prefix from `dirname($_SERVER['SCRIPT_NAME'])`, which PHP's built-in dev server sets inconsistently for router-script requests depending on how the router script path is invoked — silently misrouting every multi-segment URL (`/nace/*`, `/cases/:id`) under some invocations but not others. Replaced with an explicit `basePath` config value (new key in `config.example.php`, default `''`); routing behavior no longer depends on dev-server invocation details.
+- Reconciled the standing contradiction between the fourth session's "16/16" and the sixth session's "5/16" results for the identical-looking test command: root cause was that `.github/workflows/build-test-publish.yml` (and, apparently, the fourth session's manual run) invokes `php -S` from inside `api/` with a bare `index.php` argument, which happens not to trigger the bug, while the sixth session's reproduction used `api/index.php` from the parent directory, which does. Full write-up in `docs/BUGLOG.md`, BUG-030.
+- Re-verified: `smoke_test.php` 24/24, `http_api_test.php` 16/16 under both invocation styles, plus a simulated production-subdirectory (`/duration_calculator/api`) routing check. This also re-confirms BUG-004's PUT/Enregistrer HTTP-contract evidence, which BUG-030 had put in doubt since it shares the same router.
+- Not deployed yet: source-only commit, per the mandatory source/deployment separation rule — CI builds/publishes on push to `main`.
+
+---
+
 ## 2026-09-01 (sixth session) — Repository architecture consolidation step 2; BUG-030 found (router bug, reopens NACE-404 and BUG-004 PUT evidence)
 
 - Repository architecture consolidation continued: `audit-app/`'s active docs (`BUGLOG`, `DEV_STATUS`, `ROADMAP`, `ORIENTATIONS`, `TEST_CHECKLIST`, `DEPLOY`) moved to `docs/`; `SECURITY`/`CHANGELOG` moved to repo root. `audit-app/backend` and `audit-app/frontend` (the superseded two-folder implementation) compared file-by-file against the canonical `duration-calculator-php/`/`audit-mobile/` to confirm nothing unique would be lost, then deleted (per `REPOSITORY_ARCHITECTURE.md`'s "delete, don't archive" policy) — see `docs/archive/AUDIT_APP_LEGACY.md` for what was verified. `audit-app/` no longer exists. Stale `audit-mobile/CHANGELOG.md` merged into the pre-2026-08-19 section of this file, then deleted (it was fully superseded by that merge, so keeping a second verbatim copy would itself have been the "archive as dumping ground" problem the new policy warns against).

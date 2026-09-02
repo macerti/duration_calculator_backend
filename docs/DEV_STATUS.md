@@ -4,7 +4,7 @@
 
 1. FEAT-003 — Versioning and update timestamp: IMMEDIATE. **DONE** (source-complete, deploy-verified — see dated entries).
 2. Repository architecture consolidation: immediately after FEAT-003. Follow REPOSITORY_ARCHITECTURE.md; identify the source of truth before moving/deleting anything and preserve all formulas/business rules. **PARTIALLY DONE, SCOPE EXPANDED 2026-09-01** — audit-engine and audit-app deleted (not archived — policy changed mid-session, see addendum below), active docs relocated to docs/+root, ARCHITECTURE_CORRECTION.md/REPOSITORY_ARCHITECTURE.md duplication collapsed. **Remaining, larger than previously scoped**: move `audit-mobile/`→`src/frontend/` and `duration-calculator-php/`→`src/backend/{api,engine,data,db}`, update every CI/import/deploy path, add root `Makefile`/`CONTRIBUTING.md`/`RELEASES.md`/`docs/CALCULATION_RULES.md` — see `REPOSITORY_ARCHITECTURE.md`'s "Required target" section for the full target tree, not attempted yet (see sixth-session addendum for why).
-3. **BUG-030 (router SCRIPT_NAME bug, possibly production-breaking) — NEW, INSERTED 2026-09-01 (sixth session), ahead of the acceptance gate.** Reconcile the contradiction with the fourth session's PUT/NACE "VERIFIED"/"NOT REPRODUCED" claims, then test the real Apache/.htaccess topology. If confirmed present in production, this blocks the acceptance gate below — no point doing real user testing against `/cases/:id` or `/nace/*` if they may 404 in production. See BUG-030 in `docs/BUGLOG.md`.
+3. **BUG-030 (router SCRIPT_NAME bug) — FIXED 2026-09-02 (seventh session), fixed in 5.1.1.** Reconciled the fourth/sixth session contradiction (root cause: `php -S` behaves differently depending on whether the router-script argument includes a directory component — CI's invocation happened not to trigger the bug) and replaced the `SCRIPT_NAME`-based routing with an explicit `basePath` config value. 16/16 HTTP regression now passes regardless of dev-server invocation style. **Still open**: real Apache/.htaccess topology test (never performed in any session) — lower-stakes now since routing no longer depends on `SCRIPT_NAME`, but still worth closing for the untested `.htaccess` deny-rule/rewrite behavior. See BUG-030 in `docs/BUGLOG.md`.
 4. USER FEEDBACK / ACCEPTANCE GATE. After the items above, pause normal feature development and perform real browser/mobile/user testing. Feed the results back into the logs to definitively close, reopen, or change the relevant bugs/features.
 5. Remaining bugs. Resume only after the acceptance gate.
 6. Remaining features. Resume after the acceptance gate. Admin/parameter administration UI is prioritized ahead of authentication/SSO.
@@ -49,6 +49,8 @@ Do not turn an architectural hypothesis into a confirmed root cause. Record the 
 
 Scope: initial draft creation and subsequent Enregistrer update.
 
+**PUT/Enregistrer HTTP-contract status: RE-VERIFIED 2026-09-02 (seventh session).** BUG-030 had put the "VERIFIED, 16/16" claim below in doubt (same router bug also broke `/cases/:id`). With BUG-030's routing fix in place, `PUT /cases/:id updates case`, `PUT returns recalculated result`, `GET /cases/:id returns saved case` (input/status/rounding overrides preserved), and `DELETE /cases/:id` all pass again in a fresh run — see BUG-030 in `docs/BUGLOG.md`. The underlying save/update logic itself was never the suspect (per BUG-030's own analysis); this closes the routing-layer doubt specifically. Real browser/device interaction-level verification is still open, unchanged by this fix.
+
 #### DONE / VERIFIED
 
 - Tested the exact initial draft-save payload emitted by the wizard on mount for a brand-new calculation: empty site, zero personnel, default ISO 9001 configuration.
@@ -74,6 +76,8 @@ Dependency: the PUT investigation is independent enough to start immediately. Th
 ---
 
 ### New finding — NACE routes return 404 under PHP built-in dev server
+
+Status: **FIXED 2026-09-02 (seventh session) — see BUG-030 in `docs/BUGLOG.md` for the fix (explicit `basePath` config, no longer derived from `SCRIPT_NAME`) and the reconciliation of the contradiction below. `GET /nace/search` and `GET /nace/:code` both pass in a fresh 16/16 HTTP regression run, under every invocation style tested.**
 
 Status: **REOPENED 2026-09-01 (sixth session, repository architecture consolidation step 2) — ROOT-CAUSED with a reproducible mechanism. The "NOT REPRODUCED" status below is superseded; see BUG-030 in `docs/BUGLOG.md` for the full root-cause writeup (a `SCRIPT_NAME`-based router bug that misroutes every multi-segment path under `php -S`) and the open contradiction with the fourth session's 16/16 result that has not yet been reconciled.** Do not trust either session's result over the other without a fresh, carefully-controlled re-run — see BUG-030's "NOT DONE" list.
 
@@ -557,3 +561,27 @@ While Part 1/2 above were in progress, four commits landed on `origin/main` from
 - Fixed a copy-paste bug in the rename commit's README wording ("renamed from `duration_calculator_source` to `duration_calculator_source`" — should read `duration_calculator_backend` → `duration_calculator_source`, and now does).
 
 **NOT attempted this session — the larger `src/frontend/`+`src/backend/` restructure**: moving `audit-mobile/` → `src/frontend/` and `duration-calculator-php/` → `src/backend/`, updating every CI/import/deploy-artifact path, and adding `Makefile`/`CONTRIBUTING.md`/`RELEASES.md`/`docs/CALCULATION_RULES.md`. This is explicitly required by the new `REPOSITORY_ARCHITECTURE.md` but is a much bigger, higher-blast-radius change than anything done so far in this consolidation (renames CI-referenced paths, not just docs) — attempting it in the same session as an already-found, unresolved, possibly-production-breaking router bug (BUG-030) risked compounding an unverified state. Left for a dedicated future session with full runway to update every cross-reference and re-run the complete regression suite per file moved, consistent with how the fifth session deferred the `audit-mobile/`→`src/` rename for the same reason. **This is now the top item in "Repository architecture consolidation" for the next session**, ahead of further BUG-030 work if there's a choice — though BUG-030's production-topology question (item 2 in its "NOT DONE" list) arguably matters more urgently since it may affect whether the live app works at all.
+
+---
+
+## 2026-09-02 (seventh session) — BUG-030 fixed and verified; PUT/NACE routing contradiction reconciled
+
+**Purpose of this session**: asked to read the logs first, then fix bugs/build features by priority. Per the mandatory pipeline at the top of this file, BUG-030 (router bug, possibly production-breaking) was the top actionable item — ahead of the larger repository-architecture restructure, which the sixth session had already deferred as too large for a single sitting.
+
+**Environment**: sandboxed container, fresh clone, no prior state. `apt-get install php8.3-cli php-mysql php-mbstring php-curl default-mysql-server` succeeded (same `archive.ubuntu.com`/`security.ubuntu.com` access the fourth/sixth sessions had). PHP 8.3.6, MySQL 8.0.46 (client-compatible MariaDB 10.11 stand-in — same caveat as every prior session; no bit-for-bit MariaDB reproduction has been done in any session to date).
+
+**DONE / VERIFIED (real commands, real output, this session)**:
+- Reproduced BUG-030 exactly first: fresh DB stand-up, `php -S 127.0.0.1:8099 api/index.php` from `duration-calculator-php/` → `php tests/http_api_test.php` → **5 passed, 11 failed**, matching the sixth session's report precisely.
+- Reconciled the open contradiction (BUG-030 NOT DONE item 1): confirmed via a temporary `_debug.php` (written, tested, deleted) that `$_SERVER['SCRIPT_NAME']` differs depending on whether the `php -S` router-script argument includes a directory component (`api/index.php` → `SCRIPT_NAME` becomes the requested path; bare `index.php` from inside `api/` → `SCRIPT_NAME` becomes `/index.php`). `.github/workflows/build-test-publish.yml` uses the latter form (`working-directory: duration-calculator-php/api`, `php -S 127.0.0.1:8080 index.php`) — this is almost certainly why CI and the fourth session's manual run both reported 16/16 while the sixth session's differently-invoked run reported 5/16. Full write-up: BUG-030 in `docs/BUGLOG.md`.
+- **Fix**: `duration-calculator-php/api/index.php` routing no longer derives a base path from `dirname($_SERVER['SCRIPT_NAME'])`. Replaced with an explicit `basePath` config key (`config.example.php`, default `''`), documented inline. Removes all dependence on dev-server invocation quirks.
+- Re-ran the full suite after the fix: `smoke_test.php` 24/24 (unaffected, as expected). `http_api_test.php` **16/16**, confirmed under *both* previously-divergent invocation styles (parent-dir `api/index.php` and inside-`api/` `index.php`) — the invocation no longer matters.
+- Simulated the real production URL shape (`basePath = '/duration_calculator/api'`) against a scratch config and confirmed `GET .../health`, `.../nace/search`, `.../cases/1` all route correctly with the prefix present.
+- Version bumped `audit-mobile/package.json` 5.1.0 → **5.1.1** (bugfix, per this repo's own versioning rule) and cross-referenced in `CHANGELOG.md`.
+
+**NOT DONE / still open**:
+- Real Apache + `.htaccess` topology test — never performed in any session, including this one. Lower risk now than before (routing no longer depends on `SCRIPT_NAME`), but the `.htaccess` deny rules (`.sql`/`.csv`/`.bak` blocking) and the `RewriteRule ^ index.php` dispatch itself remain unverified against a real Apache instance.
+- `audit-mobile/`→`src/frontend/` and `duration-calculator-php/`→`src/backend/` restructure (repository architecture consolidation, remaining scope) — not attempted this session; this is now the top item for the next session per the priority order, since BUG-030 no longer blocks it.
+- No frontend/mobile code was touched this session — this was a backend routing fix only.
+- Not deployed: source-only commit, per the mandatory source/deployment separation rule — CI will build/publish on push.
+
+**DEPENDENCY / HAND-OFF for the next developer**: BUG-030 is closed; do not re-investigate the PUT/NACE contradiction from scratch. Next per the priority order is the repository architecture restructure (`REPOSITORY_ARCHITECTURE.md`'s "Required target" section) — budget a session with enough runway to update every CI/import/deploy-path reference and re-run the full regression suite per file moved, same reasoning the fifth/sixth sessions gave for deferring it. After that: the user-feedback/acceptance gate.
