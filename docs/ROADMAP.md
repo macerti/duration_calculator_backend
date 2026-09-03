@@ -76,7 +76,7 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 #### 6. Technical Debt: Frontend Design Token Migration
 - **Category:** Technical Debt (Do Not Defer)
 - **Status:** P1 IN-PROGRESS
-- **Objective:** Replace hardcoded colors, spacing, and typography across the remaining 12 screens and components (`HomeScreen`, `ClientsListScreen`, `ClientDetailScreen`, `CalculationWizardScreen`, `CalculationReportScreen`, pickers, panels) with semantic tokens from [`src/theme/tokens.ts`](../src/frontend/src/theme/tokens.ts).
+- **Objective:** Replace hardcoded colors, spacing, and typography across the remaining screens and components (`HomeScreen`, `ClientsListScreen`, `ClientDetailScreen`, `CalculationWizardScreen`, `CalculationReportScreen`, pickers, panels) with semantic tokens from [`src/theme/tokens.ts`](../src/frontend/src/theme/tokens.ts). **2 of 9 files done as of 2026-09-03 (eighteenth session) — `TextField.tsx`, `NumberField.tsx`. Remaining: `ErrorBoundary.tsx`, `ResponsiveContainer.tsx`, `PersonnelForm.tsx`, `NaceSearchField.tsx`, `CalculationReportScreen.tsx`, `ClientDetailScreen.tsx`, `ClientsListScreen.tsx`** — see `docs/DEV_STATUS.md` for per-session detail; this line was stale (said "remaining 12") before this correction.
 
 #### 7. Technical Debt: Top-Level `tests/` Relocation & Frontend Unit Tests
 - **Category:** Technical Debt & Quality Assurance

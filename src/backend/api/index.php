@@ -44,6 +44,7 @@ use function AuditEngine\Auth\sessionDestroy;
 use function AuditEngine\Auth\sessionSetOAuthState;
 use function AuditEngine\Auth\sessionGetOAuthState;
 use function AuditEngine\Auth\sessionClearOAuthState;
+use function AuditEngine\Auth\oauthClientSafeErrorDetail;
 use function AuditEngine\Auth\microsoftBuildAuthUrl;
 use function AuditEngine\Auth\microsoftHandleCallback;
 use function AuditEngine\Auth\googleBuildAuthUrl;
@@ -371,7 +372,9 @@ try {
             header('Location: ' . $appUrl . '/?auth=ok');
         } catch (\Throwable $e) {
             error_log('[duration_calculator] Microsoft OAuth error: ' . $e->getMessage());
-            header('Location: ' . $appUrl . '/?auth_error=callback_failed');
+            $redirect = $appUrl . '/?auth_error=callback_failed'
+                . '&auth_error_description=' . urlencode(oauthClientSafeErrorDetail($e->getMessage()));
+            header('Location: ' . $redirect);
         }
         http_response_code(302);
         exit;
@@ -419,7 +422,9 @@ try {
             header('Location: ' . $appUrl . '/?auth=ok');
         } catch (\Throwable $e) {
             error_log('[duration_calculator] Google OAuth error: ' . $e->getMessage());
-            header('Location: ' . $appUrl . '/?auth_error=callback_failed');
+            $redirect = $appUrl . '/?auth_error=callback_failed'
+                . '&auth_error_description=' . urlencode(oauthClientSafeErrorDetail($e->getMessage()));
+            header('Location: ' . $redirect);
         }
         http_response_code(302);
         exit;

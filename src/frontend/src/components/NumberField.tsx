@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
+import { colors, radius, spacing, typography } from "../theme/tokens";
 
 interface Props {
   label: string;
@@ -20,7 +21,7 @@ export default function NumberField({ label, value, onChangeText, placeholder, s
           onChangeText={onChangeText}
           keyboardType="numeric"
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.contentQuaternary}
         />
         {suffix ? <Text style={styles.suffix}>{suffix}</Text> : null}
       </View>
@@ -29,9 +30,9 @@ export default function NumberField({ label, value, onChangeText, placeholder, s
 }
 
 const styles = StyleSheet.create({
-  row: { marginBottom: 12 },
-  label: { fontSize: 13, color: "#444", marginBottom: 4 },
-  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#ddd", borderRadius: 8, paddingHorizontal: 10 },
-  input: { flex: 1, paddingVertical: 10, fontSize: 15 },
-  suffix: { color: "#999", fontSize: 13 },
+  row: { marginBottom: spacing.md },
+  label: { fontSize: typography.body, color: colors.contentSecondary, marginBottom: spacing.xs },
+  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.borderDefault, borderRadius: radius.md, paddingHorizontal: spacing.sm + 2 },
+  input: { flex: 1, paddingVertical: spacing.sm + 2, fontSize: typography.subtitle },
+  suffix: { color: colors.contentQuaternary, fontSize: typography.body },
 });

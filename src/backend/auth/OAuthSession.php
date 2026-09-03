@@ -96,3 +96,30 @@ function sessionClearOAuthState(): void
     sessionStart();
     unset($_SESSION['oauth_state'], $_SESSION['oauth_provider']);
 }
+
+/**
+ * Produce a client-safe, length-capped version of an internal OAuth
+ * exception message, for display in the callback's error banner (see
+ * BUG-039 in docs/BUGLOG.md).
+ *
+ * Same deliberate, scoped tradeoff already documented in SECURITY.md for
+ * forwarding the provider's own `error_description` (BUG-038): this app
+ * has exactly one person who will ever see this banner and no reliable
+ * channel back to a session that can read host error logs, so limiting
+ * this to "log server-side only" would stall every token-exchange
+ * failure the same way BUG-030/031 stalled on host access.
+ *
+ * Safe to forward: `microsoftHandleCallback()`/`googleHandleCallback()`
+ * only ever throw with either (a) the provider's own HTTP/JSON response
+ * body, or (b) a curl transport error string — never our config values.
+ * The client secret is sent as an outgoing request field and is never
+ * echoed back by either provider's token endpoint on success or failure.
+ */
+function oauthClientSafeErrorDetail(string $message): string
+{
+    $max = 400;
+    if (strlen($message) <= $max) {
+        return $message;
+    }
+    return substr($message, 0, $max) . '…';
+}
