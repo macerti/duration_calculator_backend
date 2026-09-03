@@ -33,7 +33,7 @@ function microsoftBuildAuthUrl(string $clientId, string $redirectUri, string $st
         'response_type' => 'code',
         'redirect_uri'  => $redirectUri,
         'response_mode' => 'query',
-        'scope'         => 'openid profile email',
+        'scope'         => 'openid profile email User.Read',
         'state'         => $state,
         // prompt=select_account forces Microsoft to show the account picker,
         // even if the user already has a session — useful for multi-account environments.

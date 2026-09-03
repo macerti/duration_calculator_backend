@@ -1018,7 +1018,7 @@ Fix: `fetchMe()` now accepts an options object (`{ preserveError, sawAuthOk }`);
 
 ### BUG-039 — after the BUG-038 Azure Portal fix, a NEW error appeared: `callback_failed` — this is our own catch-all for a failed token exchange, and it was discarding the real reason the exact same way BUG-038's provider-error branch used to
 
-**Status: FIX APPLIED 2026-09-03 (eighteenth session) — makes the real reason visible; the reason itself is still not identified. Same shape as BUG-038: this session closed the visibility gap, not the underlying failure. Awaiting Mahdi's retry report.**
+**Status: ROOT CAUSE CONFIRMED AND FIXED 2026-09-03 (nineteenth session) — awaiting Mahdi's confirming retry. See the nineteenth-session update at the end of this entry; do not re-derive the reasoning below from scratch, it's superseded by confirmed evidence.**
 
 **Reported by**: Mahdi, after applying BUG-038's Azure Portal fix (redirect URI moved from "Single-page application" to "Web"): "now when I select 'continue on Microsoft', pick an account, and authorize the app — when it goes back to my app it fails and shows `⚠ callback_failed`."
 
@@ -1056,5 +1056,35 @@ Fix: `fetchMe()` now accepts an options object (`{ preserveError, sawAuthOk }`);
 **Next step — the one thing that makes this fast to finish**: retry Microsoft sign-in once this ships (confirm the publish workflow completed first — see `docs/DEV_STATUS.md`), and report the exact `auth_error_description` text now shown in the banner (or, if reachable, the matching `[duration_calculator] Microsoft OAuth error: ...` line in the PHP error log — either is decisive). Do not re-derive the candidates above from scratch; they're fully listed here, ready to be confirmed or eliminated by that one piece of evidence, exactly the pattern BUG-037→BUG-038 already used successfully twice.
 
 **Dependency / hand-off**: nothing further is actionable on BUG-039 from a sandbox. If the next session has host/PHP-error-log access before Mahdi reports back, checking the log directly is equally decisive and faster than waiting for another UI round-trip.
+
+---
+
+**UPDATE 2026-09-03 (nineteenth session) — ROOT CAUSE CONFIRMED, fix applied.**
+
+Mahdi retried with 5.1.6's diagnostic fix live and reported the exact `auth_error_description` text this entry asked for:
+
+```
+Microsoft Graph did not return required user fields: {"error":{"code":"Authorization_RequestDenied","message":"Insufficient privileges to complete the operation.","innerError":{"date":"2026-09-03T11:44:00","request-id":"5778c7a7-a717-41a9-b0b6-5a2eda85d0f3","client-request-id":"5778c7a7-a717-41a9-b0b6-5a2eda85d0f3"}}}
+```
+
+**This is decisive and fully explains everything, no further guessing needed**:
+- The token exchange **succeeded** (we have a valid access token — this rules out the wrong-client-secret hypothesis for good; a bad secret fails at the token-exchange step and never reaches the Graph call).
+- The subsequent call to `https://graph.microsoft.com/v1.0/me` was rejected by Graph itself with `Authorization_RequestDenied` / "Insufficient privileges to complete the operation." — a Graph API authorization error, not a network or transport failure.
+- Reading `microsoftBuildAuthUrl()` in `MicrosoftOAuth.php` immediately explains why: the `/authorize` request's `scope` parameter was `openid profile email` — the three standard **OIDC** scopes. These control what claims land in an *ID token*; they are **not** a Microsoft Graph API permission. Calling Graph's `/me` endpoint requires the access token to separately carry a Graph permission — at minimum `User.Read` — which was never requested at authorization time. So the access token obtained was, from Graph's point of view, authorized for nothing.
+- **This is a well-known, easy-to-fall-into Microsoft-specific trap**, and specifically *not* a Google issue: cross-checked `GoogleOAuth.php`'s equivalent flow this session — Google's `https://www.googleapis.com/oauth2/v3/userinfo` endpoint *does* accept the plain OIDC `profile`/`email` scopes directly (that's the standard, documented behavior of Google's own OIDC userinfo endpoint). No parallel bug exists there; left unchanged.
+
+**Fix applied**: `microsoftBuildAuthUrl()`'s scope string is now `openid profile email User.Read`. Verified by actually building the authorization URL with test inputs and decoding its query string — `scope=openid+profile+email+User.Read` is present and correctly encoded.
+
+**Hardening**: `useAuth.ts`'s known-cause-hint mechanism (built for BUG-038's `AADSTS9002325`) now also recognizes `Authorization_RequestDenied` and points directly at this fix, so a future regression (e.g. someone edits the scope back, or this mistake gets repeated for a different Graph field) is immediately actionable from the banner alone.
+
+**What this does NOT rule out, in the interest of not overclaiming**: `User.Read` is normally either pre-consented or consentable by any user in Azure Portal's default configuration, so this fix is very likely sufficient on its own. However, a small number of Entra tenants are configured to require **admin consent** even for baseline permissions like `User.Read` (via stricter "user consent settings" or Conditional Access policies) — if that's the case for this tenant, Mahdi may now see Microsoft's own "need admin approval" consent screen instead of our error banner, which would be a clearly different, self-explanatory, provider-rendered message (not something this app produces or could suppress) rather than a reappearance of this bug. Noting this now so it isn't mistaken for a fix failure if it happens.
+
+**Verification this session**: `php -l` clean on the touched files; built-and-decoded-URL check above; full regression `php tests/smoke_test.php` 24/24, `php tests/http_api_test.php` 16/16 against a live `php -S` instance (backend logic elsewhere is completely unaffected by a scope-string change, but re-ran anyway per this project's standing full-regression habit); `scripts/check-repo-hygiene.sh` clean; frontend `npx tsc --noEmit` clean, `npx expo export --platform web --clear` succeeds, and the new `Authorization_RequestDenied` hint string confirmed present in the actual built JS bundle via grep (same method the sixteenth session used to confirm its fix shipped for real, not just compiled-and-hoped).
+
+**This session cannot complete a real browser OAuth round-trip** — the fix is a precise, code-level match for the exact reported error and standard, well-documented Microsoft Graph behavior, not a guess, but per this project's own standing rule, **Mahdi's next retry is still the actual confirmation**.
+
+**Next step**: retry Microsoft sign-in once this ships (confirm the publish workflow completed first). If sign-in now completes end to end, close BUG-039 for real (not just "fix applied, awaiting confirmation") and mark BUG-036→039 as a fully closed SSO saga in `docs/DEV_STATUS.md`. If a *different* error appears (e.g. an admin-consent screen), that is new evidence for a note here, not a reason to reopen this diagnosis — see the admin-consent caveat above.
+
+**Dependency / hand-off**: nothing further is actionable on BUG-039 from a sandbox until Mahdi's retry result comes back. Do not re-touch `MicrosoftOAuth.php`'s scope or re-derive this reasoning without new evidence contradicting it.
 
 

@@ -132,8 +132,21 @@ export function useAuth(): AuthState & {
         // (e.g. someone edits the app registration back, or Google gets the
         // same platform-type mistake), point straight at the fix instead of
         // making the next session re-derive it from a bare AADSTS code.
+        //
+        // Authorization_RequestDenied also has a known, fully-diagnosed
+        // cause (see BUG-039 in docs/BUGLOG.md): the token exchange itself
+        // succeeds, but the resulting access token wasn't authorized to call
+        // Microsoft Graph's /me endpoint because the /authorize request's
+        // scope was missing Graph's own "User.Read" permission (the OIDC
+        // "openid profile email" scopes only control ID-token claims, not
+        // Graph API access — a genuinely easy trap). Fixed at the source in
+        // MicrosoftOAuth.php; this hint is defense-in-depth in case the
+        // scope regresses, or the tenant additionally requires admin
+        // consent for User.Read (rare, but shows as this same Graph error).
         const knownCauseHint = authErrorDescription?.includes("AADSTS9002325")
           ? " — known cause: redirect URI is registered as \"Single-page application\" in Azure Portal instead of \"Web\" (see docs/BUGLOG.md BUG-038)."
+          : authErrorDescription?.includes("Authorization_RequestDenied")
+          ? " — known cause: the Microsoft sign-in request wasn't scoped for Graph API access (see docs/BUGLOG.md BUG-039). If this persists after the fix, the Azure tenant may require admin consent for the User.Read permission — check Azure Portal → App registrations → API permissions."
           : "";
         setError(
           authErrorDescription
