@@ -2,6 +2,16 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-02 (fourteenth session) — 5.1.2 — BUG-036: production outage fix (deployment artifact was missing src/backend/auth/)
+
+- **Bugfix version bump.** A prior session's SSO commit (`3396425`) added `src/backend/auth/` and an unconditional `require_once` of it from `api/index.php`, but never updated the deployment build steps to copy that folder — so the live artifact was missing it entirely. Every API request, not just SSO, fatal-errored with a PHP `require_once` failure. Reported as "Microsoft sign-in returns HTTP 500"; investigation found the real scope was a full outage.
+- Fixed `Makefile`'s `build-deploy` and the CI workflow's deployment-assembly step to copy `src/backend/auth/`, with explicit `test -f` assertions for the three new files.
+- Extended `scripts/check-deploy-artifact.sh` (Work Package G) with a generic structural check: every `__DIR__`-relative PHP `require`/`require_once` in the built artifact must resolve to a real file inside it. Negative-tested before trusting it (deleted `auth/` from a real built artifact, confirmed it's caught by name).
+- Verified: rebuilt `_deploy/` end to end, all artifact checks pass; reproduced the original fatal error against an exact replica of the broken live layout, then confirmed it's gone against the fixed artifact; `php tests/smoke_test.php` 24/24; `npx tsc --noEmit` clean.
+- SSO itself remains unverified end to end (no host/browser access from this session) — see `docs/BUGLOG.md` BUG-036 and `docs/DEV_STATUS.md`'s fourteenth-session entry for what's still open.
+
+---
+
 ## 2026-09-02 (tenth session) — no version change — Work Package G (repository hygiene checks) completed
 
 - No calculation/business-logic code changed — the repository architecture restructure's one deliberately-deferred item (`REPOSITORY_ARCHITECTURE.md` section G) is now done, matching this project's convention that reorg/tooling-only sessions don't bump the version.

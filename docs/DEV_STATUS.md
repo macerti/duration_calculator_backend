@@ -48,14 +48,15 @@ Do not turn an architectural hypothesis into a confirmed root cause. Record the 
 ### Priority 0 (P0) — Critical Blockers & Errors: ALL CLEAR
 - **BUG-031 (Production API 404)**: **CLOSED & VERIFIED on live production (2026-09-02)** by Mahdi. Live server `config.php` has been corrected with `$config['basePath'] = '/duration_calculator/api';`, and production API endpoints are operational.
 - **BUG-030 (Router SCRIPT_NAME bug)**: CLOSED & VERIFIED in 5.1.1 (16/16 PHP test, 13/13 Apache test).
-- **Active P0 bugs**: **0 remaining.**
+- **BUG-036 (deployment artifact missing `src/backend/auth/`, full API outage) — FIXED 2026-09-02 (fourteenth session).** Reported as "Microsoft sign-in returns HTTP 500"; investigation found it was actually the entire production API 500ing on every route since the SSO commits, not an SSO-specific bug. See full writeup in `docs/BUGLOG.md`. **Not yet independently confirmed against the live host** (this session has no host/network path to `tools.macerti.com`) — next session or Mahdi should confirm `GET https://tools.macerti.com/duration_calculator/api/health` returns its JSON payload once this fix's CI run has published, and complete a real Microsoft login click-through.
+- **Active P0 bugs**: **0 remaining that are sandbox-actionable; 1 (BUG-036) fixed in source and pending live confirmation — see above.**
 
 ### Priority 1 (P1) — Active Tasks to Build Now
 1. **In-App Guided Acceptance Test Runner & Report Exporter (NEW)**: Embed test runner directly into the app (launch menu, step-by-step guidance prompts, questionnaire for visual aspects, standardized JSON/Markdown report export for human/AI developers).
 2. **Parameter Admin UI & Dossier Codification**: PO top priority improvement (web UI for IAF parameter tables + configurable calculation reference generator).
 3. **FEAT-001 (Synthèse multi-site tabs & Programme d'audit Client)**: Individual site tabs + consolidated client programme combining durations without double-counting.
 4. **PDF Export of Calculation Report**: Downloadable audit duration report PDF generation.
-5. **Authentication & SSO**: Microsoft Entra ID & Google Account sign-in with PHP session backend.
+5. **Authentication & SSO**: Microsoft Entra ID & Google Account sign-in with PHP session backend. **Backend/frontend code exists (`3396425`) and the deploy-completeness bug that broke the whole API is fixed (BUG-036) — but the login flow itself is still UNVERIFIED, not confirmed working. Next actionable step is a real click-through once the fix is live.**
 6. **Technical Debt (Design Tokens)**: Migrate remaining 12 frontend screens/components to `src/theme/tokens.ts`.
 7. **Technical Debt (Testing Architecture)**: Move `src/backend/tests/` to top-level `tests/` and add automated frontend calculation unit tests.
 
@@ -684,3 +685,34 @@ While Part 1/2 above were in progress, four commits landed on `origin/main` from
   3. PDF Export of Calculation Report.
 
 
+
+---
+
+## 2026-09-02 (fourteenth session) — BUG-036: found and fixed a full production outage hiding behind a reported "SSO returns 500"
+
+**Purpose of this session**: Mahdi reported that after configuring Azure AD for Microsoft sign-in (redirect URI, client secret/ID in `config.php`, Enterprise App visibility enabled), clicking "Microsoft" returns HTTP 500. Asked for a thorough investigation and a fix.
+
+**What this turned out to be, and how that was established** (see `docs/BUGLOG.md` BUG-036 for full detail — this is a summary of the reasoning path, not a duplicate of the evidence):
+1. Read the reported symptom literally first — checked `src/backend/auth/MicrosoftOAuth.php`, `OAuthSession.php`, and the new `/auth/*` routes in `src/backend/api/index.php` (added in `3396425`, an SSO commit with no corresponding `docs/DEV_STATUS.md` entry from whoever built it — see "Process gap" in BUG-036). Nothing in the OAuth logic itself looked obviously broken on read-through.
+2. Noticed `index.php` now does `require_once __DIR__ . '/../auth/OAuthSession.php'` **unconditionally at the top of the file**, before routing. Checked whether the deployment build steps (`Makefile`'s `build-deploy`, and CI's own separately-duplicated copy of the same logic) actually copy `src/backend/auth/` — **they don't.**
+3. Confirmed against ground truth, not just the source diff: queried the GitHub API for the actual live deployment repository (`macerti/duration_calculator`)'s top-level contents — no `auth/` directory exists there. Fetched the deployed `api/index.php` directly and confirmed it's byte-identical to the version with the new unconditional require.
+4. Reproduced locally: built an exact replica of the live folder layout (every copy step the *old* Makefile actually runs, `auth/` excluded, matching what's really deployed) and ran the router. Got the exact fatal error, for **every route tested**, not just `/auth/microsoft` — `/clients` fatals identically, since the fatal require fires before any routing decision. This is a full API outage, not an SSO-specific bug.
+5. Checked why CI didn't catch it: CI's regression tests run against `src/backend/` source, never against the assembled `_deploy/` artifact, so a "source has the file, assembly forgot to copy it" bug is invisible to them structurally, not just this once by bad luck.
+
+**DONE / VERIFIED this session**:
+- `Makefile`'s `build-deploy` and CI's "Assemble deployment artifact" step both now copy `src/backend/auth/` into `_deploy/auth/`; CI gained explicit `test -f` assertions for the three new PHP files.
+- `scripts/check-deploy-artifact.sh` (Work Package G, tenth session) extended with a new, deliberately generic check: parses every `__DIR__`-relative `require`/`require_once` in the artifact's PHP files and verifies each resolves to a real file inside it. Negative-tested (deleted `auth/` from a copy of a real built artifact, confirmed the check names exactly the three missing files; confirmed clean pass on the correctly-built artifact). This would catch this same class of mistake for any future new backend module, not just this one.
+- Rebuilt the real `_deploy/` end to end via the fixed `make build-deploy` (fresh `npm ci`, `expo export`, full backend copy) — all four artifact checks now pass.
+- Re-ran the exact repro against the fixed artifact: `/auth/microsoft` and `/health` both complete cleanly (no fatal), `/health` returns its normal JSON.
+- Confirmed nothing else regressed: `php tests/smoke_test.php` 24/24, `npx tsc --noEmit` clean, `scripts/check-repo-hygiene.sh` still clean.
+- Logged the full incident, evidence, and fix in `docs/BUGLOG.md` as BUG-036, reclassified P0 in the priority table above (it was being tracked/reported as if it were a narrow P1 SSO issue — it took the whole API down).
+
+**NOT DONE / open — read before assuming this is fully closed**:
+1. **The live host was never directly queried** — no network path from this sandbox to `tools.macerti.com`, and this session's web-fetch tool only permits URLs already established earlier via search/fetch (same wall BUG-031 hit). Everything above is inferred from the deployment repository's actual committed content plus a faithful local reproduction — about as strong as evidence gets without host access, but not literally "confirmed against the live site responding correctly." **Next step for whoever has host access or can reach the domain: confirm `GET https://tools.macerti.com/duration_calculator/api/health` returns its JSON payload once this session's push has gone through the publish pipeline, and do one real Microsoft login click-through end to end.**
+2. SSO's substantive correctness beyond "doesn't fatal-error" was not deeply verified — this session's focus was the outage, not a full SSO audit. Treat Microsoft/Google sign-in as UNVERIFIED, not confirmed working.
+3. Google's OAuth path (`GoogleOAuth.php`) was read but not exercised at all this session (Mahdi only reported the Microsoft button) — same "not obviously wrong on read-through, not independently verified" caveat applies.
+4. The process gap that let this ship without a DEV_STATUS entry or artifact-level testing (see BUG-036) is flagged, not fixed — no process/tooling change was made to *require* a session log before merging, since that's a workflow decision for whoever owns this project's conventions, not something to impose unilaterally.
+
+**Sandbox tooling note, not an app bug** — recorded so the next session doesn't re-lose time on it: `php -S` combined with a route that calls `session_start()`, when backgrounded from this sandbox's shell tool, intermittently hung indefinitely rather than erroring or responding, even with explicit `timeout` wrappers on the client side. Worked around by invoking the router script directly via CLI with `REQUEST_METHOD`/`REQUEST_URI` env vars instead of starting a real dev-server socket — gives a clean pass/fail on whether a route fatal-errors without needing a live connection.
+
+**DEPENDENCY / HAND-OFF**: the source-side fix is complete and pushed (see commit below). Do not re-diagnose this from scratch — the root cause, evidence, and fix are all in BUG-036. What's left is entirely host/browser-side confirmation (points 1–3 above), which needs either Mahdi or a session with real network/device access, not another sandbox investigation.

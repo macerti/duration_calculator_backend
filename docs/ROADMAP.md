@@ -174,7 +174,7 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 
 ## Requested feature — FEAT-002: Sign in with Microsoft or Google (SSO)
 
-**Status: NOT BUILT / REQUESTED — 2026-09-01**
+**Status: CODE EXISTS, UNVERIFIED — 2026-09-02.** Backend (`src/backend/auth/{OAuthSession,MicrosoftOAuth,GoogleOAuth}.php`) and frontend (`LoginScreen.tsx`, `useAuth.ts`, `AuthGate`) were built in commit `3396425`, ahead of this being reprioritized per item 5/6 above and with no accompanying `docs/DEV_STATUS.md` session entry. That commit also shipped a deployment-assembly gap that took the entire production API down (not SSO-specific) — see `docs/BUGLOG.md` BUG-036, fixed 2026-09-02 (fourteenth session). The outage is fixed; **the SSO login flow itself has not been confirmed working end to end by anyone** (no real click-through, no host access from any sandboxed session) — do not treat this as done. See BUG-036's hand-off for the exact next step.
 
 ### Objective
 Allow users to authenticate without creating or remembering a separate application password by offering two standard identity-provider options on the login screen:

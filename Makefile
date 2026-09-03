@@ -53,13 +53,14 @@ check-hygiene:
 build-deploy:
 	cd src/frontend && npm ci && npx expo export --platform web --clear
 	rm -rf _deploy
-	mkdir -p _deploy/api _deploy/data _deploy/db _deploy/engine _deploy/tests
+	mkdir -p _deploy/api _deploy/data _deploy/db _deploy/engine _deploy/tests _deploy/auth
 	cp -R src/frontend/dist/. _deploy/
 	cp -R src/backend/api/. _deploy/api/
 	cp -R src/backend/data/. _deploy/data/
 	cp -R src/backend/db/. _deploy/db/
 	cp -R src/backend/engine/. _deploy/engine/
 	cp -R src/backend/tests/. _deploy/tests/
+	cp -R src/backend/auth/. _deploy/auth/
 	cp src/backend/.htaccess _deploy/.htaccess
 	cp src/backend/config.example.php _deploy/config.example.php
 	cp src/backend/seed.php _deploy/seed.php
