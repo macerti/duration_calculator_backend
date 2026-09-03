@@ -2,6 +2,15 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-02 (fifteenth session) — 5.1.3 — BUG-037: fixed a frontend bug masking SSO's real error; root cause of the sign-in failure itself still open
+
+- **Bugfix version bump.** `src/frontend/src/hooks/useAuth.ts` had a race condition: the OAuth callback's `?auth_error=` was detected and set into state, but the very next line (inside `fetchMe()`, called synchronously after) unconditionally reset that same state to `null` in the same React batch — so any real SSO failure always silently looked like "back to login, no message," regardless of what actually went wrong server-side.
+- Fixed so a detected `auth_error` survives to render, and added explicit handling for the "server says `auth=ok` but `/auth/me` still says unauthenticated" case, which previously looked identical to a normal logged-out visit.
+- This does **not** fix SSO itself — Mahdi still can't complete a Microsoft sign-in. It narrows the cause to two candidates (session persistence on the host, or a wrong Azure client secret value) and makes whichever one it is visible on the next attempt. Full reasoning in `docs/BUGLOG.md` BUG-037.
+- Verified: `npx tsc --noEmit` clean, full `make build-deploy` end to end passes all artifact checks, `php tests/smoke_test.php` 24/24.
+
+---
+
 ## 2026-09-02 (fourteenth session) — 5.1.2 — BUG-036: production outage fix (deployment artifact was missing src/backend/auth/)
 
 - **Bugfix version bump.** A prior session's SSO commit (`3396425`) added `src/backend/auth/` and an unconditional `require_once` of it from `api/index.php`, but never updated the deployment build steps to copy that folder — so the live artifact was missing it entirely. Every API request, not just SSO, fatal-errored with a PHP `require_once` failure. Reported as "Microsoft sign-in returns HTTP 500"; investigation found the real scope was a full outage.
