@@ -2,6 +2,17 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-03 (twentieth session) — 5.1.8 — BUG-039 CLOSED: Mahdi confirmed Microsoft SSO works end-to-end. Google SSO button removed. Technical debt: ResponsiveContainer.tsx migrated to design tokens (3/9)
+
+- **BUG-036→039 SSO saga fully resolved.** Mahdi confirmed: "The Microsoft SSO works perfectly." This is the real browser round-trip confirmation the nineteenth session's fix (5.1.7, the missing Graph `User.Read` scope) was waiting on. No code change needed this session for this item — closing the loop in `docs/BUGLOG.md`/`docs/DEV_STATUS.md` only.
+- **"Continue with Google" button removed** from `LoginScreen.tsx`/`App.tsx`, per explicit instruction now that Microsoft works and Google is deprioritized. Backend Google OAuth code (`GoogleOAuth.php`, `useAuth.ts`'s `loginWithGoogle`, the `/auth/google` route) is intentionally kept in place and simply unlinked from the UI, not deleted.
+- **New priority order recorded** (not designed/built this session): FEAT-005 (automated database schema migration on push) is now first in the feature queue; a new local email/password account-creation feature (register/login/forgot-password) is recorded as the item after it. See `docs/ROADMAP.md` items 8–9.
+- **Technical debt**: `ResponsiveContainer.tsx`'s `ResponsiveGrid` hardcoded `gap: 16` migrated to `spacing.lg` from `theme/tokens.ts` — no visual change. Design-token migration now 3 of 9 files done.
+- Verified: `npx tsc --noEmit` clean, `npx expo export --platform web --clear` succeeds, built JS bundle grepped to confirm `"Continuer avec Google"` is actually absent (0 matches) and `"Continuer avec Microsoft"` still present. `scripts/check-repo-hygiene.sh`: all 4 checks pass. **PHP was not available in this sandbox** — no backend files were touched this session (frontend/docs only), so `php tests/smoke_test.php`/`http_api_test.php` were not re-run; risk assessed as effectively zero given the change's scope, but flagged as a real evidence gap rather than silently skipped.
+- Not deployed yet at commit time: source-only commit, per the mandatory source/deployment separation rule — CI publishes to `macerti/duration_calculator` on push to `main`.
+
+---
+
 ## 2026-09-03 (nineteenth session) — 5.1.7 — BUG-039 root cause CONFIRMED and FIXED: Microsoft sign-in was never requesting Graph's `User.Read` permission, so the token exchange succeeded but the profile fetch was always going to be denied
 
 - **Bugfix version bump.** Mahdi retried Microsoft sign-in with 5.1.6's diagnostic fix live and got exactly the evidence asked for: `⚠ callback_failed: Microsoft Graph did not return required user fields: {"error":{"code":"Authorization_RequestDenied","message":"Insufficient privileges to complete the operation."...}}`.

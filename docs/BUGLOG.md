@@ -1087,4 +1087,14 @@ Microsoft Graph did not return required user fields: {"error":{"code":"Authoriza
 
 **Dependency / hand-off**: nothing further is actionable on BUG-039 from a sandbox until Mahdi's retry result comes back. Do not re-touch `MicrosoftOAuth.php`'s scope or re-derive this reasoning without new evidence contradicting it.
 
+---
+
+**UPDATE 2026-09-03 (twentieth session) — CLOSED. Mahdi confirmed: "The Microsoft SSO works perfectly."**
+
+This is the real end-to-end confirmation this entry has been waiting on since the nineteenth session — sign-in now completes successfully for Mahdi in production. Per the "Next step" note directly above, **BUG-039 is CLOSED**, and per the eighteenth/nineteenth sessions' own hand-off instruction, **the entire BUG-036→037→038→039 SSO saga is now a fully closed, resolved chain**. See `docs/DEV_STATUS.md`'s dated entry for this session for the consolidated saga summary and the current pipeline state now that this is no longer blocking.
+
+**Note on the message immediately preceding this confirmation, for continuity**: earlier in this same session, Mahdi's message intended to report this retry result instead contained an unrelated voice-to-text transcription (a planning note about database migrations — see `FEAT-005`) pasted in the slot where the error/success text was expected. No `auth_error_description` or other retry evidence was received at that point, so no action was taken on BUG-039 from that message — it was correctly held open until this follow-up message supplied the actual result. Recorded here only so a future session doesn't go looking for a "reported error" in that earlier message and get confused; there wasn't one.
+
+**Nothing left open on this bug.** Google's callback path (noted throughout this saga as "same fix applied for consistency, still unexercised") remains untested, but is now moot for near-term priority — see `docs/ROADMAP.md` FEAT-002: the Google button itself was removed from the login screen this same session, per Mahdi's explicit instruction, independent of this bug.
+
 

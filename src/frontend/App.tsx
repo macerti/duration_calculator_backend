@@ -39,17 +39,19 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
  * before rendering anything:
  *
  *  - Loading  → blank screen with a spinner (< 1 s in practice)
- *  - Not auth → LoginScreen with Microsoft + Google buttons
+ *  - Not auth → LoginScreen with a Microsoft button (Google removed
+ *    2026-09-03, see docs/ROADMAP.md FEAT-002 — deprioritized, not
+ *    deleted server-side)
  *  - Auth OK  → full app navigation stack
  *
  * The actual OAuth dance happens entirely in the PHP backend; the frontend
- * only redirects the browser to /api/auth/microsoft (or /google) and
- * lets PHP handle Microsoft/Google, the code exchange, and the session cookie.
- * On return (/?auth=ok), this component re-fetches /auth/me and the session
+ * only redirects the browser to /api/auth/microsoft and lets PHP handle
+ * Microsoft, the code exchange, and the session cookie. On return
+ * (/?auth=ok), this component re-fetches /auth/me and the session
  * is now valid → app shows normally.
  */
 function AuthGate() {
-  const { isLoading, isAuthenticated, error, loginWithMicrosoft, loginWithGoogle } = useAuth();
+  const { isLoading, isAuthenticated, error, loginWithMicrosoft } = useAuth();
 
   if (isLoading) {
     return (
@@ -63,7 +65,6 @@ function AuthGate() {
     return (
       <LoginScreen
         onMicrosoft={loginWithMicrosoft}
-        onGoogle={loginWithGoogle}
         error={error}
       />
     );

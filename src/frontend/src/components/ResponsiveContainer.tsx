@@ -1,6 +1,7 @@
 import React from "react";
 import { View, StyleSheet, ViewStyle } from "react-native";
 import { useBreakpoint } from "../hooks/useBreakpoint";
+import { spacing } from "../theme/tokens";
 
 interface Props {
   children: React.ReactNode;
@@ -23,7 +24,7 @@ export default function ResponsiveContainer({ children, style, maxWidth = 900 }:
 export function ResponsiveGrid({ children, minColWidth = 320 }: { children: React.ReactNode; minColWidth?: number }) {
   const bp = useBreakpoint();
   if (bp === "mobile") return <View>{children}</View>;
-  return <View style={[styles.grid, { gap: 16 }]}>{React.Children.map(children, (c) => <View style={{ flexBasis: minColWidth, flexGrow: 1 }}>{c}</View>)}</View>;
+  return <View style={[styles.grid, { gap: spacing.lg }]}>{React.Children.map(children, (c) => <View style={{ flexBasis: minColWidth, flexGrow: 1 }}>{c}</View>)}</View>;
 }
 
 const styles = StyleSheet.create({

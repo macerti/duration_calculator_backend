@@ -10,7 +10,6 @@ import { colors, spacing, radius, typography } from "../theme/tokens";
 
 interface Props {
   onMicrosoft: () => void;
-  onGoogle: () => void;
   isLoading?: boolean;
   error?: string | null;
 }
@@ -18,15 +17,22 @@ interface Props {
 /**
  * LoginScreen — clean, premium SSO sign-in page.
  *
- * Two primary actions:
+ * One primary action:
  *   - "Continuer avec Microsoft" → kicks off the Entra ID OIDC flow
- *   - "Continuer avec Google"    → kicks off the Google OAuth flow
+ *
+ * The "Continuer avec Google" button was removed 2026-09-03 per explicit
+ * instruction (Google SSO deprioritized for now — see docs/ROADMAP.md
+ * FEAT-002). Backend Google OAuth code (GoogleOAuth.php, useAuth.ts's
+ * loginWithGoogle, /auth/google route) is intentionally left in place,
+ * untouched and unlinked, so it's a one-line re-wire away if this is
+ * revisited later — do not delete it as "dead code" without checking
+ * ROADMAP.md first.
  *
  * No username/password form. No client-side token logic.
- * Clicking a button does a full-page redirect to the PHP backend,
+ * Clicking the button does a full-page redirect to the PHP backend,
  * which handles the OAuth dance and redirects back on success.
  */
-export default function LoginScreen({ onMicrosoft, onGoogle, isLoading, error }: Props) {
+export default function LoginScreen({ onMicrosoft, isLoading, error }: Props) {
   return (
     <View style={styles.root}>
       <View style={styles.card}>
@@ -43,7 +49,7 @@ export default function LoginScreen({ onMicrosoft, onGoogle, isLoading, error }:
 
         <Text style={styles.signInHeading}>Connectez-vous pour continuer</Text>
         <Text style={styles.signInBody}>
-          Votre compte Microsoft ou Google vous donne accès à l'outil.{"\n"}
+          Votre compte Microsoft vous donne accès à l'outil.{"\n"}
           Aucun mot de passe supplémentaire n'est requis.
         </Text>
 
@@ -74,25 +80,6 @@ export default function LoginScreen({ onMicrosoft, onGoogle, isLoading, error }:
             <View style={[styles.msSquare, { backgroundColor: "#ffb900" }]} />
           </View>
           <Text style={styles.microsoftButtonText}>Continuer avec Microsoft</Text>
-        </Pressable>
-
-        {/* Google button */}
-        <Pressable
-          style={({ pressed }) => [
-            styles.ssoButton,
-            styles.googleButton,
-            pressed && styles.buttonPressed,
-          ]}
-          onPress={onGoogle}
-          disabled={isLoading}
-          accessibilityRole="button"
-          accessibilityLabel="Continuer avec Google"
-        >
-          {/* Google "G" mark */}
-          <View style={styles.googleLogoContainer}>
-            <Text style={styles.googleLogoText}>G</Text>
-          </View>
-          <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </Pressable>
 
         {/* Loading overlay */}
@@ -214,17 +201,6 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
   },
-  googleButton: {
-    backgroundColor: colors.surfaceBase,
-    borderColor: colors.borderDefault,
-  },
-  googleButtonText: {
-    color: colors.contentPrimary,
-    fontSize: typography.bodyLarge,
-    fontWeight: "600",
-    flex: 1,
-    textAlign: "center",
-  },
   buttonPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.985 }],
@@ -242,22 +218,6 @@ const styles = StyleSheet.create({
     width: 9,
     height: 9,
     borderRadius: 1,
-  },
-  // Google "G"
-  googleLogoContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#4285F4",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.sm,
-  },
-  googleLogoText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: 12,
-    lineHeight: 14,
   },
   loadingRow: {
     flexDirection: "row",

@@ -7,7 +7,7 @@
 3. USER FEEDBACK / ACCEPTANCE GATE. After the first two items, pause normal feature development and perform real browser/mobile/user testing. Feed the results back into the logs to definitively close, reopen, or change the relevant bugs/features.
 4. Remaining bugs. Resume only after the acceptance gate.
 5. Remaining features. Resume after the acceptance gate. Admin/parameter administration UI is prioritized ahead of authentication/SSO.
-6. FEAT-002 Microsoft/Google SSO: NOT PRIORITIZED. It remains documented but is explicitly deferred.
+6. FEAT-002 Microsoft/Google SSO: Microsoft sign-in VERIFIED WORKING end-to-end 2026-09-03 (Mahdi confirmed). The Google button has been removed from the UI per explicit instruction (Google OAuth code remains in place, unlinked, not deleted). See `docs/DEV_STATUS.md` twentieth-session entry.
 
 ### Acceptance terminology
 - USER-ACCEPTED — user confirms the behavior is satisfactory.
@@ -68,10 +68,11 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 - **Status:** ELEVATED TO P1
 - **Objective:** Generate downloadable, print-ready PDF audit duration calculation reports directly from the Calculation Report screen data, complete with formulas, factor justifications, and audit day breakdowns.
 
-#### 5. Authentication & SSO (Microsoft Entra ID / Google Account)
+#### 5. Authentication & SSO (Microsoft Entra ID)
 - **Category:** Security & Identity
-- **Status:** P1 ARCHITECTURE & SECURITY
-- **Objective:** Standard OIDC single sign-on with "Continue with Microsoft" and "Continue with Google" buttons, mapped into a secure PHP session-based user model with HttpOnly cookies.
+- **Status:** **Microsoft sign-in VERIFIED WORKING end-to-end, 2026-09-03 (Mahdi confirmed: "The Microsoft SSO works perfectly").** BUG-036→039 saga fully closed — see `docs/BUGLOG.md` BUG-039.
+- **Objective (as originally scoped):** Standard OIDC single sign-on with "Continue with Microsoft" and "Continue with Google" buttons, mapped into a secure PHP session-based user model with HttpOnly cookies.
+- **2026-09-03 update:** the "Continue with Google" button was removed from the login screen per explicit instruction ("Google is a piece of shit for now"). Backend Google OAuth code is untouched and unlinked, not deleted, so it remains a low-risk re-enable later. See item 9 below for what's prioritized instead.
 
 #### 6. Technical Debt: Frontend Design Token Migration
 - **Category:** Technical Debt (Do Not Defer)
@@ -88,6 +89,13 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 - **Status:** REQUESTED BY MAHDI — recorded verbatim, deliberately not designed or scoped by this session per his explicit instruction ("no need to evaluate this new request just write it, other devs will check it better").
 - **Request as given:** database migration so that if there is an update in tables, it's enough to push so that the GitHub Action updates the database structure if needed.
 - **Not yet done by this session, left for whoever picks this up**: no feasibility check, no design (e.g. which migration tool/approach, whether it targets the live DirectAdmin/MariaDB host directly or a staged step, how it interacts with the existing `db/schema.sql`-plus-manual-apply model described in `docs/DEPLOY.md`, or the mandatory source/deployment separation rule this project otherwise follows strictly). Whoever takes this should start by reading `docs/DEPLOY.md` and `db/schema.sql` current state, and `docs/ORIENTATIONS.md` for this project's standing architectural principles, before proposing an approach.
+- **Priority note added 2026-09-03 (twentieth session), per Mahdi's explicit instruction**: this is now first in line among the two items below — do local-password account creation (#9) only after this one, so that feature's own schema changes don't need a manual DB update either.
+
+#### 9. Local email/password account creation — register, login, forgot password (NEW, requested 2026-09-03, not yet evaluated)
+- **Category:** Security & Identity
+- **Status:** REQUESTED BY MAHDI — recorded verbatim, deliberately not designed or scoped this session, same treatment as FEAT-005 above. **Sequenced explicitly after FEAT-005 (item 8)** — do not start this first.
+- **Request as given:** Google SSO is being deprioritized ("Google is a piece of shit for now, so we remove the button"); as a replacement/complement, allow users to create their own account with the app directly — registration, login, and a forgotten-password flow ("etcetera" — Mahdi's own word for the rest of the standard flow, not yet itemized further).
+- **Not yet done by this session, left for whoever picks this up**: no feasibility check, no design. This must integrate with FEAT-002's existing "Account model / migration constraint" section above — one user/authorization model shared with the Microsoft SSO accounts already in production, not a second parallel auth system. Whoever takes this should re-read that section, plus `SECURITY.md`'s existing authentication-architecture notes, before proposing a design (password hashing approach, session model reuse, rate-limiting on login/reset endpoints, reset-token expiry/delivery mechanism, and how a local account and a Microsoft-linked account for the same email should relate, if at all).
 
 ---
 
@@ -157,6 +165,13 @@ Do not use older roadmap priority wording as the active priority. This dated dec
   push, PHP tests gating it, GitHub Secrets for credentials) was found
   already in place, inspected for safety, and preserved rather than
   overwritten.
+- 2026-09-03: Microsoft SSO (BUG-036→039 saga) confirmed working end-to-end
+  by Mahdi in production. The "Continue with Google" button is removed from
+  the login screen (Google deprioritized for now); backend Google OAuth code
+  is kept, unlinked, not deleted. Local email/password account creation
+  (register/login/forgot-password) is the requested next auth-adjacent
+  feature, explicitly sequenced after FEAT-005 (database migrations) — see
+  items 8/9 in the Priority 1 queue above.
 
 
 ## Mandatory source/deployment separation
