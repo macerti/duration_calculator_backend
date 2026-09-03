@@ -105,9 +105,25 @@ export function useAuth(): AuthState & {
     if (Platform.OS === "web" && typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const authError = params.get("auth_error");
+      const authErrorDescription = params.get("auth_error_description");
       if (authError) {
         sawAuthError = true;
-        setError(decodeURIComponent(authError));
+        // authError itself is the raw OAuth error code (e.g. "invalid_request")
+        // — often meaningless on its own. When the provider also sent
+        // error_description (see BUG-038 in docs/BUGLOG.md — this used to be
+        // silently discarded server-side), show both so the banner is
+        // actually actionable instead of a bare code.
+        //
+        // No decodeURIComponent() here: URLSearchParams.get() already fully
+        // decodes the value (that's its job). Calling decodeURIComponent()
+        // again on an already-decoded string was a latent bug in the
+        // pre-existing state_mismatch/callback_failed handling — harmless
+        // there only because those two fixed strings never contain a literal
+        // "%". error_description is free-form provider text; double-decoding
+        // it would throw an uncaught URIError on any "%" not followed by two
+        // valid hex digits, crashing this effect instead of showing the
+        // banner. Fixed here rather than reproduced for the new field.
+        setError(authErrorDescription ? `${authError}: ${authErrorDescription}` : authError);
       }
       if (params.get("auth") === "ok") {
         sawAuthOk = true;

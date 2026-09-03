@@ -329,14 +329,26 @@ try {
         header('Content-Type: text/html; charset=utf-8', true);
         $appUrl = rtrim($config['app_url'] ?? '', '/');
 
-        $incomingState  = $_GET['state'] ?? '';
-        $expectedState  = sessionGetOAuthState();
-        $code           = $_GET['code'] ?? '';
-        $error          = $_GET['error'] ?? '';
+        $incomingState     = $_GET['state'] ?? '';
+        $expectedState     = sessionGetOAuthState();
+        $code              = $_GET['code'] ?? '';
+        $error             = $_GET['error'] ?? '';
+        $errorDescription  = $_GET['error_description'] ?? '';
 
         if ($error) {
+            // Microsoft itself rejected the request (this fires from Microsoft's
+            // own redirect, before our code ever runs) — always log the full
+            // error_description server-side (it carries the AADSTS code that
+            // actually explains why), per this project's "log detail
+            // server-side, keep the client message generic-but-useful" standard.
+            error_log('[duration_calculator] Microsoft OAuth error from provider: ' . $error
+                . ($errorDescription !== '' ? ' — ' . $errorDescription : ''));
             sessionClearOAuthState();
-            header('Location: ' . $appUrl . '/?auth_error=' . urlencode($error));
+            $redirect = $appUrl . '/?auth_error=' . urlencode($error);
+            if ($errorDescription !== '') {
+                $redirect .= '&auth_error_description=' . urlencode($errorDescription);
+            }
+            header('Location: ' . $redirect);
             http_response_code(302); exit;
         }
 
@@ -370,14 +382,21 @@ try {
         header('Content-Type: text/html; charset=utf-8', true);
         $appUrl = rtrim($config['app_url'] ?? '', '/');
 
-        $incomingState = $_GET['state'] ?? '';
-        $expectedState = sessionGetOAuthState();
-        $code          = $_GET['code'] ?? '';
-        $error         = $_GET['error'] ?? '';
+        $incomingState     = $_GET['state'] ?? '';
+        $expectedState     = sessionGetOAuthState();
+        $code              = $_GET['code'] ?? '';
+        $error             = $_GET['error'] ?? '';
+        $errorDescription  = $_GET['error_description'] ?? '';
 
         if ($error) {
+            error_log('[duration_calculator] Google OAuth error from provider: ' . $error
+                . ($errorDescription !== '' ? ' — ' . $errorDescription : ''));
             sessionClearOAuthState();
-            header('Location: ' . $appUrl . '/?auth_error=' . urlencode($error));
+            $redirect = $appUrl . '/?auth_error=' . urlencode($error);
+            if ($errorDescription !== '') {
+                $redirect .= '&auth_error_description=' . urlencode($errorDescription);
+            }
+            header('Location: ' . $redirect);
             http_response_code(302); exit;
         }
 

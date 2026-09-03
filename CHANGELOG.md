@@ -2,6 +2,17 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-03 (sixteenth session) — 5.1.4 — BUG-038: stopped discarding Microsoft/Google's `error_description`, so the "invalid_request" banner is finally diagnosable; also fixed a related crash-risk double-decode bug
+
+- **Bugfix version bump.** Mahdi retried Microsoft sign-in after BUG-037's fix and got a banner reading exactly `⚠ invalid_request` — a real Microsoft/Entra ID error code, correctly displayed for the first time (proving BUG-037's fix works), but useless on its own. Root cause: `src/backend/api/index.php`'s OAuth callback routes read `$_GET['error']` but never `$_GET['error_description']` — the field that actually carries Microsoft's explanation (usually a specific `AADSTS#####:` line).
+- Both the Microsoft and Google callback routes now log the full provider error server-side and forward `error_description` to the client as a new `auth_error_description` param; `useAuth.ts`'s banner now shows `<code>: <description>` instead of a bare code.
+- **Also fixed, caught while verifying the above**: `useAuth.ts` was calling `decodeURIComponent()` a second time on a value `URLSearchParams` had already fully decoded — harmless for the old two-word error codes, but would throw an uncaught `URIError` (blank screen instead of a banner) on any real-world `error_description` containing a literal `%`. Removed the redundant decode.
+- This does **not** fix Microsoft sign-in itself — the reason Microsoft is rejecting the request is still unknown. It makes that reason visible on the next attempt instead of silently discarding it. Full reasoning, two researched-but-unconfirmed candidate causes, and the exact next step in `docs/BUGLOG.md` BUG-038.
+- Verified: `npx tsc --noEmit` clean, `php -l` clean, `php tests/smoke_test.php` 24/24, `scripts/check-repo-hygiene.sh` clean, full `make build-deploy` passes all 4 artifact checks (fix confirmed present in the built artifact directly). Runtime string/decode logic verified three independent ways since this sandbox's CLI can't introspect real HTTP headers — see `docs/DEV_STATUS.md`'s sixteenth-session entry for the exact method.
+- Not deployed yet at commit time: source-only commit, per the mandatory source/deployment separation rule — CI publishes to `macerti/duration_calculator` on push to `main`. Confirm the publish workflow completed before asking Mahdi to retry.
+
+---
+
 ## 2026-09-02 (fifteenth session) — 5.1.3 — BUG-037: fixed a frontend bug masking SSO's real error; root cause of the sign-in failure itself still open
 
 - **Bugfix version bump.** `src/frontend/src/hooks/useAuth.ts` had a race condition: the OAuth callback's `?auth_error=` was detected and set into state, but the very next line (inside `fetchMe()`, called synchronously after) unconditionally reset that same state to `null` in the same React batch — so any real SSO failure always silently looked like "back to login, no message," regardless of what actually went wrong server-side.

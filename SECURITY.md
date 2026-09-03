@@ -39,6 +39,29 @@ factor justifications for certification decisions). Nothing here is
   and the full detail (including exact file/line) was confirmed present in
   the server log.
 
+### OAuth provider error detail shown to the client — deliberate, scoped exception to the rule above
+- **Risk**: Confidentiality — low, but real. `docs/BUGLOG.md` BUG-038 added
+  `auth_error_description` (Microsoft/Google's own `error_description` text,
+  e.g. an `AADSTS#####:` line) to the OAuth callback's client-facing
+  redirect, alongside logging it server-side.
+- **Why this doesn't get the generic-message treatment above**: that rule
+  is about *our own* unexpected exceptions, where the detail is internal
+  (file paths, stack traces, app-internal state) and the audience is
+  potentially anyone hitting the API. This is different on both counts —
+  the text is the identity provider's own public-facing error message, not
+  ours, and this app currently has exactly one person who will ever see
+  this specific banner (Mahdi, via `docs/DEV_STATUS.md`'s SSO investigation)
+  with no reliable channel back to a session that can read host logs
+  otherwise. Requiring host log access to report a diagnosable string back
+  would have stalled BUG-038 the same way BUG-030/031 stalled on host
+  access.
+- **Status**: Accepted as a deliberate, scoped tradeoff — not an oversight.
+  **Revisit if this app ever gets a second real user of the SSO flow**: at
+  that point a stranger's OAuth failure text going into a URL any onlooker
+  could see over their shoulder is a different calculus than Mahdi
+  diagnosing his own login attempt, and the fix should move to
+  logs-only-plus-a-generic-banner like the rule above.
+
 ### Backup/editor-swap files blocked
 - **Risk**: Confidentiality — `config.php~`, `config.php.bak`, `.swp` files
   (left behind by some editors, or a careless `cp config.php config.php.bak`
