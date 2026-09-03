@@ -2,6 +2,18 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-03 (seventeenth session) — 5.1.5 — BUG-038 root cause confirmed (AADSTS9002325 — Azure Portal redirect URI registered as SPA instead of Web); BUG-037 resolved by the same evidence; added a known-cause hint for this specific error
+
+- **Bugfix version bump — hardening only, no behavior change for any other error path.** Mahdi retried Microsoft sign-in with 5.1.4's fix live and reported the exact banner text asked for: `⚠ invalid_request: Proof Key for Code Exchange is required for cross-origin authorization code redemption.` This is Microsoft's documented **AADSTS9002325**.
+- **Root cause identified, cross-checked against multiple independent real-world reports of the identical error against the identical architecture shape (confidential/server-side app, redirect URI mis-registered under Azure Portal's "Single-page application" platform instead of "Web")**: `src/backend/auth/MicrosoftOAuth.php` does a pure confidential-client exchange (`client_id`+`client_secret`+`code` via server-side `curl` POST, zero PKCE parameters anywhere in this codebase — confirmed by grep) — exactly the shape that triggers AADSTS9002325 when the redirect URI is registered as SPA instead of Web.
+- **This also resolves BUG-037**: its two remaining candidates (session-persistence, wrong client secret) are both ruled out by this evidence — neither produces Microsoft's own `invalid_request` code. BUG-037 is now cross-referenced to BUG-038 rather than left as an open, superseded mystery.
+- **The actual fix is an Azure Portal configuration change, not a code change** — move the redirect URI from the "Single-page application" section to "Web" in App registrations → Authentication. Cannot be applied from this sandbox; exact steps are in `docs/BUGLOG.md` BUG-038.
+- **Small source hardening added anyway**: `useAuth.ts` now recognizes `AADSTS9002325` specifically and appends a one-line pointer to the known cause and fix, so a future regression of the same config mistake (e.g. if Google's app registration gets the same platform-type mistake) is immediately actionable from the on-screen banner alone, without needing another full diagnosis round-trip.
+- Verified: `npx tsc --noEmit` clean (including a full `npm ci` from a clean `node_modules` against the regenerated lockfile), `php -l` clean, `php tests/smoke_test.php` 24/24 (unaffected — no backend/engine code touched this session), `scripts/check-repo-hygiene.sh` clean.
+- Not deployed yet at commit time: source-only commit, per the mandatory source/deployment separation rule — CI publishes to `macerti/duration_calculator` on push to `main`.
+
+---
+
 ## 2026-09-03 (sixteenth session) — 5.1.4 — BUG-038: stopped discarding Microsoft/Google's `error_description`, so the "invalid_request" banner is finally diagnosable; also fixed a related crash-risk double-decode bug
 
 - **Bugfix version bump.** Mahdi retried Microsoft sign-in after BUG-037's fix and got a banner reading exactly `⚠ invalid_request` — a real Microsoft/Entra ID error code, correctly displayed for the first time (proving BUG-037's fix works), but useless on its own. Root cause: `src/backend/api/index.php`'s OAuth callback routes read `$_GET['error']` but never `$_GET['error_description']` — the field that actually carries Microsoft's explanation (usually a specific `AADSTS#####:` line).

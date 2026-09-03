@@ -83,6 +83,12 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 - **Status:** P1 TESTING DEBT
 - **Objective:** Move `src/backend/tests/` to top-level `tests/backend/` and introduce automated Jest/Vitest unit tests for frontend wizard calculation state and hooks to eliminate reliance on purely manual validation.
 
+#### 8. FEAT-005 — Automated database schema migration on push (NEW, requested 2026-09-03, not yet evaluated)
+- **Category:** Infrastructure / DevOps
+- **Status:** REQUESTED BY MAHDI — recorded verbatim, deliberately not designed or scoped by this session per his explicit instruction ("no need to evaluate this new request just write it, other devs will check it better").
+- **Request as given:** database migration so that if there is an update in tables, it's enough to push so that the GitHub Action updates the database structure if needed.
+- **Not yet done by this session, left for whoever picks this up**: no feasibility check, no design (e.g. which migration tool/approach, whether it targets the live DirectAdmin/MariaDB host directly or a staged step, how it interacts with the existing `db/schema.sql`-plus-manual-apply model described in `docs/DEPLOY.md`, or the mandatory source/deployment separation rule this project otherwise follows strictly). Whoever takes this should start by reading `docs/DEPLOY.md` and `db/schema.sql` current state, and `docs/ORIENTATIONS.md` for this project's standing architectural principles, before proposing an approach.
+
 ---
 
 ### Priority 2 (P2) — For Later (Future Backlog)

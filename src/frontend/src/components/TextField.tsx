@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TextInput, StyleSheet } from "react-native";
+import { colors, radius, spacing, typography } from "../theme/tokens";
 
 interface Props {
   label: string;
@@ -30,7 +31,7 @@ export default function TextField({ label, value, onChangeText, placeholder }: P
           keyboardType="default"
           autoCapitalize="sentences"
           placeholder={placeholder}
-          placeholderTextColor="#999"
+          placeholderTextColor={colors.contentQuaternary}
         />
       </View>
     </View>
@@ -38,8 +39,8 @@ export default function TextField({ label, value, onChangeText, placeholder }: P
 }
 
 const styles = StyleSheet.create({
-  row: { marginBottom: 12 },
-  label: { fontSize: 13, color: "#444", marginBottom: 4 },
-  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#ddd", borderRadius: 8, paddingHorizontal: 10 },
-  input: { flex: 1, paddingVertical: 10, fontSize: 15 },
+  row: { marginBottom: spacing.md },
+  label: { fontSize: typography.body, color: colors.contentSecondary, marginBottom: spacing.xs },
+  inputWrap: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: colors.borderDefault, borderRadius: radius.md, paddingHorizontal: spacing.sm + 2 },
+  input: { flex: 1, paddingVertical: spacing.sm + 2, fontSize: typography.subtitle },
 });

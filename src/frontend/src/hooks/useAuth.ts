@@ -123,7 +123,23 @@ export function useAuth(): AuthState & {
         // it would throw an uncaught URIError on any "%" not followed by two
         // valid hex digits, crashing this effect instead of showing the
         // banner. Fixed here rather than reproduced for the new field.
-        setError(authErrorDescription ? `${authError}: ${authErrorDescription}` : authError);
+        //
+        // AADSTS9002325 has a known, fully-diagnosed cause in this app (see
+        // BUG-038 in docs/BUGLOG.md): the redirect URI is registered under
+        // Azure Portal's "Single-page application" platform type instead of
+        // "Web", which makes Entra ID require PKCE even though this backend
+        // does a confidential/server-side exchange. If this fires again
+        // (e.g. someone edits the app registration back, or Google gets the
+        // same platform-type mistake), point straight at the fix instead of
+        // making the next session re-derive it from a bare AADSTS code.
+        const knownCauseHint = authErrorDescription?.includes("AADSTS9002325")
+          ? " — known cause: redirect URI is registered as \"Single-page application\" in Azure Portal instead of \"Web\" (see docs/BUGLOG.md BUG-038)."
+          : "";
+        setError(
+          authErrorDescription
+            ? `${authError}: ${authErrorDescription}${knownCauseHint}`
+            : authError
+        );
       }
       if (params.get("auth") === "ok") {
         sawAuthOk = true;
