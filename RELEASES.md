@@ -19,6 +19,26 @@ reading both repos' commit logs side by side.
 
 ## Entries (newest first)
 
+### 2026-09-02 — BUG-036 fix: deployment artifact was missing src/backend/auth/ (full production outage)
+- Source commit: `c53b42f` (fix: BUG-036 — deployment artifact missing
+  src/backend/auth/, full API outage (5.1.2)). See `docs/BUGLOG.md` BUG-036
+  and `docs/DEV_STATUS.md`'s fourteenth-session entry for full reasoning
+  and evidence.
+- Deployment-artifact commit: `ca69708` (`macerti/duration_calculator`,
+  `build: publish artifact from duration_calculator_source`). CI run
+  (GitHub Actions run `33713087046`) completed `success`. Confirmed via
+  the GitHub API that `auth/` now exists in that repo with all three
+  files (`GoogleOAuth.php`, `MicrosoftOAuth.php`, `OAuthSession.php`) —
+  not just that the commit landed, but that the specific missing content
+  is actually there this time.
+- Live status: that repository's own "Déploiement — tools.macerti.com/duration_calculator"
+  FTP workflow completed `success` for commit `ca69708` (2026-09-03T03:56:05Z).
+  **Not independently confirmed against the live host responding correctly**
+  — this session had no network path to `tools.macerti.com` itself (same
+  limitation as BUG-031). Whoever can reach the domain next: confirm
+  `GET https://tools.macerti.com/duration_calculator/api/health` returns
+  its JSON payload, and do one real Microsoft-login click-through.
+
 ### 2026-09-02 — repository architecture consolidation (this session)
 - Source commit: `c261b88` (refactor: repository architecture consolidation),
   plus `447a725` (docs: BUG-031 + ninth-session logs). See
