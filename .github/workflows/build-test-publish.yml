@@ -75,10 +75,10 @@ jobs:
           PHP
           php -r '$c=require "config.php"; var_export(["host"=>$c["db"]["host"],"port"=>$c["db"]["port"],"name"=>$c["db"]["name"],"user"=>$c["db"]["user"]]); echo PHP_EOL; require "db/pdo.php"; echo AuditEngine\pingDb() ? "PDO MariaDB connection: OK\n" : "PDO MariaDB connection: FAILED\n"; if (!AuditEngine\pingDb()) exit(1);'
 
-      - name: Install schema and seed parameters
+      - name: Run database migrations
         working-directory: src/backend
         run: |
-          mariadb -h127.0.0.1 -P3306 -uaudit -paudit audit_test < db/schema.sql
+          php db/migrate.php
           php seed.php
 
       - name: Run PHP engine smoke tests
