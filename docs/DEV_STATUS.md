@@ -1186,3 +1186,6 @@ While Part 1/2 above were in progress, four commits landed on `origin/main` from
 **Dependency / hand-off**: item 1 needs Mahdi (or host access) directly — nothing else in this list should be treated as done until that's confirmed, since a next session assuming SSO is fixed without checking would be repeating this exact session's own opening mistake (trusting CI-only verification for something that only matters in production). Item 2 is real, scoped infrastructure work with no other blockers. Item 3 has zero blockers and was already fully scoped by the twenty-sixth session.
 
 ---
+**UPDATE (same day, following message) — BUG-045 CONFIRMED CLOSED.** Mahdi applied the migration himself and confirmed: "i updated it and logged in using Microsoft it worked perfectly." The production lockout is fully resolved. He also asked directly whether pushes now update the database automatically — answered: no, confirmed not automatic; CI only migrates its own test database, production still needs this same manual step on every future push that adds a new `db/migrations/*.sql` file, until `docs/ROADMAP.md` item 0 (the automated production-migration endpoint) is actually built. **That item is now the top-priority open task** — nothing else is blocking it, and this incident is the concrete proof of why it matters, not just a theoretical nice-to-have.
+
+---

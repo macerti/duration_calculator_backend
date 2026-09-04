@@ -9,6 +9,7 @@ Same versioning convention as the other projects: **x** = overhaul, **y** = feat
 - Migration `002` itself is confirmed safe (purely additive: 8 `CREATE TABLE` + 5 `INSERT IGNORE`, nothing destructive). The fix is operational: run `php db/migrate.php` (or the phpMyAdmin fallback) against production — full runbook in `docs/BUGLOG.md` BUG-045. This sandbox has no host/SSH access to do it directly.
 - Closed the documentation gap that let this happen silently: `docs/DEPLOY.md` step 5 rewritten from its stale pre-FEAT-005 wording to describe `migrate.php`, with an explicit warning that this step is manual and must be run after every push containing a new migration file. Added a new urgent item 0 to `docs/ROADMAP.md`'s P1 list scoping the real fix (an authenticated `POST /api/migrate` endpoint the deploy workflow can call automatically).
 - **Not yet confirmed**: whether running the runbook actually restores production SSO — needs Mahdi (or host access) to execute and confirm.
+- **UPDATE, same day**: Mahdi confirmed — applied the migration himself, Microsoft sign-in works again. Incident closed; the underlying automation gap (`docs/ROADMAP.md` item 0) remains open and is now top priority.
 
 ---
 
