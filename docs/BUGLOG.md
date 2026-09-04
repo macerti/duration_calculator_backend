@@ -1179,7 +1179,7 @@ return ($result['cnt'] ?? 0) > 0;
 
 ### BUG-043 — the idempotent-guard SQL pattern documented as this project's official template for *all future migrations* breaks the connection the moment its "nothing to do" branch fires
 
-**Status: STRUCTURAL FIX APPLIED AT THE FRAMEWORK LEVEL (`Migrations.php`); NOT YET RE-VERIFIED END-TO-END. This is the most important open item for the next session — read the "Not done / open" section below before assuming migrations work now.**
+**Status: CLOSED — FIXED AND VERIFIED END-TO-END, both locally and on real GitHub Actions CI. See the 2026-09-04 (twenty-third session) update at the end of this entry for the full verification record.**
 
 **Discovered while re-testing after the BUG-042 fix** — the exact same MySQL error 2014 as BUG-042 reappeared, but at a later statement, with `isAlreadyApplied()` no longer implicated (already fixed and separately confirmed working — see above). This is a **different root cause that happens to produce an identical symptom**, not a recurrence of BUG-042. Pinned down precisely using a purpose-built debug script (`/tmp/debug_migrate.php`, not committed — a throwaway diagnostic, described here so a future session can rebuild the same technique instead of re-deriving it) that executed the real, unmodified `001_initial_schema.sql` statement-by-statement via reflection into the real `Migrations` class, printing `inTransaction()` state after every single statement: statement `EXECUTE stmt_idx` succeeded; the very next statement, `DEALLOCATE PREPARE stmt_idx`, is what failed.
 
@@ -1203,5 +1203,26 @@ return ($result['cnt'] ?? 0) > 0;
 5. **Nothing from this session (BUG-040 through BUG-043) has been pushed yet at the time this entry was written.** `git status` at that point showed exactly two modified files: `src/backend/db/migrate.php` and `src/backend/db/Migrations.php`. `001_initial_schema.sql` and `migrations/README.md` are unmodified. This is being committed and pushed now as **documentation plus the fixes-so-far**, per explicit instruction, to make sure the analysis and the precise remaining gap are not lost, even though the fix is not yet proven end-to-end. **Do not tell Mahdi migrations are fixed until step 2 above has actually been run and passed.**
 
 **Dependency / hand-off**: entirely actionable by the next sandbox session — no host/browser access or live evidence needed, unlike the SSO saga above. Everything required to finish this is either already in this repo or described precisely in this entry.
+
+---
+
+**2026-09-04 (twenty-third session) — CLOSED. Full re-verification done, plus real CI confirmation, plus the deferred content-level fix.**
+
+**First finding, worth recording precisely**: before doing any new work, this session checked the GitHub Actions REST API `/actions/runs` endpoint for the current `main` HEAD (`7736577`, the twenty-second session's own push) and found **it had already gone green on its own** — run `33837469083`, all 20 real steps `completed`/`success`, including step 9 "Run database migrations," ending in a successful publish to `macerti/duration_calculator`. So the framework-level `query()`+`closeCursor()` fix from the previous entry above was, in fact, already sufficient in the real CI environment — the "not yet re-verified end-to-end" caveat this entry carried was accurate at the time it was written, but had already been overtaken by a real green run by the time this session started. Recorded here so nobody has to re-discover this by re-running CI from scratch.
+
+**Local re-verification performed anyway** (per this entry's own step-2 instructions, and because CI passing doesn't substitute for the documented local idempotence check): fresh sandbox, `apt-get install php-cli php-mysql mariadb-server mariadb-client` (PHP 8.3.6 / MariaDB 10.11.14, matching CI exactly), `service mariadb start && sleep 3` in the same shell invocation as everything else (per this file's own established gotcha), `config.php` built byte-for-byte identical to the CI workflow's own heredoc (`host=127.0.0.1`, `audit_test`/`audit`/`audit`, `debug: true`). Full sequence, all in one shell invocation:
+1. `php db/migrate.php` on a fresh DB → `Applied: 1 new, Skipped: 0` ✅
+2. `php db/migrate.php` again → `Applied: 0 new, Skipped: 1 (already applied)` — idempotence confirmed ✅
+3. `php seed.php` → seeded `default-v1` ✅
+4. `php tests/smoke_test.php` → **24 passed, 0 failed** ✅
+5. `php -S` + `/health` → `{"status":"ok",...,"dbConnected":true}` ✅
+6. `php tests/http_api_test.php` → **16 passed, 0 failed** (this needed `php-curl` and `php-mbstring` installed too — both missing initially in this fresh sandbox; not app bugs, just sandbox extension gaps, matching CI's own `extensions: pdo_mysql,mbstring,curl` setup-php step) ✅
+7. `scripts/check-repo-hygiene.sh` → all 4 checks pass ✅
+
+**Deferred content-level fix, now applied**: replaced all 5 occurrences of the `'SELECT 1'` no-op placeholder in `001_initial_schema.sql`'s idempotent guards, and all 8 occurrences in `db/migrations/README.md`'s template/examples, with `'DO 0'` — a statement that structurally can never return a result set, removing the dependency on `query()`+`closeCursor()` correctly draining an accidental `SELECT` in every future migration that copies this template. Confirmed by `grep` that zero `'SELECT 1'` occurrences remain in either file. **Re-ran the entire 7-step sequence above a second time, against a freshly dropped-and-recreated `audit_test` database, with this content fix in place** — identical results (1 new/0 skipped → 0 new/1 skipped → seed OK → 24/24 → 16/16 → hygiene clean). This is not a redundant re-check: it confirms the content fix didn't change behavior (as intended — it's defense-in-depth, not a behavior change) rather than just assuming it based on the framework-level fix alone.
+
+**Not done / open**: none for BUG-040 through BUG-043 — all four are now fixed, locally re-verified twice (once framework-fix-only, once with the content fix added), and confirmed green on real GitHub Actions CI. FEAT-005 (see `docs/ROADMAP.md` item 8 and `docs/DEV_STATUS.md`) can now be marked done rather than CI-blocked. The one remaining FEAT-005-adjacent item is **not a bug**: the HTTP API endpoint (`POST /api/migrate`) mentioned as a future enhancement in `db/migrations/README.md` was never implemented and isn't needed for the current CLI-via-CI flow — leave it as a backlog idea, not a defect.
+
+**Files changed this session for this fix**: `src/backend/db/migrations/001_initial_schema.sql`, `src/backend/db/migrations/README.md` (both: `'SELECT 1'` → `'DO 0'` only, no other changes). `Migrations.php` and `migrate.php` are unmodified from the twenty-second session's already-verified fix.
 
 ---

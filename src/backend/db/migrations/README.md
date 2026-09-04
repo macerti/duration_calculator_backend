@@ -85,7 +85,7 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
   'ALTER TABLE existing_table ADD COLUMN new_column VARCHAR(255) NULL AFTER some_field',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -100,7 +100,7 @@ SET @has_index := (
 );
 SET @sql_idx := IF(@has_index = 0,
   'ALTER TABLE some_table ADD KEY idx_new_index (column_name)',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt_idx FROM @sql_idx;
 EXECUTE stmt_idx;
@@ -119,7 +119,7 @@ SET @fk_exists := (
 );
 SET @sql_fk := IF(@fk_exists = 0,
   'ALTER TABLE table_name ADD CONSTRAINT fk_constraint_name FOREIGN KEY (fk_column) REFERENCES ref_table(id) ON DELETE CASCADE',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt_fk FROM @sql_fk;
 EXECUTE stmt_fk;
@@ -149,7 +149,7 @@ SET @col_exists := (
 );
 SET @sql := IF(@col_exists = 0,
   'ALTER TABLE users ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER email',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -167,7 +167,7 @@ SET @has_index := (
 );
 SET @sql_idx := IF(@has_index = 0,
   'ALTER TABLE users ADD KEY idx_users_email (email)',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt_idx FROM @sql_idx;
 EXECUTE stmt_idx;
@@ -188,7 +188,7 @@ SET @fk_exists := (
 );
 SET @sql_fk := IF(@fk_exists = 0,
   'ALTER TABLE orders ADD CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt_fk FROM @sql_fk;
 EXECUTE stmt_fk;
@@ -213,7 +213,7 @@ SET @fk_name := (
 );
 SET @sql_drop := IF(@fk_name IS NOT NULL,
   CONCAT('ALTER TABLE orders DROP FOREIGN KEY `', @fk_name, '`'),
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt_drop FROM @sql_drop;
 EXECUTE stmt_drop;
@@ -229,7 +229,7 @@ SET @fk_exists := (
 );
 SET @sql_add := IF(@fk_exists = 0,
   'ALTER TABLE orders ADD CONSTRAINT fk_orders_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt_add FROM @sql_add;
 EXECUTE stmt_add;

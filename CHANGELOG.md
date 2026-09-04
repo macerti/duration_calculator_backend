@@ -2,6 +2,15 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-04 (twenty-third session) — no version bump (infrastructure-only, no user-visible change) — FEAT-005 CLOSED: CI confirmed green, full re-verification, deferred content fix applied
+
+- **No version bump**: per `docs/ROADMAP.md`'s own versioning rule ("classification is based on the resulting user-visible change, not internal effort") — this session's work is CI/deployment-pipeline reliability, with no change to app behavior for any current user. The prior BUG-036/BUG-030/031 version bumps were for defects users actually experienced (production API outage/404s); this was a pipeline gap that would only have bitten a *future* schema-dependent deploy, and never reached production.
+- **Confirmed the real GitHub Actions run on the twenty-second session's push (`7736577`) was already fully green** (all 20 steps, including the previously-failing migration step), via the Actions API — the "not yet re-verified" caveat that session left was accurate when written but had already been resolved by a real CI run before this session started.
+- Re-verified the full local sequence end-to-end anyway (fresh DB → migrate → migrate again for idempotence → seed → 24/24 PHP smoke tests → 16/16 HTTP regression → repo hygiene), replicating CI's exact PHP/MariaDB versions and extension set.
+- Applied the deferred defense-in-depth fix flagged by the previous session: replaced all `'SELECT 1'` idempotent-guard no-op placeholders with `'DO 0'` in `001_initial_schema.sql` and `db/migrations/README.md`'s template (13 occurrences total) — a statement that structurally can never return a result set. Re-verified the full sequence a second time with this change in place; identical pass results.
+- **BUG-040 through BUG-043 all CLOSED.** FEAT-005 (automated DB migrations on push) is DONE, not just implemented — see `docs/ROADMAP.md` item 8 and `docs/BUGLOG.md` for full detail.
+- Reviewed all other open bug entries (BUG-025–029, BUG-035): all are either source-complete pending Mahdi's own live-device verification, or explicitly P2/backlog — nothing else was sandbox-actionable this session.
+
 ## 2026-09-04 (twenty-second session) — no version bump (fix in progress, not yet verified end-to-end) — investigated and mostly fixed the CI failure on FEAT-005's migration runner (BUG-040→043)
 
 - **No version bump**: this session's fixes are not yet confirmed working end-to-end (see below), and the feature they belong to (FEAT-005) was never itself confirmed shipped — bumping a version number now would overstate what's actually verified. Full detail in `docs/BUGLOG.md` BUG-040 through BUG-043 and `docs/DEV_STATUS.md`'s twenty-second-session entry; only a summary here.

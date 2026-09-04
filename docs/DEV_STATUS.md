@@ -1033,3 +1033,28 @@ While Part 1/2 above were in progress, four commits landed on `origin/main` from
 
 ---
 
+
+## 2026-09-04 (twenty-third session) — FEAT-005 CLOSED: CI confirmed green, full local re-verification, deferred content-level fix applied
+
+**Trigger**: Mahdi's standing instruction, repeated verbatim across recent sessions: check for CI errors and solve them, then bugs, then features by priority, with technical debt as a continuous non-deferrable stream, ending every session with a push and a log update so the next developer (human or AI) can continue without re-deriving prior work.
+
+**Environment**: fresh sandbox, PAT-cloned. Installed `php-cli`, `php-mysql`, `php-curl`, `php-mbstring`, `mariadb-server`, `mariadb-client` (PHP 8.3.6, MariaDB 10.11.14) — matching CI's `shivammathur/setup-php` extension set (`pdo_mysql,mbstring,curl`) exactly; the previous session's local testing had stopped short of installing `curl`/`mbstring`, which briefly showed up as two false "regressions" in this session before being correctly identified as sandbox setup gaps, not app bugs (see BUGLOG BUG-043's twenty-third-session update for detail).
+
+**DONE / VERIFIED this session**:
+1. **Confirmed via the GitHub Actions REST API that CI was already green** on the twenty-second session's push (`7736577`) — all 20 real steps passed, including the previously-failing "Run database migrations" step, ending in a successful publish to `macerti/duration_calculator`. This was true *before* any new work this session — the twenty-second session's framework-level fix (`query()`+`closeCursor()`) was sufficient on its own in the real CI environment.
+2. **Full local re-verification performed anyway**, replicating CI's `config.php` and DB setup byte-for-byte: fresh-DB migration apply, second-run idempotence check, seed, 24/24 PHP smoke tests, live API health check, 16/16 HTTP regression tests, repo hygiene script — all passed. See `docs/BUGLOG.md` BUG-043's twenty-third-session update for the exact sequence and evidence.
+3. **Applied the deferred defense-in-depth fix**: `'SELECT 1'` → `'DO 0'` in all 5 occurrences in `src/backend/db/migrations/001_initial_schema.sql` and all 8 occurrences in `src/backend/db/migrations/README.md`'s template. Re-ran the entire local verification sequence a second time against a fresh database with this fix in place — identical pass results, confirming no behavior change (as intended).
+4. **BUG-040 through BUG-043 all now CLOSED** in `docs/BUGLOG.md`. FEAT-005 is DONE, not just "implemented" — schema changes now ship automatically on push, no manual DB step required.
+5. **Checked all other open bug entries** (BUG-025 through BUG-029, BUG-035) for anything sandbox-actionable: none found. BUG-025/026/027 are source-complete, blocked only on Mahdi's own real-device/browser click-through (repeatedly documented across sessions two/three as impossible from this sandbox). BUG-028 is fixed, awaiting the same. BUG-029 is explicitly P2/backlog. BUG-035's only gap is the same live-device constraint. None of these represent code that can be written or fixed without live evidence from Mahdi.
+6. **Technical debt (design-token migration, item 6): continued.** See this file's own next dated entry (same session) for `ErrorBoundary.tsx`.
+
+**NOT DONE / open**:
+1. No new feature work started (item 9, local account creation) — per Mahdi's own explicit sequencing this should get a full dedicated session for the auth-model design questions already flagged in `docs/ROADMAP.md` item 9, not a fraction of a session after a bug-fix push.
+2. The `POST /api/migrate` HTTP endpoint mentioned as a future enhancement in `db/migrations/README.md` remains unimplemented — not needed for the current CI-driven flow, left as backlog.
+3. BUG-025/026/027/028/035's live-device verification gap is unchanged — still needs Mahdi's own hands-on testing, not sandbox work.
+
+**Files changed this session (this fix)**: `src/backend/db/migrations/001_initial_schema.sql`, `src/backend/db/migrations/README.md`, `docs/BUGLOG.md`, `docs/DEV_STATUS.md` (this entry), `docs/ROADMAP.md`, `CHANGELOG.md`.
+
+**DEPENDENCY / HAND-OFF for the next developer**: FEAT-005 is done — don't reopen without new contradicting CI evidence. Next priorities in order per `docs/ROADMAP.md`: (1) local account creation (item 9) — needs a full design pass, not a quick chunk; (2) continue design-token migration (item 6) — see this session's own tech-debt entry below for what's left; (3) BUG-029 production audit whenever P2 work is picked up. Always re-check GitHub Actions status via the `/actions/runs` and `/actions/runs/{id}/jobs` API endpoints (documented in BUG-040) before assuming a previous session's "not yet verified" caveat is still accurate — as this session found, a real CI run can resolve it before anyone reads the note.
+
+---

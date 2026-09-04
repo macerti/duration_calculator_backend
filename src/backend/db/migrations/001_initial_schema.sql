@@ -86,7 +86,7 @@ SET @sql := IF(@col_exists = 0,
      ADD COLUMN rounding_overrides_json LONGTEXT NULL AFTER result_json,
      ADD CONSTRAINT fk_calculation_cases_client FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE,
      ADD KEY idx_calculation_cases_client_id (client_id)',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt FROM @sql;
 EXECUTE stmt;
@@ -103,7 +103,7 @@ SET @has_client_idx := (
 );
 SET @sql_idx := IF(@has_client_idx = 0,
   'ALTER TABLE calculation_cases ADD KEY idx_calculation_cases_client_id (client_id)',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt_idx FROM @sql_idx;
 EXECUTE stmt_idx;
@@ -128,7 +128,7 @@ SET @needs_fix := (
 -- Step 1: Drop old non-CASCADE FK if it exists and needs fixing
 SET @sql2a := IF(@fk_name IS NOT NULL AND @needs_fix > 0,
   CONCAT('ALTER TABLE calculation_cases DROP FOREIGN KEY `', @fk_name, '`'),
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt2a FROM @sql2a;
 EXECUTE stmt2a;
@@ -143,7 +143,7 @@ SET @fk_name2 := (
 );
 SET @sql2b := IF(@fk_name2 IS NULL,
   'ALTER TABLE calculation_cases ADD CONSTRAINT fk_calculation_cases_client FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt2b FROM @sql2b;
 EXECUTE stmt2b;
@@ -159,7 +159,7 @@ SET @wiz_col_exists := (
 );
 SET @sql3 := IF(@wiz_col_exists = 0,
   'ALTER TABLE calculation_cases ADD COLUMN wizard_state_json LONGTEXT NULL AFTER rounding_overrides_json',
-  'SELECT 1'
+  'DO 0'
 );
 PREPARE stmt3 FROM @sql3;
 EXECUTE stmt3;
