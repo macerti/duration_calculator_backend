@@ -1095,3 +1095,4 @@ While Part 1/2 above were in progress, four commits landed on `origin/main` from
 - Re-run the full local sequence (fresh DB → migrate twice → the new routes' own tests → `smoke_test.php` → `http_api_test.php` → hygiene script) before pushing the next chunk, same discipline as the twenty-second/third sessions.
 
 ---
+**Post-push confirmation (same session)**: GitHub Actions run `33867358419` on commit `8a844dc` confirmed **green, all 22 steps**, including "Run database migrations" against `002_add_auth_and_rbac.sql` on the real CI database, and "Publish deployment artifact" succeeded. So the migration is now confirmed working in CI, not just locally — directly answering Mahdi's stated skepticism about whether a DB-structure-changing push would actually work.
