@@ -2,6 +2,13 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-04 (twenty-sixth session) — 5.1.9 — BUG-044 CLOSED: Mailer.php MIME boundary renamed, CI hygiene check green again
+
+- **BUG-044 fixed**: `src/backend/auth/Mailer.php`'s MIME boundary prefix (`'audit-app-' . bin2hex(...)`) coincidentally matched `scripts/check-repo-hygiene.sh`'s stale-pre-restructure-path regex, failing CI's very first step on every push since `f45129d`. Renamed to `'ddc-mail-'` — no functional change, pure string rename.
+- Re-verified the entire standing local sequence against the fix, against the actual CI-matching MariaDB version (10.11.14) and PHP version (8.3): hygiene check (4/4), migrations (idempotent, re-run twice), seed, `smoke_test.php` (24/24), `http_api_test.php` against a live server (**42/42**), frontend typecheck + Expo web export, full deploy-artifact assembly + `check-deploy-artifact.sh` (4/4). All green.
+- **Documentation gap also closed**: `config.example.php` had no `'mail'` key template even though `Mailer.php` already documented the shape it expects — added a commented `'mail'` block (driver, host/port/encryption/username/password, from_email/from_name) so the SMTP settings Mahdi needs to supply for `info@macerti.com` have an obvious home.
+- Full root-cause and verification detail: `docs/BUGLOG.md` BUG-044.
+
 ## 2026-09-04 (twenty-fifth session, addendum) — CI RED on f45129d, root cause diagnosed (BUG-044), fix not yet applied
 
 - Pushed commit `f45129d` (see entry below) triggered CI run `33925751962`, which **failed** at the "Repository hygiene checks" step — every later step (migrations, HTTP tests, frontend build, publish) was skipped as a result.

@@ -51,5 +51,30 @@ return [
     // Google OAuth 2.0 — from console.cloud.google.com → Credentials
     'google_client_id'     => 'YOUR_GOOGLE_CLIENT_ID',
     'google_client_secret' => 'YOUR_GOOGLE_CLIENT_SECRET',
+
+    // -----------------------------------------------------------------
+    // Mail — verification emails, password-reset links, etc.
+    // See src/backend/auth/Mailer.php's own header comment for the full
+    // driver contract. Two drivers:
+    //   'log'  — writes emails to a local file instead of sending them.
+    //            Safe default; no other 'mail' keys are required.
+    //   'smtp' — real sending through an actual mailbox, e.g.
+    //            info@macerti.com. Uncomment and fill in the block below.
+    // Never commit real SMTP credentials — keep them only in the live
+    // config.php (already gitignored, like the 'db' credentials above).
+    // -----------------------------------------------------------------
+    'mail' => [
+        'driver' => 'log',
+        // 'log_path' => '/tmp/audit_app_mail_log.txt', // optional, only used by 'log'
+
+        // Uncomment for real sending and set 'driver' => 'smtp' above:
+        // 'host'       => 'mail.macerti.com',        // your mail provider's SMTP host
+        // 'port'       => 587,                        // 587 (STARTTLS) or 465 (implicit TLS)
+        // 'encryption' => 'tls',                       // 'tls' | 'ssl' | ''
+        // 'username'   => 'info@macerti.com',
+        // 'password'   => 'YOUR_MAILBOX_PASSWORD',
+        // 'from_email' => 'info@macerti.com',          // required once driver is 'smtp'
+        // 'from_name'  => 'Macerti',                   // required once driver is 'smtp'
+    ],
 ];
 

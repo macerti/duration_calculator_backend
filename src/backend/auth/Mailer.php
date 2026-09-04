@@ -139,7 +139,7 @@ function sendMailViaSmtp(array $mailConfig, string $toEmail, string $toName, str
     $send('DATA');
     $expect('DATA');
 
-    $boundary = 'audit-app-' . bin2hex(random_bytes(8));
+    $boundary = 'ddc-mail-' . bin2hex(random_bytes(8));
     $headers = [
         'From: ' . encodeHeader($fromName) . " <$fromEmail>",
         'To: ' . encodeHeader($toName) . " <$toEmail>",
