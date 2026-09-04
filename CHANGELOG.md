@@ -2,6 +2,15 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-04 (twenty-fourth session) — no version bump (backend data layer only, nothing user-reachable yet) — local accounts + RBAC: schema and repo layer designed, built, and verified
+
+- **No version bump**: nothing shipped this session is reachable by a user yet — no HTTP route, no UI change. Per `docs/ROADMAP.md`'s versioning rule, this is recorded as in-progress infrastructure, not a feature release.
+- Found that despite prior SSO sessions, **this app had no `users` table at all** — Microsoft SSO only ever wrote to the PHP session, never the database. Confirmed before designing anything.
+- New migration `002_add_auth_and_rbac.sql`: `users`, `roles`, `permissions`, `role_permissions`, `user_identities`, `email_verification_tokens`, `password_reset_tokens`, `rate_limits` — seeded with 3 default roles (administrateur/technicien/utilisateur) and 6 starting permissions. Verified idempotent (fresh apply + clean second-run no-op) against real MariaDB 10.11.14.
+- New backend repo files — `userRepo.php`, `roleRepo.php`, `permissionRepo.php`, `rateLimiter.php` — covering local registration (first-user-becomes-admin bootstrap), link-based email verification and password reset tokens, explicit SSO account-linking (no duplicate users for one email across Microsoft/local), role/permission CRUD with last-admin-lockout protection, and a DB-backed rate limiter. Exercised with 25 assertions against a real database before commit (script not committed, per this project's own convention).
+- **Not wired into `api/index.php` yet** — no `/auth/*` or `/admin/*` routes exist, no mailer exists, no frontend work was done. Full scope of what's left, and the exact order to do it in, is in `docs/DEV_STATUS.md`'s twenty-fourth-session entry and `docs/ROADMAP.md` item 9.
+- `tests/smoke_test.php` re-run: still 24/24 green (the new files aren't referenced anywhere yet, so this only confirms no accidental breakage). `http_api_test.php` and the hygiene script were not re-run — no route changes yet for them to exercise.
+
 ## 2026-09-04 (twenty-third session) — no version bump (infrastructure-only, no user-visible change) — FEAT-005 CLOSED: CI confirmed green, full re-verification, deferred content fix applied
 
 - **No version bump**: per `docs/ROADMAP.md`'s own versioning rule ("classification is based on the resulting user-visible change, not internal effort") — this session's work is CI/deployment-pipeline reliability, with no change to app behavior for any current user. The prior BUG-036/BUG-030/031 version bumps were for defects users actually experienced (production API outage/404s); this was a pipeline gap that would only have bitten a *future* schema-dependent deploy, and never reached production.
