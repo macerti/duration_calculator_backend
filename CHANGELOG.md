@@ -2,6 +2,16 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-04 (twenty-seventh session) — no version bump (no source code changed) — BUG-045: diagnosed a full production SSO outage caused by a never-applied production migration; process gap closed in docs, runbook handed off
+
+- **No version bump**: nothing under `src/` changed this session — the root cause is an operational gap (a migration that was never run against production), not a defect in this repository's code. Full detail in `docs/BUGLOG.md` BUG-045 and `docs/DEV_STATUS.md`'s twenty-seventh-session entry; summary here.
+- Mahdi reported being locked out of the app via Microsoft sign-in: `Table 'macerti_audit_calc.user_identities' doesn't exist`. Confirmed root cause by tracing the full pipeline: the local-accounts+RBAC feature (twenty-fourth/twenty-fifth sessions, already CI-confirmed green and correctly built) made every Microsoft/Google login depend on a table from migration `002_add_auth_and_rbac.sql` — but **nothing in this project's CI→deploy→FTP pipeline has ever applied a migration to the real production database**, only to CI's own throwaway test database. The moment that feature's code reached production via the normal FTP deploy, every SSO login broke at once.
+- Migration `002` itself is confirmed safe (purely additive: 8 `CREATE TABLE` + 5 `INSERT IGNORE`, nothing destructive). The fix is operational: run `php db/migrate.php` (or the phpMyAdmin fallback) against production — full runbook in `docs/BUGLOG.md` BUG-045. This sandbox has no host/SSH access to do it directly.
+- Closed the documentation gap that let this happen silently: `docs/DEPLOY.md` step 5 rewritten from its stale pre-FEAT-005 wording to describe `migrate.php`, with an explicit warning that this step is manual and must be run after every push containing a new migration file. Added a new urgent item 0 to `docs/ROADMAP.md`'s P1 list scoping the real fix (an authenticated `POST /api/migrate` endpoint the deploy workflow can call automatically).
+- **Not yet confirmed**: whether running the runbook actually restores production SSO — needs Mahdi (or host access) to execute and confirm.
+
+---
+
 ## 2026-09-04 (twenty-sixth session) — 5.1.9 — BUG-044 CLOSED: Mailer.php MIME boundary renamed, CI hygiene check green again
 
 - **BUG-044 fixed**: `src/backend/auth/Mailer.php`'s MIME boundary prefix (`'audit-app-' . bin2hex(...)`) coincidentally matched `scripts/check-repo-hygiene.sh`'s stale-pre-restructure-path regex, failing CI's very first step on every push since `f45129d`. Renamed to `'ddc-mail-'` — no functional change, pure string rename.

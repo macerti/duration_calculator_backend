@@ -42,6 +42,14 @@ Do not use older roadmap priority wording as the active priority. This dated dec
 
 ### Priority 1 (P1) — Active Tasks to Build Now
 
+#### 0. 🚨 URGENT — Production migrations are never actually applied automatically (caused BUG-045, a full SSO outage)
+- **Category:** Infrastructure / DevOps — Technical Debt (Do Not Defer, caused a real live incident)
+- **Status:** Root cause confirmed 2026-09-04 (BUG-045 in `docs/BUGLOG.md`); immediate incident has a documented manual fix (runbook in that entry); the underlying gap is NOT yet fixed.
+- **The gap**: neither `duration_calculator_source`'s CI (only touches an ephemeral CI-only test database) nor `duration_calculator`'s FTP deploy workflow (pure file sync, cannot execute anything server-side) ever applies a migration to the real production database. `docs/DEPLOY.md` step 5 now documents this loudly and gives a manual runbook, but the underlying process is still entirely manual and easy to forget — exactly what happened when the local-accounts+RBAC feature shipped code depending on tables that were never created in production.
+- **Objective**: close this loop for real, not just document around it. Concrete direction already scoped in BUG-045's entry: a properly authenticated `POST /api/migrate` endpoint (already flagged as a "future enhancement" in `db/migrations/README.md` when FEAT-005 was first built) that `macerti/duration_calculator`'s `deploy.yml` calls right after the FTP sync completes — the production API is already publicly reachable over HTTPS (confirmed: `deploy.yml` already `curl`s it for a health check), so this is genuinely reachable from GitHub Actions, not just a nice idea.
+- **Needs real design, not a quick patch**: authentication for the endpoint (a shared secret as a GitHub Actions secret + production `config.php` value, checked before running anything), safe error handling (don't leak schema/DB details to an unauthenticated caller), and deciding whether it should also be safely callable by a human directly (e.g. Mahdi hitting it once from a browser) for cases where CI itself isn't the trigger.
+- **Whoever picks this up**: start from `docs/BUGLOG.md` BUG-045 and `db/migrations/README.md`'s existing note, not from scratch.
+
 #### 1. In-App Guided Acceptance Test Runner & Report Exporter (NEW!)
 - **Category:** User Acceptance Testing / Embedded Test Tooling
 - **Status:** APPROVED / TOP IMMEDIATE TOOLING TASK

@@ -37,6 +37,7 @@ There is no separate API subdomain and no separate frontend document root — `e
 1. A developer pushes a tested source change to `main` in this repository (`macerti/duration_calculator_source`).
 2. `.github/workflows/build-test-publish.yml` runs the full regression suite (MariaDB + PHP smoke/HTTP tests, frontend typecheck), builds the Expo web export with `EXPO_PUBLIC_API_URL` set to the real production API URL, assembles the single-folder artifact described above, and pushes it to **macerti/duration_calculator**.
 3. That deployment repository has its **own separate FTP workflow** (not owned by this repository — do not modify it from source-side CI changes) which ships the artifact to the real `tools.macerti.com` hosting.
+4. **⚠️ If the push included a new file under `src/backend/db/migrations/`, someone must still manually apply it to the production database — see step 5 below.** Neither workflow above does this; both only ever touch a CI-only test database or plain files over FTP. Skipping this step is exactly what caused BUG-045 (`docs/BUGLOG.md`) — a full production SSO outage from code that shipped ahead of its own migration.
 
 Manual upload (below) is the fallback for first-time setup or if the FTP workflow needs a one-off manual push — not the normal day-to-day path.
 
@@ -64,8 +65,11 @@ Over SSH or DirectAdmin's File Manager, set `config.php` to `600` or `640`
 (readable by your user/web server only). This file has your DB password in
 plain text.
 
-## 5. Run the database schema
+## 5. Run the database schema and any pending migrations
 
+**⚠️ This step is NOT automated anywhere in the pipeline — read this before assuming a deploy "just works" the way `docs/ROADMAP.md` FEAT-005 originally hoped it would.** The source repo's CI only ever runs migrations against its own throwaway test database (see `.github/workflows/build-test-publish.yml`'s `mariadb` service — it's created fresh and destroyed at the end of every CI run). The deploy repo's own workflow (`macerti/duration_calculator`'s `deploy.yml`) uses a pure FTP file-sync action with no ability to execute anything on the server. **Nothing, anywhere in this pipeline, has ever run a migration against the real production database.** This caused a real production outage — see `docs/BUGLOG.md` BUG-045 (Microsoft/Google SSO login broke for every user because code depending on a new table was deployed before the table existed in production) — so treat this step as mandatory, not optional, every single time `src/backend/db/migrations/` gains a new file.
+
+**First-time setup (a brand new database with none of this app's tables yet)**:
 Open phpMyAdmin (DA PMA SignOn from your DirectAdmin dashboard), select
 your database, go to the **SQL** tab, paste the contents of
 `db/schema.sql`, and run it. You should get 4 new tables:
@@ -73,6 +77,13 @@ your database, go to the **SQL** tab, paste the contents of
 (Verified directly by running `schema.sql` against a clean local MariaDB
 during the 2026-09-02 restructure session — an earlier version of this
 file said 3 tables, missing `clients`.)
+
+**Every deploy after that (including this one, and every future one)**: run the migration framework instead of touching `schema.sql` again — it safely detects what's already there and only applies what's new:
+```bash
+cd ~/public_html/duration_calculator   # or wherever the app folder actually is
+php db/migrate.php
+```
+No SSH? Same phpMyAdmin fallback as above, but paste the contents of whichever `db/migrations/NNN_*.sql` file(s) haven't been applied yet instead of `schema.sql` — every migration in this project is written to be idempotent (`IF NOT EXISTS` / `INSERT IGNORE`), so this is safe to run even if you're not sure what's already applied.
 
 Note: your server's default charset is `cp1252`/`latin1`, but `schema.sql`
 explicitly sets `utf8mb4` on every table it creates, so this is handled —
