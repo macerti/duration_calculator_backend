@@ -15,9 +15,15 @@ require_once __DIR__ . '/../db/pdo.php';
 require_once __DIR__ . '/../db/parameterSetRepo.php';
 require_once __DIR__ . '/../db/calculationCaseRepo.php';
 require_once __DIR__ . '/../db/clientRepo.php';
+require_once __DIR__ . '/../db/userRepo.php';
+require_once __DIR__ . '/../db/roleRepo.php';
+require_once __DIR__ . '/../db/permissionRepo.php';
+require_once __DIR__ . '/../db/rateLimiter.php';
 require_once __DIR__ . '/../auth/OAuthSession.php';
 require_once __DIR__ . '/../auth/MicrosoftOAuth.php';
 require_once __DIR__ . '/../auth/GoogleOAuth.php';
+require_once __DIR__ . '/../auth/Guard.php';
+require_once __DIR__ . '/../auth/Mailer.php';
 
 use function AuditEngine\loadDefaultParameterSet;
 use function AuditEngine\loadConfig;
@@ -38,8 +44,7 @@ use function AuditEngine\updateClientName;
 use function AuditEngine\deleteClient;
 use function AuditEngine\deleteCalculationCase;
 use function AuditEngine\Auth\sessionStart;
-use function AuditEngine\Auth\sessionSetUser;
-use function AuditEngine\Auth\sessionGetUser;
+use function AuditEngine\Auth\sessionSetUserId;
 use function AuditEngine\Auth\sessionDestroy;
 use function AuditEngine\Auth\sessionSetOAuthState;
 use function AuditEngine\Auth\sessionGetOAuthState;
@@ -49,6 +54,41 @@ use function AuditEngine\Auth\microsoftBuildAuthUrl;
 use function AuditEngine\Auth\microsoftHandleCallback;
 use function AuditEngine\Auth\googleBuildAuthUrl;
 use function AuditEngine\Auth\googleHandleCallback;
+use function AuditEngine\Auth\currentUser;
+use function AuditEngine\Auth\requireAuth;
+use function AuditEngine\Auth\requirePermission;
+use function AuditEngine\Auth\requireCsrf;
+use function AuditEngine\Auth\ensureCsrfToken;
+use function AuditEngine\Auth\sendVerificationEmail;
+use function AuditEngine\Auth\sendPasswordResetEmail;
+use function AuditEngine\createLocalUser;
+use function AuditEngine\findUserByEmail;
+use function AuditEngine\findUserById;
+use function AuditEngine\getUserProfile;
+use function AuditEngine\setLastLogin;
+use function AuditEngine\createEmailVerificationToken;
+use function AuditEngine\consumeEmailVerificationToken;
+use function AuditEngine\createPasswordResetToken;
+use function AuditEngine\resetPasswordWithToken;
+use function AuditEngine\validatePassword;
+use function AuditEngine\hashPassword;
+use function AuditEngine\updateUserPasswordHash;
+use function AuditEngine\setPendingEmail;
+use function AuditEngine\updateUserName;
+use function AuditEngine\resolveSsoUser;
+use function AuditEngine\listUsers;
+use function AuditEngine\setUserRole;
+use function AuditEngine\setUserStatus;
+use function AuditEngine\listRoles;
+use function AuditEngine\createRole;
+use function AuditEngine\updateRole;
+use function AuditEngine\deleteRole;
+use function AuditEngine\getRoleById;
+use function AuditEngine\listPermissions;
+use function AuditEngine\createPermission;
+use function AuditEngine\updatePermission;
+use function AuditEngine\deletePermission;
+use function AuditEngine\rateLimitCheck;
 
 // --- CORS ---
 $config = null;
@@ -180,6 +220,7 @@ try {
     // --- Clients ---
     if ($method === 'POST' && $segments === ['clients']) {
         requireDb($dbAvailable);
+        requireAuth();
         $body = jsonBody();
         $name = requireNonEmptyString($body['name'] ?? '', 'name', 255);
         $id = createClient($name);
@@ -188,11 +229,13 @@ try {
 
     if ($method === 'GET' && $segments === ['clients']) {
         requireDb($dbAvailable);
+        requireAuth();
         respond(listClients());
     }
 
     if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'clients') {
         requireDb($dbAvailable);
+        requireAuth();
         $id = (int)$segments[1];
         $client = getClient($id);
         if ($client === null) respond(['error' => "No client with id $id"], 404);
@@ -201,6 +244,7 @@ try {
 
     if ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'clients') {
         requireDb($dbAvailable);
+        requireAuth();
         $id = (int)$segments[1];
         $body = jsonBody();
         $name = requireNonEmptyString($body['name'] ?? '', 'name', 255);
@@ -210,6 +254,7 @@ try {
 
     if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'clients') {
         requireDb($dbAvailable);
+        requireAuth();
         $id = (int)$segments[1];
         deleteClient($id);
         respond(['deleted' => $id]);
@@ -217,6 +262,7 @@ try {
 
     if ($method === 'GET' && count($segments) === 3 && $segments[0] === 'clients' && $segments[2] === 'cases') {
         requireDb($dbAvailable);
+        requireAuth();
         $clientId = (int)$segments[1];
         respond(listCalculationCases(50, $clientId));
     }
@@ -224,6 +270,7 @@ try {
     // --- Calculation cases ---
     if ($method === 'POST' && $segments === ['cases']) {
         requireDb($dbAvailable);
+        requireAuth();
         $body = jsonBody();
         $wizardState = $body['wizardState'] ?? null;
         $input = $body;
@@ -240,6 +287,7 @@ try {
 
     if ($method === 'PUT' && count($segments) === 2 && $segments[0] === 'cases') {
         requireDb($dbAvailable);
+        requireAuth();
         $id = (int)$segments[1];
         $body = jsonBody();
         $input = $body['input'] ?? [];
@@ -256,6 +304,7 @@ try {
 
     if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'cases') {
         requireDb($dbAvailable);
+        requireAuth();
         $id = (int)$segments[1];
         deleteCalculationCase($id);
         respond(['deleted' => $id]);
@@ -263,11 +312,13 @@ try {
 
     if ($method === 'GET' && $segments === ['cases']) {
         requireDb($dbAvailable);
+        requireAuth();
         respond(listCalculationCases());
     }
 
     if ($method === 'GET' && count($segments) === 2 && $segments[0] === 'cases') {
         requireDb($dbAvailable);
+        requireAuth();
         $id = (int)$segments[1];
         $found = getCalculationCase($id);
         if ($found === null) respond(['error' => "No case with id $id"], 404);
@@ -275,17 +326,369 @@ try {
     }
 
     // =========================================================
-    // AUTH ROUTES — OAuth 2.0 / OIDC sign-in (Microsoft + Google)
+    // AUTH ROUTES — local accounts, RBAC, and OAuth 2.0/OIDC SSO
     // =========================================================
 
-    // GET /auth/me — return current signed-in user, or 401
+    // GET /auth/me — return current signed-in user (with role,
+    // permissions, and a fresh CSRF token), or 401.
     if ($method === 'GET' && $segments === ['auth', 'me']) {
-        // Auth routes always return JSON — no redirect, no HTML.
-        $user = sessionGetUser();
-        if ($user === null) {
-            respond(['error' => 'Not authenticated'], 401);
-        }
+        $user = requireAuth();
+        $user['csrfToken'] = ensureCsrfToken();
         respond($user);
+    }
+
+    // POST /auth/register — create a local account. Always requires
+    // email confirmation via a link before the account can log in (see
+    // GET /auth/verify-email below) — never a token to copy/paste.
+    if ($method === 'POST' && $segments === ['auth', 'register']) {
+        requireDb($dbAvailable);
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!rateLimitCheck('register:' . $ip, 5, 3600)) {
+            respond(['error' => 'Trop de tentatives. Réessayez plus tard.'], 429);
+        }
+        $body = jsonBody();
+        $name = requireNonEmptyString((string)($body['name'] ?? ''), 'name', 255);
+        $email = strtolower(trim((string)($body['email'] ?? '')));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            respond(['error' => 'Adresse e-mail invalide.'], 400);
+        }
+        $password = (string)($body['password'] ?? '');
+        // Refused outright if this email exists at all, whether it
+        // already has a local password or is SSO-only — "forgot
+        // password" doubles as "set my first local password" for an
+        // SSO-only account, since it already proves mailbox ownership
+        // via the emailed link. See docs/DEV_STATUS.md for why this is
+        // simpler and safer than a separate account-linking code path.
+        if (findUserByEmail($email) !== null) {
+            respond(['error' => "Un compte existe déjà avec cette adresse e-mail. Connectez-vous, ou utilisez « mot de passe oublié » pour y accéder."], 409);
+        }
+        try {
+            $user = createLocalUser($name, $email, $password);
+        } catch (\RuntimeException $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        $rawToken = createEmailVerificationToken((int)$user['id']);
+        try {
+            sendVerificationEmail($config, $email, $name, $rawToken);
+        } catch (\Throwable $e) {
+            // The account exists even if the email failed to send —
+            // resend-verification lets them retry. Never fail
+            // registration just because outbound mail hiccupped.
+            error_log('[duration_calculator] verification email send failed: ' . $e->getMessage());
+        }
+        respond(['ok' => true, 'message' => 'Compte créé. Vérifiez votre boîte mail pour confirmer votre adresse.'], 201);
+    }
+
+    // GET /auth/verify-email?token=... — the link the user clicks. Not
+    // JSON: this is a browser navigation, so it redirects back into the
+    // app with a query flag, exactly like the SSO callbacks below.
+    if ($method === 'GET' && $segments === ['auth', 'verify-email']) {
+        requireDb($dbAvailable);
+        header('Content-Type: text/html; charset=utf-8', true);
+        $appUrl = rtrim($config['app_url'] ?? '', '/');
+        $token = (string)($_GET['token'] ?? '');
+        $result = $token !== '' ? consumeEmailVerificationToken($token) : null;
+        header('Location: ' . $appUrl . '/?' . ($result !== null ? 'verified=1' : 'verify_error=invalid'));
+        http_response_code(302);
+        exit;
+    }
+
+    // POST /auth/resend-verification — always a generic response, win
+    // or lose, so this can't be used to probe which emails have accounts.
+    if ($method === 'POST' && $segments === ['auth', 'resend-verification']) {
+        requireDb($dbAvailable);
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $email = strtolower(trim((string)(jsonBody()['email'] ?? '')));
+        $generic = ['ok' => true, 'message' => 'Si un compte existe avec cette adresse et n\'est pas encore confirmé, un e-mail a été envoyé.'];
+        $ipOk = rateLimitCheck('resend:' . $ip, 8, 3600);
+        $emailOk = $email === '' || rateLimitCheck('resend:' . $email, 3, 3600);
+        if ($ipOk && $emailOk) {
+            $user = $email !== '' ? findUserByEmail($email) : null;
+            if ($user !== null && $user['email_verified_at'] === null) {
+                $rawToken = createEmailVerificationToken((int)$user['id']);
+                try {
+                    sendVerificationEmail($config, $user['email'], $user['name'], $rawToken);
+                } catch (\Throwable $e) {
+                    error_log('[duration_calculator] resend-verification send failed: ' . $e->getMessage());
+                }
+            }
+        }
+        respond($generic);
+    }
+
+    // POST /auth/login — local email/password sign-in.
+    if ($method === 'POST' && $segments === ['auth', 'login']) {
+        requireDb($dbAvailable);
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $body = jsonBody();
+        $email = strtolower(trim((string)($body['email'] ?? '')));
+        $password = (string)($body['password'] ?? '');
+        if (!rateLimitCheck('login:' . $ip, 15, 600) || ($email !== '' && !rateLimitCheck('login:' . $email, 8, 600))) {
+            respond(['error' => 'Trop de tentatives. Réessayez dans quelques minutes.'], 429);
+        }
+        $user = $email !== '' ? findUserByEmail($email) : null;
+        // Deliberately generic: whether the email doesn't exist, the
+        // password is wrong, or the account is SSO-only with no local
+        // password set all produce the exact same response, so a wrong-
+        // password guess can't be used to learn which is true.
+        if ($user === null || $user['password_hash'] === null || !password_verify($password, $user['password_hash'])) {
+            respond(['error' => 'Adresse e-mail ou mot de passe incorrect.'], 401);
+        }
+        // Only after a correct password do we reveal a more specific
+        // reason — at this point the caller has already proven they
+        // know the password, so this isn't an enumeration leak.
+        if ($user['email_verified_at'] === null) {
+            respond(['error' => 'Confirmez votre adresse e-mail avant de vous connecter.', 'code' => 'email_not_verified'], 403);
+        }
+        if ($user['status'] !== 'active') {
+            respond(['error' => 'Ce compte est désactivé. Contactez un administrateur.'], 403);
+        }
+        setLastLogin((int)$user['id']);
+        sessionSetUserId((int)$user['id']);
+        $profile = getUserProfile((int)$user['id']);
+        $profile['csrfToken'] = ensureCsrfToken();
+        respond($profile);
+    }
+
+    // POST /auth/forgot-password — always a generic response, win or
+    // lose, so this can't be used to probe which emails have accounts.
+    // Doubles as "set my first local password" for an SSO-only account.
+    if ($method === 'POST' && $segments === ['auth', 'forgot-password']) {
+        requireDb($dbAvailable);
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $email = strtolower(trim((string)(jsonBody()['email'] ?? '')));
+        $generic = ['ok' => true, 'message' => 'Si un compte existe avec cette adresse, un e-mail a été envoyé.'];
+        $ipOk = rateLimitCheck('forgot:' . $ip, 10, 3600);
+        $emailOk = $email === '' || rateLimitCheck('forgot:' . $email, 4, 3600);
+        if ($ipOk && $emailOk) {
+            $user = $email !== '' ? findUserByEmail($email) : null;
+            if ($user !== null) {
+                $rawToken = createPasswordResetToken((int)$user['id']);
+                try {
+                    sendPasswordResetEmail($config, $user['email'], $user['name'], $rawToken);
+                } catch (\Throwable $e) {
+                    error_log('[duration_calculator] password reset email send failed: ' . $e->getMessage());
+                }
+            }
+        }
+        respond($generic);
+    }
+
+    // POST /auth/reset-password — the form the reset-link lands on
+    // submits here. Also auto-signs the user in on success (modern UX —
+    // no separate "now log in again" step).
+    if ($method === 'POST' && $segments === ['auth', 'reset-password']) {
+        requireDb($dbAvailable);
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!rateLimitCheck('reset:' . $ip, 15, 3600)) {
+            respond(['error' => 'Trop de tentatives. Réessayez plus tard.'], 429);
+        }
+        $body = jsonBody();
+        $token = (string)($body['token'] ?? '');
+        $newPassword = (string)($body['newPassword'] ?? '');
+        if ($token === '') respond(['error' => 'Jeton manquant.'], 400);
+        try {
+            $userId = resetPasswordWithToken($token, $newPassword);
+        } catch (\RuntimeException $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        if ($userId === null) {
+            respond(['error' => 'Ce lien est invalide ou a expiré. Demandez un nouveau lien.'], 400);
+        }
+        setLastLogin($userId);
+        sessionSetUserId($userId);
+        $profile = getUserProfile($userId);
+        $profile['csrfToken'] = ensureCsrfToken();
+        respond($profile);
+    }
+
+    // POST /auth/change-password — authenticated, requires the current
+    // password (distinct from the link-based reset flow above).
+    if ($method === 'POST' && $segments === ['auth', 'change-password']) {
+        requireDb($dbAvailable);
+        $authUser = requireAuth();
+        requireCsrf();
+        $body = jsonBody();
+        $current = (string)($body['currentPassword'] ?? '');
+        $new = (string)($body['newPassword'] ?? '');
+        $row = findUserById($authUser['id']);
+        if ($row['password_hash'] === null || !password_verify($current, $row['password_hash'])) {
+            respond(['error' => 'Mot de passe actuel incorrect.'], 400);
+        }
+        try {
+            validatePassword($new);
+        } catch (\RuntimeException $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        updateUserPasswordHash($authUser['id'], hashPassword($new));
+        respond(['ok' => true]);
+    }
+
+    // PUT /auth/profile — authenticated. Name changes apply immediately;
+    // an email change is staged (pending_email) and only takes effect
+    // once the new address is confirmed via its own verification link,
+    // so the account is never left with an unverified live email.
+    if ($method === 'PUT' && $segments === ['auth', 'profile']) {
+        requireDb($dbAvailable);
+        $authUser = requireAuth();
+        requireCsrf();
+        $body = jsonBody();
+        if (isset($body['name'])) {
+            updateUserName($authUser['id'], requireNonEmptyString((string)$body['name'], 'name', 255));
+        }
+        if (isset($body['email'])) {
+            $newEmail = strtolower(trim((string)$body['email']));
+            if ($newEmail === '' || !filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+                respond(['error' => 'Adresse e-mail invalide.'], 400);
+            }
+            if ($newEmail !== $authUser['email']) {
+                $existing = findUserByEmail($newEmail);
+                if ($existing !== null && (int)$existing['id'] !== $authUser['id']) {
+                    respond(['error' => 'Cette adresse e-mail est déjà utilisée par un autre compte.'], 409);
+                }
+                setPendingEmail($authUser['id'], $newEmail);
+                $rawToken = createEmailVerificationToken($authUser['id'], 'verify_email_change');
+                try {
+                    sendVerificationEmail($config, $newEmail, $authUser['name'], $rawToken);
+                } catch (\Throwable $e) {
+                    error_log('[duration_calculator] email-change verification send failed: ' . $e->getMessage());
+                }
+            }
+        }
+        $profile = getUserProfile($authUser['id']);
+        $profile['csrfToken'] = ensureCsrfToken();
+        respond($profile);
+    }
+
+    // =========================================================
+    // ADMIN ROUTES — roles, permissions, user management
+    // =========================================================
+
+    if ($method === 'GET' && $segments === ['admin', 'roles']) {
+        requireDb($dbAvailable);
+        requirePermission('manage_roles');
+        respond(listRoles());
+    }
+
+    if ($method === 'POST' && $segments === ['admin', 'roles']) {
+        requireDb($dbAvailable);
+        requirePermission('manage_roles');
+        requireCsrf();
+        $body = jsonBody();
+        $name = requireNonEmptyString((string)($body['name'] ?? ''), 'name', 100);
+        $description = isset($body['description']) ? (string)$body['description'] : null;
+        $permissions = is_array($body['permissions'] ?? null) ? array_map('strval', $body['permissions']) : [];
+        try {
+            $role = createRole($name, $description, $permissions);
+        } catch (\Throwable $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        respond($role, 201);
+    }
+
+    if ($method === 'PUT' && count($segments) === 3 && $segments[0] === 'admin' && $segments[1] === 'roles') {
+        requireDb($dbAvailable);
+        requirePermission('manage_roles');
+        requireCsrf();
+        $id = (int)$segments[2];
+        $existing = getRoleById($id);
+        if ($existing === null) respond(['error' => 'Rôle introuvable.'], 404);
+        $body = jsonBody();
+        $name = requireNonEmptyString((string)($body['name'] ?? $existing['name']), 'name', 100);
+        $description = array_key_exists('description', $body) ? (string)$body['description'] : $existing['description'];
+        $permissions = is_array($body['permissions'] ?? null) ? array_map('strval', $body['permissions']) : null;
+        try {
+            updateRole($id, $name, $description, $permissions);
+        } catch (\Throwable $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        $updated = array_values(array_filter(listRoles(), fn($r) => $r['id'] === $id))[0] ?? null;
+        respond($updated ?? ['error' => 'Rôle introuvable.'], $updated ? 200 : 404);
+    }
+
+    if ($method === 'DELETE' && count($segments) === 3 && $segments[0] === 'admin' && $segments[1] === 'roles') {
+        requireDb($dbAvailable);
+        requirePermission('manage_roles');
+        requireCsrf();
+        $id = (int)$segments[2];
+        try {
+            deleteRole($id);
+        } catch (\RuntimeException $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        respond(['deleted' => $id]);
+    }
+
+    if ($method === 'GET' && $segments === ['admin', 'permissions']) {
+        requireDb($dbAvailable);
+        requirePermission('manage_roles');
+        respond(listPermissions());
+    }
+
+    if ($method === 'POST' && $segments === ['admin', 'permissions']) {
+        requireDb($dbAvailable);
+        requirePermission('manage_roles');
+        requireCsrf();
+        $body = jsonBody();
+        $label = requireNonEmptyString((string)($body['label'] ?? ''), 'label', 150);
+        $description = isset($body['description']) ? (string)$body['description'] : null;
+        try {
+            $perm = createPermission((string)($body['key'] ?? ''), $label, $description);
+        } catch (\RuntimeException $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        respond($perm, 201);
+    }
+
+    if ($method === 'PUT' && count($segments) === 3 && $segments[0] === 'admin' && $segments[1] === 'permissions') {
+        requireDb($dbAvailable);
+        requirePermission('manage_roles');
+        requireCsrf();
+        $id = (int)$segments[2];
+        $body = jsonBody();
+        $label = requireNonEmptyString((string)($body['label'] ?? ''), 'label', 150);
+        $description = isset($body['description']) ? (string)$body['description'] : null;
+        updatePermission($id, $label, $description);
+        respond(['id' => $id, 'label' => $label, 'description' => $description]);
+    }
+
+    if ($method === 'DELETE' && count($segments) === 3 && $segments[0] === 'admin' && $segments[1] === 'permissions') {
+        requireDb($dbAvailable);
+        requirePermission('manage_roles');
+        requireCsrf();
+        $id = (int)$segments[2];
+        try {
+            deletePermission($id);
+        } catch (\RuntimeException $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        respond(['deleted' => $id]);
+    }
+
+    if ($method === 'GET' && $segments === ['admin', 'users']) {
+        requireDb($dbAvailable);
+        requirePermission('manage_users');
+        respond(listUsers());
+    }
+
+    if ($method === 'PUT' && count($segments) === 3 && $segments[0] === 'admin' && $segments[1] === 'users') {
+        requireDb($dbAvailable);
+        requirePermission('manage_users');
+        requireCsrf();
+        $id = (int)$segments[2];
+        $body = jsonBody();
+        try {
+            if (isset($body['roleId'])) {
+                setUserRole($id, (int)$body['roleId']);
+            }
+            if (isset($body['status'])) {
+                setUserStatus($id, (string)$body['status']);
+            }
+        } catch (\RuntimeException $e) {
+            respond(['error' => $e->getMessage()], 400);
+        }
+        $updated = array_values(array_filter(listUsers(), fn($u) => $u['id'] === $id))[0] ?? null;
+        respond($updated ?? ['error' => 'Utilisateur introuvable.'], $updated ? 200 : 404);
     }
 
     // POST /auth/logout — destroy session
@@ -362,13 +765,19 @@ try {
         sessionClearOAuthState();
 
         try {
-            $user = microsoftHandleCallback(
+            $claims = microsoftHandleCallback(
                 $config['microsoft_client_id'],
                 $config['microsoft_client_secret'],
                 $appUrl . '/api/auth/callback/microsoft',
                 $code
             );
-            sessionSetUser($user);
+            // Resolve to a real, persisted user row (linking to an
+            // existing account by verified email if one exists) rather
+            // than trusting raw provider claims directly into the
+            // session — see docs/DEV_STATUS.md's 2026-09-04 entry.
+            $user = resolveSsoUser('microsoft', $claims['id'], $claims['email'], $claims['name']);
+            setLastLogin((int)$user['id']);
+            sessionSetUserId((int)$user['id']);
             header('Location: ' . $appUrl . '/?auth=ok');
         } catch (\Throwable $e) {
             error_log('[duration_calculator] Microsoft OAuth error: ' . $e->getMessage());
@@ -412,13 +821,15 @@ try {
         sessionClearOAuthState();
 
         try {
-            $user = googleHandleCallback(
+            $claims = googleHandleCallback(
                 $config['google_client_id'],
                 $config['google_client_secret'],
                 $appUrl . '/api/auth/callback/google',
                 $code
             );
-            sessionSetUser($user);
+            $user = resolveSsoUser('google', $claims['id'], $claims['email'], $claims['name']);
+            setLastLogin((int)$user['id']);
+            sessionSetUserId((int)$user['id']);
             header('Location: ' . $appUrl . '/?auth=ok');
         } catch (\Throwable $e) {
             error_log('[duration_calculator] Google OAuth error: ' . $e->getMessage());

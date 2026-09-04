@@ -36,27 +36,35 @@ function sessionStart(): void
 }
 
 /**
- * Store a signed-in user in the session.
+ * Store a signed-in user's ID in the session.
+ *
+ * 2026-09-04 change: the session used to hold the entire user array
+ * (raw OAuth provider claims — there was no `users` table at all). Now
+ * that real accounts + roles/permissions exist, the session holds only
+ * the numeric user_id; Guard.php's currentUser() loads the rest fresh
+ * from the database on every request, so a role change or an admin
+ * disabling the account takes effect immediately, not just after the
+ * next login. Also generates this session's CSRF token (see Guard.php).
  */
-function sessionSetUser(array $user): void
+function sessionSetUserId(int $userId): void
 {
     sessionStart();
     // Regenerate ID on privilege escalation to prevent session fixation.
     session_regenerate_id(true);
-    $_SESSION['auth_user'] = $user;
+    $_SESSION['user_id'] = $userId;
+    ensureCsrfToken();
 }
 
 /**
- * Return the signed-in user, or null if not authenticated.
- *
- * @return array{id:string,name:string,email:string,provider:string}|null
+ * Return the signed-in user's ID, or null if no session is active.
+ * Does NOT check whether the account still exists or is active —
+ * that's Guard.php's currentUser()'s job, since it needs a DB lookup.
  */
-function sessionGetUser(): ?array
+function sessionGetUserId(): ?int
 {
     sessionStart();
-    $u = $_SESSION['auth_user'] ?? null;
-    if (!is_array($u)) return null;
-    return $u;
+    $id = $_SESSION['user_id'] ?? null;
+    return is_int($id) ? $id : (is_numeric($id) ? (int)$id : null);
 }
 
 /**

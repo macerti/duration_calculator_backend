@@ -2,6 +2,16 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-04 (twenty-fifth session) — no version bump (backend complete but not yet reachable from the UI) — local accounts + RBAC wired end-to-end, verified 42/42 over real HTTP
+
+- **No version bump**: the backend is now fully real and usable via `curl`, but no frontend screen calls any of it yet — nothing a user can reach. Recorded as infrastructure per `docs/ROADMAP.md`'s versioning rule.
+- New `auth/Guard.php` (session/permission/CSRF checks) and `auth/Mailer.php` (driver-based sender: `log` for dev, hand-rolled `smtp` for production — untested against a real mail server pending Mahdi's SMTP credentials for `info@macerti.com`).
+- `api/index.php` now routes `/auth/register`, `/auth/login`, `/auth/logout`, `/auth/me`, `/auth/verify-email`, `/auth/resend-verification`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/change-password`, `/auth/profile`, and `/admin/roles`, `/admin/permissions`, `/admin/users` (full CRUD where applicable). Microsoft/Google SSO callbacks now resolve to real persisted `users` rows instead of raw session claims.
+- **`/clients` and `/cases` now require login** — closes `SECURITY.md`'s own "Todo #1, the single biggest gap" (previously anyone with the API URL could read/write any client or calculation, no authentication at all).
+- `tests/http_api_test.php` rewritten with real session-cookie handling and a full auth/RBAC/CSRF flow. **42/42 passing** against a live server + real MariaDB, alongside `smoke_test.php` (24/24), the repo hygiene script, and a clean `make build-deploy` + deploy-artifact check.
+- Two real bugs found and fixed by this testing (not by inspection): `Guard.php`'s `currentUser()` was missing a `sessionStart()` call, so every authenticated request 401'd regardless of a valid session cookie; separately, the test script's own `/auth/reset-password` call was bypassing the shared cookie jar, causing a stale-CSRF-token false failure. Full root-cause detail in `docs/DEV_STATUS.md`'s twenty-fifth-session entry.
+- Frontend: unchanged. This is now the entire remaining scope of the local-accounts-+-RBAC feature — see `docs/ROADMAP.md` item 9.
+
 ## 2026-09-04 (twenty-fourth session) — no version bump (backend data layer only, nothing user-reachable yet) — local accounts + RBAC: schema and repo layer designed, built, and verified
 
 - **No version bump**: nothing shipped this session is reachable by a user yet — no HTTP route, no UI change. Per `docs/ROADMAP.md`'s versioning rule, this is recorded as in-progress infrastructure, not a feature release.
