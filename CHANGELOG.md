@@ -2,6 +2,18 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-04 (twenty-second session) — no version bump (fix in progress, not yet verified end-to-end) — investigated and mostly fixed the CI failure on FEAT-005's migration runner (BUG-040→043)
+
+- **No version bump**: this session's fixes are not yet confirmed working end-to-end (see below), and the feature they belong to (FEAT-005) was never itself confirmed shipped — bumping a version number now would overstate what's actually verified. Full detail in `docs/BUGLOG.md` BUG-040 through BUG-043 and `docs/DEV_STATUS.md`'s twenty-second-session entry; only a summary here.
+- **Process note, flagged for the record**: the twenty-first session's introduction of FEAT-005 (commit `51abb8c`) never received its own `CHANGELOG.md` entry — its own hand-off listed only `docs/DEV_STATUS.md` and the CI workflow file as modified. That gap is noted here rather than fabricated retroactively, since this session didn't do that implementation work and shouldn't represent it under a claimed verification standard it didn't perform.
+- Mahdi reported the GitHub Actions run on that push failed. Confirmed via the Actions API: step 9, "Run database migrations," failed, causing every later step (tests, frontend build, artifact publish) to be skipped — commit `51abb8c` never reached the deployment repo.
+- Local reproduction (first time in this project against **real MariaDB 10.11.14**, not the MySQL 8.0.46 stand-in every prior database session used) found and fixed four layered bugs, each only visible once the one before it was fixed: (1) `migrate.php` discarded `config.php`'s return value, so its own config-validity check failed unconditionally, always; (2) `migrate.php` read the wrong config key (`pass` instead of `password`), silently connecting with an empty password; (3) `Migrations.php` crashed on every DDL migration because MySQL/MariaDB's implicit-commit-on-DDL behavior closes the transaction PDO's `commit()` then expects to still be open; (4) `Migrations.php`'s statement executor used `PDO::exec()`, which is unsafe for the idempotent-guard pattern documented as this project's own official template for future migrations — when a guard's "nothing to do" branch fires (the *normal* case on a repeat run), it executes a `SELECT` placeholder that strands the connection.
+- Fixes (1)–(4) are applied in `src/backend/db/migrate.php` and `src/backend/db/Migrations.php`. Fixes (1)–(3) are independently verified locally. **Fix (4) has not yet been re-verified against the real, complete migration file end-to-end** — see `docs/BUGLOG.md` BUG-043 for the exact next verification steps.
+- **Do not consider this CI failure resolved yet.** Nothing has been confirmed passing the actual GitHub Actions pipeline. This push is documentation-plus-fixes-so-far, explicitly so the next session (or Mahdi) doesn't lose the analysis already done, not a claim that the pipeline is green.
+- Not deployed: source-only commit, per the mandatory source/deployment separation rule. The next CI run on this push should be watched, not assumed to pass.
+
+---
+
 ## 2026-09-03 (twentieth session) — 5.1.8 — BUG-039 CLOSED: Mahdi confirmed Microsoft SSO works end-to-end. Google SSO button removed. Technical debt: ResponsiveContainer.tsx migrated to design tokens (3/9)
 
 - **BUG-036→039 SSO saga fully resolved.** Mahdi confirmed: "The Microsoft SSO works perfectly." This is the real browser round-trip confirmation the nineteenth session's fix (5.1.7, the missing Graph `User.Read` scope) was waiting on. No code change needed this session for this item — closing the loop in `docs/BUGLOG.md`/`docs/DEV_STATUS.md` only.

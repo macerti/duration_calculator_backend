@@ -70,7 +70,12 @@ if (!file_exists($configPath)) {
     exit(1);
 }
 
-require_once $configPath;
+// NOTE: config.php (and config.example.php) use `return [...]` at file
+// scope — the same convention as db/pdo.php's loadConfig() and every other
+// consumer in this codebase. The return value MUST be captured; a bare
+// require/require_once here discards it and leaves $config permanently
+// undefined, which was BUG-040 (see docs/BUGLOG.md).
+$config = require_once $configPath;
 
 if (!isset($config) || !is_array($config)) {
     fwrite(STDERR, "❌ ERROR: Invalid config.php — missing or malformed \$config array\n");
@@ -91,11 +96,16 @@ try {
     $pdo = new \PDO(
         $dsn,
         $config['db']['user'] ?? '',
-        $config['db']['pass'] ?? '',
+        $config['db']['password'] ?? '',
         [
-            \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
-            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-            \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+            \PDO::ATTR_ERRMODE                  => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE        => \PDO::FETCH_ASSOC,
+            \PDO::MYSQL_ATTR_INIT_COMMAND        => "SET NAMES utf8mb4",
+            // Defense-in-depth for BUG-042: without this, a query whose
+            // result set isn't fully consumed/closed can strand the
+            // connection and make the *next* query fail with MySQL error
+            // 2014 ("unbuffered queries are active").
+            \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY  => true,
         ]
     );
 } catch (\PDOException $e) {

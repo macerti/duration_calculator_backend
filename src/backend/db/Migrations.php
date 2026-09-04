@@ -145,6 +145,12 @@ class Migrations {
         );
         $stmt->execute([$migrationName]);
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        // Without this, the statement handle stays "active" on the
+        // connection (no more rows were fetched to naturally close it),
+        // and the very next query on this connection -- beginTransaction()'s
+        // START TRANSACTION -- fails with MySQL error 2014 "unbuffered
+        // queries are active" (BUG-042).
+        $stmt->closeCursor();
         return ($result['cnt'] ?? 0) > 0;
     }
 
@@ -165,32 +171,67 @@ class Migrations {
         // Calculate checksum for integrity tracking
         $checksum = hash('sha256', $sql);
 
+        // IMPORTANT — MySQL/MariaDB DDL statements (CREATE TABLE, ALTER TABLE,
+        // CREATE INDEX, etc.) each trigger an implicit COMMIT on the server,
+        // silently ending whatever transaction beginTransaction() started.
+        // PDO_MySQL tracks the *real* server transaction-status flag, so it
+        // correctly notices this — which means calling commit()/rollBack()
+        // again afterward throws "There is no active transaction" (this was
+        // BUG-041). Guarding both calls with inTransaction() avoids the
+        // crash. This also means: for DDL-heavy migrations (like this one),
+        // beginTransaction()/commit() do NOT provide real all-or-nothing
+        // atomicity — that is a hard MySQL/MariaDB limitation, not something
+        // this framework can paper over. Safety instead comes from writing
+        // every migration to be idempotent (IF NOT EXISTS / information_schema
+        // guards), so a migration that fails partway through is safe to
+        // re-run — the exact same pattern already used throughout
+        // schema.sql. Migrations that are pure DML (INSERT/UPDATE/DELETE
+        // only, no DDL) DO get real atomicity from this transaction wrapping.
         try {
-            // Start transaction
             $this->pdo->beginTransaction();
 
             // Execute all statements in the migration file
             // Split on semicolons, but be careful of semicolons inside strings
-            // For now, use a simple approach: execute the whole file as one batch
-            // This works for our use case since schema.sql uses proper SQL delimiters
             foreach ($this->splitSqlStatements($sql) as $statement) {
                 $trimmed = trim($statement);
-                if (!empty($trimmed)) {
-                    $this->pdo->exec($trimmed);
+                if (empty($trimmed)) {
+                    continue;
+                }
+                // Deliberately query()+closeCursor() instead of exec() here.
+                // Migrations in this codebase use a PREPARE/EXECUTE/DEALLOCATE
+                // idempotent-guard pattern (see migrations/README.md) whose
+                // "nothing to do" branch EXECUTEs a dynamically-built no-op
+                // statement. If that statement happens to return a result
+                // set, PDO::exec() leaves it unconsumed and the connection
+                // gets stuck: the *next* statement fails with MySQL error
+                // 2014 "unbuffered queries are active" (BUG-043). query() +
+                // closeCursor() drains any result set regardless of
+                // statement type, so this is safe for plain DDL/DML too.
+                $stmt = $this->pdo->query($trimmed);
+                if ($stmt instanceof \PDOStatement) {
+                    $stmt->closeCursor();
                 }
             }
 
-            // Record in metadata
+            // Only commit if a transaction is still actually open (DDL above
+            // may have already implicitly committed it server-side).
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->commit();
+            }
+
+            // Record in metadata. This runs as its own (auto-committed)
+            // statement, deliberately outside the migration's own
+            // transaction — see note above on why that transaction may
+            // already be closed by the time we get here.
             $stmt = $this->pdo->prepare(
                 "INSERT INTO {$this->metadataTable} (migration_name, checksum, status) VALUES (?, ?, 'success')"
             );
             $stmt->execute([$migrationName, $checksum]);
 
-            // Commit transaction
-            $this->pdo->commit();
-            
         } catch (\Exception $e) {
-            $this->pdo->rollBack();
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             throw $e;
         }
     }
