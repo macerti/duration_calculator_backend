@@ -1226,3 +1226,29 @@ return ($result['cnt'] ?? 0) > 0;
 **Files changed this session for this fix**: `src/backend/db/migrations/001_initial_schema.sql`, `src/backend/db/migrations/README.md` (both: `'SELECT 1'` → `'DO 0'` only, no other changes). `Migrations.php` and `migrate.php` are unmodified from the twenty-second session's already-verified fix.
 
 ---
+
+### BUG-044 — CI red on commit `f45129d`: repo-hygiene "stale path" check trips on an unrelated MIME boundary string in the new `Mailer.php`, plus a real gap in this session's own pre-push verification order
+
+**Status: OPEN — root cause fully confirmed, fix NOT applied yet (left for the next session per explicit instruction). This is a one-line fix; do not re-investigate from scratch.**
+
+**Discovered**: immediately after pushing the twenty-fifth session's auth/RBAC wiring commit (`f45129d`, see `docs/DEV_STATUS.md`), polling the triggered GitHub Actions run showed `conclusion: failure`. Per-job step listing showed the failure at the very first real step, **"Repository hygiene checks (Work Package G)"** — every step after it shows `skipped`, meaning nothing about the actual auth/RBAC code, the migration, or the HTTP regression suite ran at all; CI never got that far.
+
+**Root cause, confirmed precisely, not guessed**: `scripts/check-repo-hygiene.sh`'s check 4 scans tracked non-Markdown files for the regex `audit-app|audit-mobile|duration-calculator-php|audit-engine` (leftover pre-restructure path names — see that script's own header comment). `src/backend/auth/Mailer.php` line 142 reads:
+```php
+$boundary = 'audit-app-' . bin2hex(random_bytes(8));
+```
+— an arbitrary MIME multipart boundary prefix, chosen for this feature with no connection whatsoever to the old `audit-app/` pre-restructure folder name; it just happens to contain that exact substring. Confirmed via a fresh clone of the repo at `f45129d` (not the long-lived sandbox working directory — see the verification-order gap below) followed by `grep -inE 'audit-app|audit-mobile|duration-calculator-php|audit-engine' src/backend/auth/Mailer.php`, which returns exactly and only this one line.
+
+**Fix needed (not yet applied)**: rename the boundary prefix in `Mailer.php` (`sendMailViaSmtp()`) to anything that doesn't contain `audit-app` — e.g. `'mail-boundary-'` or `'ddc-mail-'` — then re-run `scripts/check-repo-hygiene.sh` against the committed/tracked state (see verification-order note below) to confirm green, then re-check `check-deploy-artifact.sh` too since it shares infrastructure with the hygiene script. This does not require re-running the HTTP/smoke test suites — they're unaffected by a comment/string-literal rename — but re-running them anyway costs little and matches this project's own standing discipline.
+
+**A real gap in this session's own process, worth fixing in habit, not just in code**: `scripts/check-repo-hygiene.sh` was run twice this session and reported "ALL CHECKS PASSED" **both times** — but both runs happened *before* `git add`/`git commit`, while `Mailer.php` was still an untracked file. Check 4 iterates over `git ls-files` (tracked files only), so it silently skipped the one file that would have failed. The false "all clear" wasn't a bug in the check itself — it did exactly what it's documented to do (scan tracked files) — it was this session running it at the wrong point in the sequence. **The correct order, going forward**: `git add -A` (or at least stage the new files) *before* running `check-repo-hygiene.sh`, or better, run it against a fresh clone of the exact commit about to be pushed (as this entry's own root-cause confirmation did) rather than the working tree at all. `make build-deploy` + `check-deploy-artifact.sh` were run correctly relative to this same risk in this session (the deploy artifact is assembled from the working tree's actual file contents regardless of git tracking state, so that check wasn't affected) — it's specifically `check-repo-hygiene.sh`'s tracked-files-only scan that this gotcha applies to.
+
+**Not done / open**:
+1. The one-line rename in `Mailer.php` itself.
+2. Re-verification against a fresh clone (not the working tree) of the fixed commit: `check-repo-hygiene.sh` green, then the full local sequence this project already has standing (`smoke_test.php`, `http_api_test.php` against a live server, `make build-deploy` + `check-deploy-artifact.sh`) — the code these checks exercise did not change, but re-running them costs little and this project's own convention is to re-confirm rather than assume a small fix has no side effects.
+3. Push the fix, then **watch the actual triggered GitHub Actions run to completion** (per this file's own established API-polling method, see BUG-040's environment note and the twenty-third session's entry above) rather than assuming green from local reproduction alone — the whole reason this bug exists is that a local pass didn't guarantee a real-CI pass.
+4. Once green: update `docs/DEV_STATUS.md`'s twenty-fifth-session entry (or add a short dated follow-up note to it, matching how the twenty-fourth session's entry was later appended with a CI-confirmation note) to record the real green run's ID, closing the loop the way BUG-040 through BUG-043 were closed above.
+
+**Dependency / hand-off**: entirely actionable with no host/browser access needed — everything required is in this entry. Do not tell Mahdi the twenty-fifth session's backend work is CI-confirmed until this is fixed and a real green run has been observed; as of this writing, `main` is red on `f45129d`.
+
+---

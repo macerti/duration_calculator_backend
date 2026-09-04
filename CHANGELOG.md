@@ -2,6 +2,12 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-04 (twenty-fifth session, addendum) — CI RED on f45129d, root cause diagnosed (BUG-044), fix not yet applied
+
+- Pushed commit `f45129d` (see entry below) triggered CI run `33925751962`, which **failed** at the "Repository hygiene checks" step — every later step (migrations, HTTP tests, frontend build, publish) was skipped as a result.
+- Root cause fully diagnosed, not guessed: an unrelated MIME boundary string literal in the new `Mailer.php` (`'audit-app-' . bin2hex(...)`) happens to contain a substring the hygiene script's stale-pre-restructure-path check looks for. One-line fix identified (rename the boundary prefix); not yet applied — left for the next session. Full detail, plus a real gap this surfaced in this session's own verification order (the hygiene script was run before `git add`, so it silently skipped the file that would have failed), is **BUG-044** in `docs/BUGLOG.md`.
+- No code changed in this addendum — logs only, so the fix and re-verification aren't lost or need rediscovering next session.
+
 ## 2026-09-04 (twenty-fifth session) — no version bump (backend complete but not yet reachable from the UI) — local accounts + RBAC wired end-to-end, verified 42/42 over real HTTP
 
 - **No version bump**: the backend is now fully real and usable via `curl`, but no frontend screen calls any of it yet — nothing a user can reach. Recorded as infrastructure per `docs/ROADMAP.md`'s versioning rule.
