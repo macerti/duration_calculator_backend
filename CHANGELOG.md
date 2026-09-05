@@ -10,6 +10,7 @@ Same versioning convention as the other projects: **x** = overhaul, **y** = feat
 - `docs/DEPLOY.md` step 5, `docs/ROADMAP.md` item 0, and `db/migrations/README.md`'s future-enhancements checklist all updated to reflect this is now automated, with the phpMyAdmin/CLI path kept as an explicit fallback.
 - **One manual step remains, and only once, ever**: production `config.php` needs a `migration_secret` value matching the new GitHub secret — this file is gitignored and lives only on the server, so no pipeline can set it. Until it's added, `/api/migrate` returns 501 and the new deploy step fails loudly (by design).
 - **Not yet done**: this session's push and the resulting GitHub Actions runs (both repos) had not yet been observed at the time this entry was written — see `docs/DEV_STATUS.md` for the "NOT DONE" list, including confirming the manual `config.php` step with Mahdi.
+- **UPDATE, same day**: both pushes confirmed green on real GitHub Actions (source repo 20/20 steps; deploy repo's FTP step green, migration step failing exactly as designed pending the one manual `config.php` step). Mahdi then added `migration_secret` to production `config.php` — re-verified by manually re-triggering `deploy.yml`: **all 7 steps green**, including the migration call and health check against the real production host. The automation gap behind BUG-045 is now closed end-to-end, confirmed, not just implemented.
 
 ---
 
