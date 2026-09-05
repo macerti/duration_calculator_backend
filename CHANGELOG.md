@@ -2,6 +2,17 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-05 (twenty-ninth session) — no version bump — local-accounts/RBAC frontend STARTED, NOT FINISHED; do not deploy this commit
+
+- **No version bump**: nothing here is reachable/working end-to-end yet, and this project's versioning rule ties a feature bump to something a user can actually use — see `docs/ROADMAP.md` FEAT-003.
+- **⚠️ This commit does not compile.** `App.tsx`'s existing `LoginScreen` usage is missing props the rewritten `LoginScreen.tsx` now requires. Full detail, exact blocker, and exact next steps in `docs/DEV_STATUS.md`'s twenty-ninth-session entry — read it before touching this code.
+- Done: `useAuth.ts` rewritten (corrected `AuthUser` type, CSRF token handling, `login`/`register`/`forgotPassword`/`resetPassword`/`resendVerification`/`changePassword`/`updateProfile`), new `useAdminApi.ts` (`/admin/*` client), `TextField.tsx` extended (password/email input support, backward-compatible), `LoginScreen.tsx` given a local email/password form alongside the existing Microsoft button.
+- Not done: `RegisterScreen`, `ForgotPasswordScreen`, `ResetPasswordScreen`, `ProfileScreen`, `AdminUsersScreen`, `AdminRolesScreen` (none exist yet), and `App.tsx` wiring for any of it.
+- **BUG-046 found and fixed** in the same pass (unrelated to the above, found by inspection): `src/frontend/src/api/client.ts` never sent `credentials: 'include'`, so cross-origin calls to the now-auth-gated `/clients`/`/cases` would silently drop the session cookie. Likely latent in production (same-origin there) but a real gap in local/dev testing. See `docs/BUGLOG.md` BUG-046.
+- This entry was pushed on explicit instruction to preserve continuity even though the session ran out of budget mid-feature, rather than losing the work or the exact hand-off detail to a token limit.
+
+---
+
 ## 2026-09-05 (twenty-eighth session) — no version bump (infrastructure-only, no user-visible change) — FEAT-005 automation gap CLOSED: `POST /api/migrate` built and wired into the deploy pipeline; BUG-045's underlying systemic gap is now fixed, not just the one-off incident
 
 - **No version bump**: purely backend/CI infrastructure — nothing under `src/frontend` changed, nothing user-visible in the app itself.

@@ -32,6 +32,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_BASE_URL}${path}`, {
+      // credentials: 'include' is required now that /clients and /cases
+      // are gated behind requireAuth() (see docs/BUGLOG.md BUG-046): the
+      // browser's default 'same-origin' fetch policy silently drops the
+      // session cookie on any cross-origin call (e.g. the Expo dev server
+      // talking to the PHP dev server on a different port), which reads
+      // as an unauthenticated 401 with no indication the cookie was ever
+      // the problem. useAuth.ts's own fetch calls already did this
+      // correctly for the exact same reason — this brings the shared
+      // client in line with that precedent instead of leaving a second,
+      // inconsistent copy of the same fix.
+      credentials: "include",
       ...init,
       headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
     });

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,32 +7,80 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { colors, spacing, radius, typography } from "../theme/tokens";
+import TextField from "../components/TextField";
+import { AuthResult } from "../hooks/useAuth";
 
 interface Props {
   onMicrosoft: () => void;
+  onLogin: (email: string, password: string) => Promise<AuthResult>;
+  onNavigateRegister: () => void;
+  onNavigateForgotPassword: () => void;
+  onResendVerification: (email: string) => Promise<AuthResult>;
   isLoading?: boolean;
   error?: string | null;
+  notice?: string | null;
 }
 
 /**
- * LoginScreen — clean, premium SSO sign-in page.
+ * LoginScreen — local email/password sign-in plus Microsoft SSO.
  *
- * One primary action:
- *   - "Continuer avec Microsoft" → kicks off the Entra ID OIDC flow
+ * Local accounts were added 2026-09-05 (docs/ROADMAP.md item 9) as the
+ * lower-maintenance alternative to SSO Mahdi asked for once Google was
+ * deprioritized. Microsoft SSO stays as a one-click alternative below the
+ * local form — neither replaces the other, per FEAT-002's account model
+ * (a user can have both a local password and a linked SSO identity).
  *
  * The "Continuer avec Google" button was removed 2026-09-03 per explicit
  * instruction (Google SSO deprioritized for now — see docs/ROADMAP.md
  * FEAT-002). Backend Google OAuth code (GoogleOAuth.php, useAuth.ts's
- * loginWithGoogle, /auth/google route) is intentionally left in place,
+ * loginWithGoogle, the /auth/google route) is intentionally left in place,
  * untouched and unlinked, so it's a one-line re-wire away if this is
  * revisited later — do not delete it as "dead code" without checking
  * ROADMAP.md first.
- *
- * No username/password form. No client-side token logic.
- * Clicking the button does a full-page redirect to the PHP backend,
- * which handles the OAuth dance and redirects back on success.
  */
-export default function LoginScreen({ onMicrosoft, isLoading, error }: Props) {
+export default function LoginScreen({
+  onMicrosoft,
+  onLogin,
+  onNavigateRegister,
+  onNavigateForgotPassword,
+  onResendVerification,
+  isLoading,
+  error,
+  notice,
+}: Props) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+
+  const submit = async () => {
+    setLocalError(null);
+    setNeedsVerification(false);
+    setResendSent(false);
+    if (email.trim() === "" || password === "") {
+      setLocalError("Renseignez votre e-mail et votre mot de passe.");
+      return;
+    }
+    setSubmitting(true);
+    const result = await onLogin(email.trim(), password);
+    setSubmitting(false);
+    if (!result.ok) {
+      setLocalError(result.error ?? "Connexion impossible.");
+      if (result.code === "email_not_verified") {
+        setNeedsVerification(true);
+      }
+    }
+  };
+
+  const resend = async () => {
+    const result = await onResendVerification(email.trim());
+    if (result.ok) setResendSent(true);
+  };
+
+  const busy = isLoading || submitting;
+
   return (
     <View style={styles.root}>
       <View style={styles.card}>
@@ -48,17 +96,78 @@ export default function LoginScreen({ onMicrosoft, isLoading, error }: Props) {
         <View style={styles.divider} />
 
         <Text style={styles.signInHeading}>Connectez-vous pour continuer</Text>
-        <Text style={styles.signInBody}>
-          Votre compte Microsoft vous donne accès à l'outil.{"\n"}
-          Aucun mot de passe supplémentaire n'est requis.
-        </Text>
 
-        {/* Error banner */}
-        {error ? (
-          <View style={styles.errorBanner}>
-            <Text style={styles.errorBannerText}>⚠ {error}</Text>
+        {/* Success banner (e.g. email just confirmed) */}
+        {notice ? (
+          <View style={styles.noticeBanner}>
+            <Text style={styles.noticeBannerText}>✓ {notice}</Text>
           </View>
         ) : null}
+
+        {/* Error banner */}
+        {(localError || error) ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>⚠ {localError ?? error}</Text>
+            {needsVerification && !resendSent ? (
+              <Pressable onPress={resend} accessibilityRole="button">
+                <Text style={styles.errorBannerLink}>Renvoyer l'e-mail de confirmation</Text>
+              </Pressable>
+            ) : null}
+            {resendSent ? (
+              <Text style={styles.errorBannerLink}>E-mail de confirmation renvoyé (si le compte existe).</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        {/* Local email/password form */}
+        <TextField
+          label="Adresse e-mail"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="prenom.nom@macerti.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+        />
+        <TextField
+          label="Mot de passe"
+          value={password}
+          onChangeText={setPassword}
+          placeholder="••••••••••"
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="password"
+        />
+
+        <Pressable
+          style={({ pressed }) => [styles.primaryButton, pressed && styles.buttonPressed]}
+          onPress={submit}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Se connecter"
+        >
+          {submitting ? (
+            <ActivityIndicator size="small" color={colors.contentInverse} />
+          ) : (
+            <Text style={styles.primaryButtonText}>Se connecter</Text>
+          )}
+        </Pressable>
+
+        <View style={styles.linksRow}>
+          <Pressable onPress={onNavigateForgotPassword} accessibilityRole="button">
+            <Text style={styles.linkText}>Mot de passe oublié ?</Text>
+          </Pressable>
+          <Pressable onPress={onNavigateRegister} accessibilityRole="button">
+            <Text style={styles.linkText}>Créer un compte</Text>
+          </Pressable>
+        </View>
+
+        {/* Divider between local login and SSO */}
+        <View style={styles.orDividerRow}>
+          <View style={styles.orDividerLine} />
+          <Text style={styles.orDividerText}>ou</Text>
+          <View style={styles.orDividerLine} />
+        </View>
 
         {/* Microsoft button */}
         <Pressable
@@ -68,7 +177,7 @@ export default function LoginScreen({ onMicrosoft, isLoading, error }: Props) {
             pressed && styles.buttonPressed,
           ]}
           onPress={onMicrosoft}
-          disabled={isLoading}
+          disabled={busy}
           accessibilityRole="button"
           accessibilityLabel="Continuer avec Microsoft"
         >
@@ -160,13 +269,20 @@ const styles = StyleSheet.create({
     fontSize: typography.title,
     fontWeight: "700",
     color: colors.contentPrimary,
-    marginBottom: spacing.xs,
+    marginBottom: spacing.md,
   },
-  signInBody: {
-    fontSize: typography.body,
-    color: colors.contentSecondary,
-    lineHeight: 20,
-    marginBottom: spacing.xl,
+  noticeBanner: {
+    backgroundColor: colors.successSurface,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+  },
+  noticeBannerText: {
+    color: colors.success,
+    fontSize: typography.small,
+    fontWeight: "600",
   },
   errorBanner: {
     backgroundColor: colors.errorSurface,
@@ -180,6 +296,52 @@ const styles = StyleSheet.create({
     color: colors.error,
     fontSize: typography.small,
     fontWeight: "600",
+  },
+  errorBannerLink: {
+    color: colors.error,
+    fontSize: typography.small,
+    fontWeight: "700",
+    textDecorationLine: "underline",
+    marginTop: spacing.xs,
+  },
+  primaryButton: {
+    backgroundColor: colors.actionPrimary,
+    borderRadius: radius.lg,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: spacing.xs,
+    marginBottom: spacing.md,
+  },
+  primaryButtonText: {
+    color: colors.actionPrimaryText,
+    fontSize: typography.bodyLarge,
+    fontWeight: "700",
+  },
+  linksRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: spacing.lg,
+  },
+  linkText: {
+    color: colors.link,
+    fontSize: typography.small,
+    fontWeight: "600",
+  },
+  orDividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+  },
+  orDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.borderSubtle,
+  },
+  orDividerText: {
+    marginHorizontal: spacing.sm,
+    color: colors.contentTertiary,
+    fontSize: typography.small,
   },
   ssoButton: {
     flexDirection: "row",
