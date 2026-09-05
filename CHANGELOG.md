@@ -2,6 +2,17 @@
 
 Same versioning convention as the other projects: **x** = overhaul, **y** = feature, **z** = bugfix.
 
+## 2026-09-05 (twenty-eighth session) — no version bump (infrastructure-only, no user-visible change) — FEAT-005 automation gap CLOSED: `POST /api/migrate` built and wired into the deploy pipeline; BUG-045's underlying systemic gap is now fixed, not just the one-off incident
+
+- **No version bump**: purely backend/CI infrastructure — nothing under `src/frontend` changed, nothing user-visible in the app itself.
+- Closed the gap that caused BUG-045: built a shared-secret-authenticated `POST /api/migrate` endpoint in `src/backend/api/index.php` (`GET` = status only, `POST`/`GET ?apply=1` = apply; `X-Migrate-Secret` header or `?secret=` query param, `hash_equals()`, rate-limited via the existing `rateLimitCheck()` helper). Wired `macerti/duration_calculator`'s `deploy.yml` to call it right after every FTP sync, using a new `MIGRATE_SECRET` GitHub Actions secret. Full detail in `docs/BUGLOG.md` BUG-045's 2026-09-05 update and `docs/DEV_STATUS.md`'s twenty-eighth-session entry.
+- Tested for real against PHP 8.3 + MariaDB 10.11 installed directly in-session (not just syntax-checked): `smoke_test.php` 24/24, `http_api_test.php` **50/50** (44 pre-existing + 6 new cases for this endpoint, including a second `POST` proving idempotent no-op behavior). One real bug found and fixed by this testing: a missing `use function AuditEngine\getPdo;` import (500 "Call to undefined function").
+- `docs/DEPLOY.md` step 5, `docs/ROADMAP.md` item 0, and `db/migrations/README.md`'s future-enhancements checklist all updated to reflect this is now automated, with the phpMyAdmin/CLI path kept as an explicit fallback.
+- **One manual step remains, and only once, ever**: production `config.php` needs a `migration_secret` value matching the new GitHub secret — this file is gitignored and lives only on the server, so no pipeline can set it. Until it's added, `/api/migrate` returns 501 and the new deploy step fails loudly (by design).
+- **Not yet done**: this session's push and the resulting GitHub Actions runs (both repos) had not yet been observed at the time this entry was written — see `docs/DEV_STATUS.md` for the "NOT DONE" list, including confirming the manual `config.php` step with Mahdi.
+
+---
+
 ## 2026-09-04 (twenty-seventh session) — no version bump (no source code changed) — BUG-045: diagnosed a full production SSO outage caused by a never-applied production migration; process gap closed in docs, runbook handed off
 
 - **No version bump**: nothing under `src/` changed this session — the root cause is an operational gap (a migration that was never run against production), not a defect in this repository's code. Full detail in `docs/BUGLOG.md` BUG-045 and `docs/DEV_STATUS.md`'s twenty-seventh-session entry; summary here.

@@ -78,6 +78,50 @@ echo "Deployment-topology HTTP regression tests against $base\n";
 check($status === 200, 'GET /health returns 200', "status=$status");
 check(($health['dbConnected'] ?? false) === true, 'health reports MariaDB connected');
 
+// --- POST/GET /migrate — production migration endpoint (BUG-045 / ROADMAP P1 item 0) ---
+// Uses its own request() calls (withSession=false) since this endpoint is
+// intentionally NOT session/CSRF-gated — auth here is the shared secret a
+// real deploy sends via X-Migrate-Secret, which CI's generated config.php
+// sets to $migrateSecret below (see build-test-publish.yml).
+$migrateSecret = 'ci-test-migrate-secret-do-not-use-in-prod';
+function requestWithSecret(string $method, string $url, ?string $secret): array
+{
+    $ch = curl_init($url);
+    $headers = ['Content-Type: application/json'];
+    if ($secret !== null) $headers[] = 'X-Migrate-Secret: ' . $secret;
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CUSTOMREQUEST => $method,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_TIMEOUT => 15,
+    ]);
+    $raw = curl_exec($ch);
+    $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return [$status, $raw !== false && $raw !== '' ? json_decode($raw, true) : null];
+}
+
+[$status, $body] = requestWithSecret('GET', "$base/migrate", null);
+check($status === 401, 'GET /migrate with no secret is rejected', "status=$status");
+
+[$status, $body] = requestWithSecret('GET', "$base/migrate", 'the-wrong-secret');
+check($status === 401, 'GET /migrate with wrong secret is rejected', "status=$status");
+
+[$status, $body] = requestWithSecret('GET', "$base/migrate", $migrateSecret);
+check($status === 200, 'GET /migrate with correct secret returns status', "status=$status");
+check(($body['mode'] ?? '') === 'status', 'GET /migrate does not apply anything (status mode)');
+check(is_array($body['migrations'] ?? null), 'GET /migrate lists migrations array');
+
+[$status, $body] = requestWithSecret('POST', "$base/migrate", $migrateSecret);
+check($status === 200, 'POST /migrate with correct secret applies migrations', "status=$status");
+check(($body['success'] ?? false) === true, 'POST /migrate reports success');
+// CI's own earlier "Run database migrations" workflow step already applied
+// everything via the CLI before the HTTP server even started, so this call
+// is expected to be a pure no-op — which is exactly the idempotence
+// property this endpoint depends on when a real deploy calls it more than
+// once (e.g. a retried workflow run).
+check(($body['applied'] ?? -1) === 0, 'POST /migrate is a no-op when already current (idempotent)', 'applied=' . ($body['applied'] ?? '?'));
+
 // =========================================================================
 // Auth + RBAC — this test user is the first ever registered in this fresh
 // CI/local database, so it auto-bootstraps as administrateur (see

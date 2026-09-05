@@ -291,6 +291,6 @@ Failed migrations are recorded in `migrations_metadata` with `status = 'failed'`
 ## Future Enhancements
 
 - [ ] **Rollback capability** — Store reverse migrations to enable rollback (not yet implemented)
-- [ ] **API endpoint** — Expose `/api/migrate` for web-based migration triggering (safer than current CI-only approach)
+- [x] **API endpoint** — `POST /api/migrate` (2026-09-05), shared-secret-authenticated, called automatically by the deployment repo's `deploy.yml` right after every FTP sync. This is now the primary way migrations reach production — see `docs/DEPLOY.md` step 5 and `docs/BUGLOG.md` BUG-045 for why it was needed (a production outage from a migration that was never applied). `GET` returns status only; `POST` (or `GET ?apply=1`) applies. Auth via `X-Migrate-Secret` header or `?secret=` query param, checked with `hash_equals()`; rate-limited per IP via the existing `rateLimitCheck()` helper.
 - [ ] **Migration validation** — Dry-run mode to preview changes before applying
 - [ ] **Batch migrations** — Group related migrations into "update bundles" for better UX

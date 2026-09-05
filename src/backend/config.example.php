@@ -32,6 +32,25 @@ return [
     'debug' => false,
 
     // -----------------------------------------------------------------
+    // Production database migrations — POST /api/migrate (see
+    // docs/ROADMAP.md P1 item 0, docs/BUGLOG.md BUG-045). deploy.yml in
+    // the deployment repo calls this endpoint right after every FTP sync
+    // so pending db/migrations/*.sql files are actually applied to the
+    // real production database, not just uploaded as files.
+    //
+    // Set this to a long random value (e.g. `openssl rand -hex 32`) and
+    // put the SAME value in the `MIGRATE_SECRET` GitHub Actions secret on
+    // the `macerti/duration_calculator` repo. Leave empty ('') to disable
+    // the endpoint entirely (it returns 501 and does nothing).
+    //
+    // This is the ONLY step that must still be done by hand, and only
+    // once: config.php lives solely on the server (gitignored, never
+    // deployed by any pipeline), so nothing that runs on GitHub can set
+    // it for you. Everything else is automatic after this one line is in
+    // place.
+    'migration_secret' => '',
+
+    // -----------------------------------------------------------------
     // SSO — Microsoft Entra ID (Azure AD) & Google OAuth 2.0
     // Leave empty ('') to disable that provider.
     // Never commit real secrets — keep them only in the live config.php.

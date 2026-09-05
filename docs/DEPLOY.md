@@ -37,7 +37,7 @@ There is no separate API subdomain and no separate frontend document root — `e
 1. A developer pushes a tested source change to `main` in this repository (`macerti/duration_calculator_source`).
 2. `.github/workflows/build-test-publish.yml` runs the full regression suite (MariaDB + PHP smoke/HTTP tests, frontend typecheck), builds the Expo web export with `EXPO_PUBLIC_API_URL` set to the real production API URL, assembles the single-folder artifact described above, and pushes it to **macerti/duration_calculator**.
 3. That deployment repository has its **own separate FTP workflow** (not owned by this repository — do not modify it from source-side CI changes) which ships the artifact to the real `tools.macerti.com` hosting.
-4. **⚠️ If the push included a new file under `src/backend/db/migrations/`, someone must still manually apply it to the production database — see step 5 below.** Neither workflow above does this; both only ever touch a CI-only test database or plain files over FTP. Skipping this step is exactly what caused BUG-045 (`docs/BUGLOG.md`) — a full production SSO outage from code that shipped ahead of its own migration.
+4. **The deployment repo's `deploy.yml` now runs the migration for you** — right after its FTP sync finishes, it calls `POST /api/migrate` on the live API with a shared secret, which applies any pending file under `src/backend/db/migrations/` directly against the real production database. This closes the gap that caused BUG-045 (`docs/BUGLOG.md`) — a full production SSO outage from code that shipped ahead of its own migration. **The only manual step left, and only once ever:** `config.php` on the live server needs a `migration_secret` value matching the deploy repo's `MIGRATE_SECRET` GitHub Actions secret — see step 5 below. Until that one line is in place, the automated call responds `501` (not configured) and the workflow step goes red as a visible reminder, rather than silently doing nothing.
 
 Manual upload (below) is the fallback for first-time setup or if the FTP workflow needs a one-off manual push — not the normal day-to-day path.
 
@@ -67,9 +67,29 @@ plain text.
 
 ## 5. Run the database schema and any pending migrations
 
-**⚠️ This step is NOT automated anywhere in the pipeline — read this before assuming a deploy "just works" the way `docs/ROADMAP.md` FEAT-005 originally hoped it would.** The source repo's CI only ever runs migrations against its own throwaway test database (see `.github/workflows/build-test-publish.yml`'s `mariadb` service — it's created fresh and destroyed at the end of every CI run). The deploy repo's own workflow (`macerti/duration_calculator`'s `deploy.yml`) uses a pure FTP file-sync action with no ability to execute anything on the server. **Nothing, anywhere in this pipeline, has ever run a migration against the real production database.** This caused a real production outage — see `docs/BUGLOG.md` BUG-045 (Microsoft/Google SSO login broke for every user because code depending on a new table was deployed before the table existed in production) — so treat this step as mandatory, not optional, every single time `src/backend/db/migrations/` gains a new file.
+**As of 2026-09-05 this step is automated** — `macerti/duration_calculator`'s `deploy.yml` calls `POST https://tools.macerti.com/duration_calculator/api/migrate` (a shared-secret-protected endpoint added to `src/backend/api/index.php`) immediately after every FTP sync. It applies whatever is new under `db/migrations/` and is a safe no-op otherwise. **You should not normally need to do anything here by hand again.** Full design/rationale in `src/backend/db/migrations/README.md` and `docs/BUGLOG.md` BUG-045.
 
-**First-time setup (a brand new database with none of this app's tables yet)**:
+**One-time setup required before the automation works** (config.php lives only on the server — gitignored, never touched by any pipeline — so this line can only ever be added by hand):
+```php
+'migration_secret' => 'PASTE_THE_SAME_VALUE_AS_THE_MIGRATE_SECRET_GITHUB_ACTIONS_SECRET_HERE',
+```
+Add this to the live `config.php` (see step 3). Until it's set, `/api/migrate` responds `501` and the deploy workflow's migration step fails loudly — that's intentional (a visible red X beats a silent gap), and it only ever needs doing once. The `MIGRATE_SECRET` value itself lives in the `macerti/duration_calculator` repo's GitHub Actions secrets (Settings → Secrets and variables → Actions) — ask whoever set it up (or generate a new long random value with `openssl rand -hex 32` and update both places, if you're rotating it).
+
+You can also check status or trigger it by hand — useful if you ever suspect a migration didn't apply, or want to confirm before relying on the automated step:
+```bash
+# Status only, applies nothing:
+curl -H "X-Migrate-Secret: <the secret>" https://tools.macerti.com/duration_calculator/api/migrate
+
+# Actually apply pending migrations:
+curl -X POST -H "X-Migrate-Secret: <the secret>" https://tools.macerti.com/duration_calculator/api/migrate
+
+# Or from a plain browser URL (no curl/terminal needed):
+https://tools.macerti.com/duration_calculator/api/migrate?secret=<the secret>&apply=1
+```
+
+**Fallback, if the endpoint is ever unreachable or misconfigured** (e.g. brand new database, or you don't trust the automation yet and want to watch it happen):
+
+*First-time setup (a brand new database with none of this app's tables yet)*:
 Open phpMyAdmin (DA PMA SignOn from your DirectAdmin dashboard), select
 your database, go to the **SQL** tab, paste the contents of
 `db/schema.sql`, and run it. You should get 4 new tables:
@@ -78,7 +98,7 @@ your database, go to the **SQL** tab, paste the contents of
 during the 2026-09-02 restructure session — an earlier version of this
 file said 3 tables, missing `clients`.)
 
-**Every deploy after that (including this one, and every future one)**: run the migration framework instead of touching `schema.sql` again — it safely detects what's already there and only applies what's new:
+*Any other time*: run the migration framework instead of touching `schema.sql` again — it safely detects what's already there and only applies what's new:
 ```bash
 cd ~/public_html/duration_calculator   # or wherever the app folder actually is
 php db/migrate.php

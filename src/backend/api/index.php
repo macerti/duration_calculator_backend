@@ -19,6 +19,7 @@ require_once __DIR__ . '/../db/userRepo.php';
 require_once __DIR__ . '/../db/roleRepo.php';
 require_once __DIR__ . '/../db/permissionRepo.php';
 require_once __DIR__ . '/../db/rateLimiter.php';
+require_once __DIR__ . '/../db/Migrations.php';
 require_once __DIR__ . '/../auth/OAuthSession.php';
 require_once __DIR__ . '/../auth/MicrosoftOAuth.php';
 require_once __DIR__ . '/../auth/GoogleOAuth.php';
@@ -27,6 +28,7 @@ require_once __DIR__ . '/../auth/Mailer.php';
 
 use function AuditEngine\loadDefaultParameterSet;
 use function AuditEngine\loadConfig;
+use function AuditEngine\getPdo;
 use function AuditEngine\pingDb;
 use function AuditEngine\getActiveParameterSet;
 use function AuditEngine\calculateNae;
@@ -89,6 +91,7 @@ use function AuditEngine\createPermission;
 use function AuditEngine\updatePermission;
 use function AuditEngine\deletePermission;
 use function AuditEngine\rateLimitCheck;
+use AuditEngine\Migrations;
 
 // --- CORS ---
 $config = null;
@@ -190,6 +193,99 @@ try {
             'dbConnected' => pingDb(),
             'dbBackedParameters' => $dbAvailable,
         ]);
+    }
+
+    // --- GET/POST /migrate — production database migration endpoint ---
+    // Closes the FEAT-005 automation gap that caused BUG-045 (see
+    // docs/BUGLOG.md and docs/ROADMAP.md P1 item 0): nothing in the
+    // deploy pipeline ever applied migrations to the real production
+    // database, only to CI's own ephemeral one. `deploy.yml` in the
+    // deployment repo now calls this endpoint (POST) right after its FTP
+    // sync completes.
+    //
+    // Not session/CSRF-gated like the rest of this file — the caller is
+    // GitHub Actions, which has no browser session to carry. Auth is a
+    // single shared secret instead, compared with hash_equals() (same
+    // timing-safe pattern as requireCsrf() in Guard.php) and rate-limited
+    // per IP like every other unauthenticated endpoint here. Deliberately
+    // uses a custom header (X-Migrate-Secret), not Authorization: some
+    // shared-hosting Apache/PHP setups strip the Authorization header
+    // before PHP ever sees it, while this codebase's own custom
+    // X-CSRF-Token header is already confirmed working end-to-end in
+    // production — same reasoning applied here rather than risking a
+    // repeat of a BUG-030-style "works everywhere except the real host"
+    // surprise. A `?secret=` query param is also accepted, so this is
+    // directly triggerable from a plain browser URL by a human (e.g.
+    // Mahdi), not only from CI — the ROADMAP explicitly asked for that.
+    //
+    // GET is read-only by default (mirrors `php migrate.php --check`) —
+    // safe for a health-check bot, a link preview, or a curious visitor
+    // to hit by accident. It only applies migrations if `apply=1` is
+    // *also* present alongside a valid secret, so a bare GET can never
+    // have a side effect. POST always applies (that is what deploy.yml
+    // sends) — applying is idempotent either way (see Migrations.php),
+    // so there is no harm if this is ever called more than once.
+    if (($method === 'GET' || $method === 'POST') && $segments === ['migrate']) {
+        $configuredSecret = (string)($config['migration_secret'] ?? '');
+        if ($configuredSecret === '') {
+            // Mirrors the existing "SSO not configured" 501 pattern below —
+            // this is an operational-state signal, not a schema/DB detail,
+            // so it is safe to return to an unauthenticated caller.
+            respond(['error' => 'Migration endpoint is not configured on this server.'], 501);
+        }
+
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        if (!rateLimitCheck('migrate:' . $ip, 10, 600)) {
+            respond(['error' => 'Too many attempts. Try again later.'], 429);
+        }
+
+        $providedSecret = (string)($_SERVER['HTTP_X_MIGRATE_SECRET'] ?? ($_GET['secret'] ?? ''));
+        if ($providedSecret === '' || !hash_equals($configuredSecret, $providedSecret)) {
+            // Deliberately generic — do not distinguish "missing" from
+            // "wrong" for an unauthenticated caller.
+            respond(['error' => 'Unauthorized.'], 401);
+        }
+
+        try {
+            $migrator = new Migrations(getPdo());
+        } catch (\Throwable $e) {
+            error_log('[duration_calculator] /migrate: framework init failed: ' . $e->getMessage());
+            respond(['error' => 'Migration framework could not initialize. Check server error log.'], 500);
+        }
+
+        $shouldApply = ($method === 'POST') || (($_GET['apply'] ?? '') === '1');
+
+        if (!$shouldApply) {
+            respond(['mode' => 'status', 'migrations' => $migrator->getStatus()]);
+        }
+
+        $migrationsDir = __DIR__ . '/../db/migrations';
+        $result = $migrator->run($migrationsDir);
+
+        if ($result['success']) {
+            respond([
+                'success' => true,
+                'applied' => $result['applied'],
+                'skipped' => $result['skipped'],
+            ]);
+        }
+
+        error_log('[duration_calculator] /migrate failed: ' . $result['error']);
+        respond([
+            'success' => false,
+            'applied' => $result['applied'],
+            'skipped' => $result['skipped'],
+            // Same debug-gated detail level as the top-level catch block
+            // below — a migration error can legitimately contain SQL/table
+            // names, which is exactly the "don't leak schema details to an
+            // unauthenticated caller" case ROADMAP item 0 called out. This
+            // caller IS authenticated (secret already verified above), but
+            // keeping the same convention as the rest of the file is safer
+            // than inventing a second disclosure rule for one endpoint.
+            'error' => ($config['debug'] ?? false) === true
+                ? $result['error']
+                : 'Migration failed. Check server error log for detail.',
+        ], 500);
     }
 
     if ($method === 'GET' && $segments === ['parameters']) {
